@@ -54,3 +54,10 @@ export class TooManyRequestsError extends AppError {
     this.name = 'TooManyRequestsError';
   }
 }
+
+export class ServiceUnavailableError extends AppError {
+  constructor(message = 'Service temporarily unavailable') {
+    super(503, 'SERVICE_UNAVAILABLE', message);
+    this.name = 'ServiceUnavailableError';
+  }
+}

@@ -1,8 +1,8 @@
 // Donate App — database schema
-// Phase 1 scope: only the tables needed to prove the auth pipeline end to end
-// (register / login / refresh). The full domain model (games, orders, payments,
-// providers, admin RBAC, etc.) is introduced incrementally in later phases per
-// the phased build plan — do not add it here ahead of schedule.
+// Money is always integer minor units (e.g. amountMinor=10000, currency="UZS"
+// means 100.00 UZS) — never floating point. Every model that stores a price
+// carries its own `currency` rather than assuming a global default, so the
+// platform can expand beyond UZS later without a schema change.
 
 generator client {
   provider = "prisma-client-js"
@@ -12,6 +12,10 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+// ---------------------------------------------------------------------------
+// Customer identity & auth
+// ---------------------------------------------------------------------------
 
 enum UserRole {
   CUSTOMER
@@ -41,6 +45,7 @@ model User {
   updatedAt    DateTime   @updatedAt @map("updated_at")
 
   refreshTokens RefreshToken[]
+  orders        Order[]
 
   @@map("users")
 }
@@ -59,4 +64,400 @@ model RefreshToken {
 
   @@index([userId])
   @@map("refresh_tokens")
+}
+
+// ---------------------------------------------------------------------------
+// Admin identity & auth — deliberately separate from User/RefreshToken:
+// different login surface, different RBAC, must never be reachable through
+// the customer-facing auth endpoints.
+// ---------------------------------------------------------------------------
+
+enum AdminRole {
+  SUPER_ADMIN
+  ADMIN
+  OPERATIONS
+  SUPPORT
+  FINANCE
+  CONTENT_MANAGER
+
+  @@map("admin_role")
+}
+
+model AdminUser {
+  id           String    @id @default(uuid()) @db.Uuid
+  email        String    @unique
+  passwordHash String    @map("password_hash")
+  fullName     String    @map("full_name")
+  role         AdminRole @default(SUPPORT)
+  isActive     Boolean   @default(true) @map("is_active")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  refreshTokens AdminRefreshToken[]
+  auditLogs     AuditLog[]
+
+  @@map("admin_users")
+}
+
+model AdminRefreshToken {
+  id          String    @id @default(uuid()) @db.Uuid
+  adminUserId String    @map("admin_user_id") @db.Uuid
+  adminUser   AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+  tokenHash   String    @unique @map("token_hash")
+  expiresAt   DateTime  @map("expires_at")
+  revokedAt   DateTime? @map("revoked_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@index([adminUserId])
+  @@map("admin_refresh_tokens")
+}
+
+// ---------------------------------------------------------------------------
+// Catalog: games & products
+// ---------------------------------------------------------------------------
+
+enum GameAvailability {
+  ACTIVE // has at least one provider-backed product and can be purchased
+  COMING_SOON // visible in the catalog but not yet purchasable
+  DISABLED // hidden from the catalog entirely
+
+  @@map("game_availability")
+}
+
+model Game {
+  id           String            @id @default(uuid()) @db.Uuid
+  slug         String            @unique
+  name         String
+  // Free-text category label (e.g. "MOBA", "Battle Royale"). A dedicated
+  // Category table would be premature at this catalog size — this is enough
+  // for the home screen's category filter.
+  category     String?
+  logoEmoji    String?           @map("logo_emoji")
+  availability GameAvailability  @default(COMING_SOON)
+  sortOrder    Int               @default(0) @map("sort_order")
+  createdAt    DateTime          @default(now()) @map("created_at")
+  updatedAt    DateTime          @updatedAt @map("updated_at")
+
+  products Product[]
+  orders   Order[]
+
+  @@map("games")
+}
+
+model Product {
+  id          String   @id @default(uuid()) @db.Uuid
+  gameId      String   @map("game_id") @db.Uuid
+  game        Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  amountMinor Int      @map("amount_minor")
+  currency    String   @default("UZS")
+  isActive    Boolean  @default(true) @map("is_active")
+  // Marks development/seed catalog data so it's never confused with a real,
+  // provider-verified product once real catalogs are connected.
+  isTest      Boolean  @default(true) @map("is_test")
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  providerProducts ProviderProduct[]
+  orderItems       OrderItem[]
+
+  @@index([gameId])
+  @@map("products")
+}
+
+// ---------------------------------------------------------------------------
+// Providers — both payment providers (Payme/Click/...) and top-up/fulfillment
+// providers (the game-credit suppliers) live in the same table distinguished
+// by `type`, since they share identical operational concerns: health,
+// credentials-on-backend-only, and per-product mapping.
+// ---------------------------------------------------------------------------
+
+enum ProviderType {
+  PAYMENT
+  TOPUP
+
+  @@map("provider_type")
+}
+
+enum ProviderHealthStatus {
+  UNKNOWN
+  HEALTHY
+  DEGRADED
+  DOWN
+
+  @@map("provider_health_status")
+}
+
+model Provider {
+  id            String                @id @default(uuid()) @db.Uuid
+  code          String                @unique
+  name          String
+  type          ProviderType
+  isActive      Boolean               @default(true) @map("is_active")
+  healthStatus  ProviderHealthStatus  @default(UNKNOWN) @map("health_status")
+  lastCheckedAt DateTime?             @map("last_checked_at")
+  createdAt     DateTime              @default(now()) @map("created_at")
+  updatedAt     DateTime              @updatedAt @map("updated_at")
+
+  providerProducts ProviderProduct[]
+  providerAttempts ProviderAttempt[]
+  payments         Payment[]
+
+  @@map("providers")
+}
+
+model ProviderProduct {
+  id                  String   @id @default(uuid()) @db.Uuid
+  providerId          String   @map("provider_id") @db.Uuid
+  provider            Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  productId           String   @map("product_id") @db.Uuid
+  product             Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  providerProductCode String   @map("provider_product_code")
+  // Lower priority is tried first — enables automatic fallback to another
+  // provider for the same product when the primary one is unhealthy.
+  priority            Int      @default(0)
+  isActive            Boolean  @default(true) @map("is_active")
+  createdAt           DateTime @default(now()) @map("created_at")
+
+  @@unique([providerId, productId])
+  @@index([productId])
+  @@map("provider_products")
+}
+
+// ---------------------------------------------------------------------------
+// Orders — explicit state machine enforced in application code
+// (see backend/src/modules/orders/order-state-machine.ts), never a bare
+// `UPDATE orders SET status = ...`.
+// ---------------------------------------------------------------------------
+
+enum OrderStatus {
+  PENDING
+  PAID
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+  REFUNDED
+
+  @@map("order_status")
+}
+
+model Order {
+  id             String      @id @default(uuid()) @db.Uuid
+  orderNumber    String      @unique @map("order_number")
+  userId         String      @map("user_id") @db.Uuid
+  user           User        @relation(fields: [userId], references: [id])
+  gameId         String      @map("game_id") @db.Uuid
+  game           Game        @relation(fields: [gameId], references: [id])
+  playerId       String      @map("player_id")
+  serverId       String?     @map("server_id")
+  amountMinor    Int         @map("amount_minor")
+  currency       String      @default("UZS")
+  status         OrderStatus @default(PENDING)
+  // Client-supplied key (e.g. a UUID generated once per checkout attempt) so
+  // a retried "Buy now" tap can never create two orders.
+  idempotencyKey String      @unique @map("idempotency_key")
+  failureReason  String?     @map("failure_reason")
+  createdAt      DateTime    @default(now()) @map("created_at")
+  updatedAt      DateTime    @updatedAt @map("updated_at")
+  paidAt         DateTime?   @map("paid_at")
+  completedAt    DateTime?   @map("completed_at")
+
+  items            OrderItem[]
+  statusHistory     OrderStatusHistory[]
+  payments          Payment[]
+  providerAttempts  ProviderAttempt[]
+
+  @@index([userId])
+  @@index([status])
+  @@map("orders")
+}
+
+model OrderItem {
+  id               String   @id @default(uuid()) @db.Uuid
+  orderId          String   @map("order_id") @db.Uuid
+  order            Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId        String   @map("product_id") @db.Uuid
+  product          Product  @relation(fields: [productId], references: [id])
+  // Snapshots at purchase time so a later price/name change never rewrites
+  // history on past orders.
+  productName      String   @map("product_name")
+  quantity         Int      @default(1)
+  unitAmountMinor  Int      @map("unit_amount_minor")
+  totalAmountMinor Int      @map("total_amount_minor")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  @@index([orderId])
+  @@map("order_items")
+}
+
+model OrderStatusHistory {
+  id         String       @id @default(uuid()) @db.Uuid
+  orderId    String       @map("order_id") @db.Uuid
+  order      Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  fromStatus OrderStatus? @map("from_status")
+  toStatus   OrderStatus  @map("to_status")
+  reason     String?
+  createdAt  DateTime     @default(now()) @map("created_at")
+
+  @@index([orderId])
+  @@map("order_status_history")
+}
+
+// ---------------------------------------------------------------------------
+// Payments — payment *intent/status* is intentionally separate from order
+// status: a payment can succeed while fulfillment (ProviderAttempt) is still
+// pending or fails, and an order can be refunded well after payment settled.
+// ---------------------------------------------------------------------------
+
+enum PaymentStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+
+  @@map("payment_status")
+}
+
+model Payment {
+  id             String        @id @default(uuid()) @db.Uuid
+  orderId        String        @map("order_id") @db.Uuid
+  order          Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  providerId     String?       @map("provider_id") @db.Uuid
+  provider       Provider?     @relation(fields: [providerId], references: [id])
+  amountMinor    Int           @map("amount_minor")
+  currency       String        @default("UZS")
+  status         PaymentStatus @default(PENDING)
+  idempotencyKey String        @unique @map("idempotency_key")
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+
+  attempts PaymentAttempt[]
+
+  @@index([orderId])
+  @@map("payments")
+}
+
+enum PaymentAttemptStatus {
+  INITIATED
+  SUCCEEDED
+  FAILED
+
+  @@map("payment_attempt_status")
+}
+
+model PaymentAttempt {
+  id          String               @id @default(uuid()) @db.Uuid
+  paymentId   String               @map("payment_id") @db.Uuid
+  payment     Payment              @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  providerRef String?              @map("provider_ref")
+  status      PaymentAttemptStatus @default(INITIATED)
+  rawResponse Json?                @map("raw_response")
+  createdAt   DateTime             @default(now()) @map("created_at")
+
+  @@index([paymentId])
+  @@map("payment_attempts")
+}
+
+// ---------------------------------------------------------------------------
+// Fulfillment — one row per attempt to actually deliver the top-up through a
+// TOPUP provider. Kept separate from Payment: money can be captured
+// successfully while fulfillment retries independently.
+// ---------------------------------------------------------------------------
+
+enum ProviderAttemptStatus {
+  PENDING
+  SUCCESS
+  FAILED
+
+  @@map("provider_attempt_status")
+}
+
+model ProviderAttempt {
+  id                     String                 @id @default(uuid()) @db.Uuid
+  orderId                String                 @map("order_id") @db.Uuid
+  order                  Order                  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  providerId             String                 @map("provider_id") @db.Uuid
+  provider               Provider               @relation(fields: [providerId], references: [id])
+  providerProductCode    String                 @map("provider_product_code")
+  attemptNumber          Int                    @default(1) @map("attempt_number")
+  status                 ProviderAttemptStatus  @default(PENDING)
+  providerTransactionId  String?                @map("provider_transaction_id")
+  requestPayload         Json?                  @map("request_payload")
+  responsePayload        Json?                  @map("response_payload")
+  createdAt              DateTime               @default(now()) @map("created_at")
+  completedAt            DateTime?              @map("completed_at")
+
+  @@index([orderId])
+  @@map("provider_attempts")
+}
+
+// ---------------------------------------------------------------------------
+// Webhooks — processing must be idempotent: the unique constraint on
+// (provider, providerEventId) is the actual guarantee, application code must
+// not rely on "we probably won't get it twice".
+// ---------------------------------------------------------------------------
+
+enum WebhookStatus {
+  RECEIVED
+  PROCESSED
+  FAILED
+  IGNORED
+
+  @@map("webhook_status")
+}
+
+model WebhookEvent {
+  id              String        @id @default(uuid()) @db.Uuid
+  provider        String
+  providerEventId String        @map("provider_event_id")
+  eventType       String        @map("event_type")
+  receivedAt      DateTime      @default(now()) @map("received_at")
+  processedAt     DateTime?     @map("processed_at")
+  status          WebhookStatus @default(RECEIVED)
+  payload         Json
+
+  @@unique([provider, providerEventId])
+  @@map("webhook_events")
+}
+
+// ---------------------------------------------------------------------------
+// Promotions & audit
+// ---------------------------------------------------------------------------
+
+model Promotion {
+  id          String    @id @default(uuid()) @db.Uuid
+  code        String    @unique
+  title       String
+  description String?
+  isActive    Boolean   @default(true) @map("is_active")
+  startsAt    DateTime? @map("starts_at")
+  endsAt      DateTime? @map("ends_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@map("promotions")
+}
+
+enum AuditActorType {
+  ADMIN
+  SYSTEM
+
+  @@map("audit_actor_type")
+}
+
+model AuditLog {
+  id          String         @id @default(uuid()) @db.Uuid
+  actorType   AuditActorType @map("actor_type")
+  actorId     String?        @map("actor_id") @db.Uuid
+  actor       AdminUser?     @relation(fields: [actorId], references: [id])
+  action      String
+  entityType  String         @map("entity_type")
+  entityId    String?        @map("entity_id")
+  metadata    Json?
+  createdAt   DateTime       @default(now()) @map("created_at")
+
+  @@index([entityType, entityId])
+  @@map("audit_logs")
 }

@@ -1,0 +1,300 @@
+import type { Order, OrderStatus, Prisma, PrismaClient } from '@prisma/client';
+import { ConflictError, ForbiddenError, NotFoundError } from '../../lib/errors.js';
+import { generateOrderNumber } from '../../lib/order-number.js';
+import { getTopupProvider } from '../../providers/registry.js';
+import { assertTransition } from './order-state-machine.js';
+import type { CreateOrderInput } from './orders.schemas.js';
+
+interface OrderContext {
+  prisma: PrismaClient;
+}
+
+function toPublicOrder(
+  order: Order & {
+    game: { id: string; name: string; slug: string };
+    items: { id: string; productName: string; quantity: number; unitAmountMinor: number; totalAmountMinor: number }[];
+    payments?: { id: string; status: string; createdAt: Date }[];
+    statusHistory?: { fromStatus: string | null; toStatus: string; reason: string | null; createdAt: Date }[];
+  },
+) {
+  return {
+    id: order.id,
+    orderNumber: order.orderNumber,
+    status: order.status,
+    game: order.game,
+    playerId: order.playerId,
+    serverId: order.serverId,
+    amountMinor: order.amountMinor,
+    currency: order.currency,
+    failureReason: order.failureReason,
+    items: order.items,
+    latestPayment: order.payments?.[0] ?? null,
+    statusHistory: order.statusHistory ?? [],
+    createdAt: order.createdAt,
+    updatedAt: order.updatedAt,
+    paidAt: order.paidAt,
+    completedAt: order.completedAt,
+  };
+}
+
+/**
+ * The one place allowed to move an order's status — validates the
+ * transition and logs it. Takes just the id/status slice (not a full Order)
+ * so callers holding a richer shape (e.g. `Order & { items }`) don't need to
+ * juggle types when threading the current status through a multi-step flow.
+ */
+async function transitionOrder(
+  ctx: OrderContext,
+  order: { id: string; status: OrderStatus },
+  toStatus: OrderStatus,
+  reason?: string,
+): Promise<OrderStatus> {
+  assertTransition(order.status, toStatus);
+
+  const data: Prisma.OrderUpdateInput = { status: toStatus };
+  if (toStatus === 'PAID') data.paidAt = new Date();
+  if (toStatus === 'COMPLETED') data.completedAt = new Date();
+
+  await ctx.prisma.order.update({ where: { id: order.id }, data });
+  await ctx.prisma.orderStatusHistory.create({
+    data: { orderId: order.id, fromStatus: order.status, toStatus, reason },
+  });
+  return toStatus;
+}
+
+export async function createOrder(ctx: OrderContext, userId: string, input: CreateOrderInput) {
+  const existing = await ctx.prisma.order.findUnique({
+    where: { idempotencyKey: input.idempotencyKey },
+    include: { game: true, items: true },
+  });
+  if (existing) {
+    if (existing.userId !== userId) {
+      // A different user's idempotency key colliding is either an attack or
+      // a bug on the client — never silently hand back someone else's order.
+      throw new ConflictError('Idempotency key already used');
+    }
+    return toPublicOrder(existing);
+  }
+
+  const game = await ctx.prisma.game.findUnique({ where: { id: input.gameId } });
+  if (!game || game.availability !== 'ACTIVE') {
+    throw new NotFoundError('Game is not available for purchase');
+  }
+
+  const product = await ctx.prisma.product.findFirst({
+    where: { id: input.productId, gameId: input.gameId, isActive: true },
+  });
+  if (!product) {
+    throw new NotFoundError('Product not found or unavailable');
+  }
+
+  const providerProduct = await ctx.prisma.providerProduct.findFirst({
+    where: { productId: product.id, isActive: true, provider: { isActive: true, type: 'TOPUP' } },
+    orderBy: { priority: 'asc' },
+    include: { provider: true },
+  });
+  if (!providerProduct) {
+    throw new NotFoundError('No fulfillment provider is currently configured for this product');
+  }
+
+  const adapter = getTopupProvider(providerProduct.provider.code);
+  const validation = await adapter.validatePlayer({
+    providerProductCode: providerProduct.providerProductCode,
+    playerId: input.playerId,
+    serverId: input.serverId,
+  });
+  if (!validation.valid) {
+    throw new ConflictError(validation.reason ?? 'Player ID could not be validated');
+  }
+
+  const order = await ctx.prisma.$transaction(async (tx) => {
+    const created = await tx.order.create({
+      data: {
+        orderNumber: generateOrderNumber(),
+        userId,
+        gameId: game.id,
+        playerId: input.playerId,
+        serverId: input.serverId,
+        amountMinor: product.amountMinor,
+        currency: product.currency,
+        status: 'PENDING',
+        idempotencyKey: input.idempotencyKey,
+        items: {
+          create: {
+            productId: product.id,
+            productName: product.name,
+            quantity: 1,
+            unitAmountMinor: product.amountMinor,
+            totalAmountMinor: product.amountMinor,
+          },
+        },
+      },
+      include: { game: true, items: true },
+    });
+
+    await tx.orderStatusHistory.create({
+      data: { orderId: created.id, fromStatus: null, toStatus: 'PENDING', reason: 'Order created' },
+    });
+
+    return created;
+  });
+
+  return toPublicOrder(order);
+}
+
+export async function listOrders(ctx: OrderContext, userId: string, limit: number) {
+  const orders = await ctx.prisma.order.findMany({
+    where: { userId },
+    orderBy: { createdAt: 'desc' },
+    take: limit,
+    include: {
+      game: { select: { id: true, name: true, slug: true } },
+      items: true,
+      payments: { orderBy: { createdAt: 'desc' }, take: 1 },
+    },
+  });
+  return orders.map(toPublicOrder);
+}
+
+export async function getOrderById(ctx: OrderContext, userId: string, orderId: string) {
+  const order = await ctx.prisma.order.findUnique({
+    where: { id: orderId },
+    include: {
+      game: { select: { id: true, name: true, slug: true } },
+      items: true,
+      payments: { orderBy: { createdAt: 'desc' }, take: 1 },
+      statusHistory: { orderBy: { createdAt: 'asc' } },
+    },
+  });
+  if (!order) {
+    throw new NotFoundError('Order not found');
+  }
+  if (order.userId !== userId) {
+    throw new ForbiddenError('This order does not belong to you');
+  }
+  return toPublicOrder(order);
+}
+
+/**
+ * Runs the full paid -> fulfilled pipeline for an order. Called by the
+ * payments module once a payment webhook confirms funds were captured —
+ * never called directly from a customer-facing route.
+ */
+export async function fulfillPaidOrder(ctx: OrderContext, orderId: string): Promise<void> {
+  const order = await ctx.prisma.order.findUniqueOrThrow({
+    where: { id: orderId },
+    include: { items: true },
+  });
+
+  let status = await transitionOrder(ctx, { id: order.id, status: order.status }, 'PAID', 'Payment confirmed');
+  status = await transitionOrder(ctx, { id: order.id, status }, 'PROCESSING', 'Fulfillment started');
+
+  const item = order.items[0];
+  if (!item) {
+    await transitionOrder(ctx, { id: order.id, status }, 'FAILED', 'Order has no line items');
+    return;
+  }
+
+  const providerProduct = await ctx.prisma.providerProduct.findFirst({
+    where: { productId: item.productId, isActive: true, provider: { isActive: true, type: 'TOPUP' } },
+    orderBy: { priority: 'asc' },
+    include: { provider: true },
+  });
+
+  if (!providerProduct) {
+    await ctx.prisma.order.update({
+      where: { id: order.id },
+      data: { failureReason: 'No active fulfillment provider configured' },
+    });
+    await transitionOrder(ctx, { id: order.id, status }, 'FAILED', 'No active fulfillment provider configured');
+    return;
+  }
+
+  await runFulfillmentAttempt(
+    ctx,
+    { id: order.id, status, playerId: order.playerId, serverId: order.serverId },
+    providerProduct,
+  );
+}
+
+/** Re-attempts fulfillment for an order stuck in FAILED. Admin-only — see modules/admin. */
+export async function retryFulfillment(ctx: OrderContext, orderId: string): Promise<void> {
+  const order = await ctx.prisma.order.findUniqueOrThrow({
+    where: { id: orderId },
+    include: { items: true },
+  });
+
+  const item = order.items[0];
+  if (!item) {
+    throw new ConflictError('Order has no line items to fulfill');
+  }
+
+  const providerProduct = await ctx.prisma.providerProduct.findFirst({
+    where: { productId: item.productId, isActive: true, provider: { isActive: true, type: 'TOPUP' } },
+    orderBy: { priority: 'asc' },
+    include: { provider: true },
+  });
+  if (!providerProduct) {
+    throw new ConflictError('No active fulfillment provider configured for this product');
+  }
+
+  const status = await transitionOrder(
+    ctx,
+    { id: order.id, status: order.status },
+    'PROCESSING',
+    'Fulfillment retried by admin',
+  );
+  await runFulfillmentAttempt(
+    ctx,
+    { id: order.id, status, playerId: order.playerId, serverId: order.serverId },
+    providerProduct,
+  );
+}
+
+async function runFulfillmentAttempt(
+  ctx: OrderContext,
+  order: { id: string; status: OrderStatus; playerId: string; serverId: string | null },
+  providerProduct: { providerId: string; providerProductCode: string; provider: { code: string } },
+): Promise<void> {
+  const adapter = getTopupProvider(providerProduct.provider.code);
+  const attemptNumber =
+    (await ctx.prisma.providerAttempt.count({ where: { orderId: order.id } })) + 1;
+
+  const result = await adapter.createTopup({
+    providerProductCode: providerProduct.providerProductCode,
+    playerId: order.playerId,
+    serverId: order.serverId ?? undefined,
+    referenceId: order.id,
+  });
+
+  await ctx.prisma.providerAttempt.create({
+    data: {
+      orderId: order.id,
+      providerId: providerProduct.providerId,
+      providerProductCode: providerProduct.providerProductCode,
+      attemptNumber,
+      status: result.success ? 'SUCCESS' : 'FAILED',
+      providerTransactionId: result.providerTransactionId,
+      responsePayload: (result.raw ?? {}) as Prisma.InputJsonValue,
+      completedAt: new Date(),
+    },
+  });
+
+  if (result.success) {
+    await transitionOrder(ctx, order, 'COMPLETED', 'Fulfillment succeeded');
+  } else {
+    await ctx.prisma.order.update({
+      where: { id: order.id },
+      data: { failureReason: result.reason ?? 'Fulfillment failed' },
+    });
+    await transitionOrder(ctx, order, 'FAILED', result.reason ?? 'Fulfillment failed');
+  }
+}
+
+/** Marks a still-PENDING order FAILED when its payment fails before ever succeeding. */
+export async function markOrderPaymentFailed(ctx: OrderContext, orderId: string, reason: string): Promise<void> {
+  const order = await ctx.prisma.order.findUniqueOrThrow({ where: { id: orderId } });
+  if (order.status !== 'PENDING') return;
+  await ctx.prisma.order.update({ where: { id: order.id }, data: { failureReason: reason } });
+  await transitionOrder(ctx, order, 'FAILED', reason);
+}

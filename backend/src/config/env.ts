@@ -15,6 +15,14 @@ const envSchema = z.object({
   JWT_ACCESS_TTL: z.string().default('15m'),
   JWT_REFRESH_TTL: z.string().default('30d'),
 
+  // Deliberately a separate signing secret from the customer JWTs above: a
+  // leaked customer-facing secret must never be enough to forge admin access.
+  ADMIN_JWT_ACCESS_SECRET: z
+    .string()
+    .min(32, 'ADMIN_JWT_ACCESS_SECRET must be at least 32 characters'),
+  ADMIN_JWT_ACCESS_TTL: z.string().default('15m'),
+  ADMIN_JWT_REFRESH_TTL: z.string().default('7d'),
+
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(100),
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60_000),
 

@@ -134,6 +134,36 @@ abstract class AppLocalizations {
   /// **'Saqlash'**
   String get commonSave;
 
+  /// No description provided for @commonContinue.
+  ///
+  /// In uz, this message translates to:
+  /// **'Davom etish'**
+  String get commonContinue;
+
+  /// No description provided for @commonClose.
+  ///
+  /// In uz, this message translates to:
+  /// **'Yopish'**
+  String get commonClose;
+
+  /// No description provided for @commonConfirm.
+  ///
+  /// In uz, this message translates to:
+  /// **'Tasdiqlash'**
+  String get commonConfirm;
+
+  /// No description provided for @commonComingSoon.
+  ///
+  /// In uz, this message translates to:
+  /// **'Tez kunda'**
+  String get commonComingSoon;
+
+  /// No description provided for @commonSeeAll.
+  ///
+  /// In uz, this message translates to:
+  /// **'Barchasi'**
+  String get commonSeeAll;
+
   /// No description provided for @loadingMessage.
   ///
   /// In uz, this message translates to:
@@ -163,6 +193,36 @@ abstract class AppLocalizations {
   /// In uz, this message translates to:
   /// **'Tarmoqqa ulanishni tekshirib, qayta urining.'**
   String get errorNoConnectionMessage;
+
+  /// No description provided for @errorUnauthorized.
+  ///
+  /// In uz, this message translates to:
+  /// **'Email/telefon yoki parol noto\'g\'ri'**
+  String get errorUnauthorized;
+
+  /// No description provided for @errorConflict.
+  ///
+  /// In uz, this message translates to:
+  /// **'Bu email yoki telefon raqami allaqachon ro\'yxatdan o\'tgan'**
+  String get errorConflict;
+
+  /// No description provided for @errorForbidden.
+  ///
+  /// In uz, this message translates to:
+  /// **'Bu amalni bajarish uchun ruxsatingiz yo\'q'**
+  String get errorForbidden;
+
+  /// No description provided for @errorNotFound.
+  ///
+  /// In uz, this message translates to:
+  /// **'Topilmadi'**
+  String get errorNotFound;
+
+  /// No description provided for @errorServiceUnavailable.
+  ///
+  /// In uz, this message translates to:
+  /// **'Xizmat vaqtincha ishlamayapti, birozdan so\'ng urinib ko\'ring'**
+  String get errorServiceUnavailable;
 
   /// No description provided for @emptyGenericTitle.
   ///
@@ -211,6 +271,528 @@ abstract class AppLocalizations {
   /// In uz, this message translates to:
   /// **'Русский'**
   String get languageRussian;
+
+  /// No description provided for @navHome.
+  ///
+  /// In uz, this message translates to:
+  /// **'Bosh sahifa'**
+  String get navHome;
+
+  /// No description provided for @navOrders.
+  ///
+  /// In uz, this message translates to:
+  /// **'Buyurtmalar'**
+  String get navOrders;
+
+  /// No description provided for @navProfile.
+  ///
+  /// In uz, this message translates to:
+  /// **'Profil'**
+  String get navProfile;
+
+  /// No description provided for @onboardingWelcomeTitle.
+  ///
+  /// In uz, this message translates to:
+  /// **'Donate App-ga xush kelibsiz'**
+  String get onboardingWelcomeTitle;
+
+  /// No description provided for @onboardingWelcomeSubtitle.
+  ///
+  /// In uz, this message translates to:
+  /// **'Sevimli o\'yiningizni tanlang, bir necha soniyada to\'ldiring'**
+  String get onboardingWelcomeSubtitle;
+
+  /// No description provided for @onboardingChooseLanguage.
+  ///
+  /// In uz, this message translates to:
+  /// **'Tilni tanlang'**
+  String get onboardingChooseLanguage;
+
+  /// No description provided for @onboardingChooseTheme.
+  ///
+  /// In uz, this message translates to:
+  /// **'Ko\'rinishni tanlang'**
+  String get onboardingChooseTheme;
+
+  /// No description provided for @onboardingGetStarted.
+  ///
+  /// In uz, this message translates to:
+  /// **'Boshlash'**
+  String get onboardingGetStarted;
+
+  /// No description provided for @authLoginTitle.
+  ///
+  /// In uz, this message translates to:
+  /// **'Kirish'**
+  String get authLoginTitle;
+
+  /// No description provided for @authRegisterTitle.
+  ///
+  /// In uz, this message translates to:
+  /// **'Ro\'yxatdan o\'tish'**
+  String get authRegisterTitle;
+
+  /// No description provided for @authIdentifierLabel.
+  ///
+  /// In uz, this message translates to:
+  /// **'Email yoki telefon'**
+  String get authIdentifierLabel;
+
+  /// No description provided for @authIdentifierHint.
+  ///
+  /// In uz, this message translates to:
+  /// **'email@example.com yoki +998901234567'**
+  String get authIdentifierHint;
+
+  /// No description provided for @authPasswordLabel.
+  ///
+  /// In uz, this message translates to:
+  /// **'Parol'**
+  String get authPasswordLabel;
+
+  /// No description provided for @authDisplayNameLabel.
+  ///
+  /// In uz, this message translates to:
+  /// **'Ismingiz (ixtiyoriy)'**
+  String get authDisplayNameLabel;
+
+  /// No description provided for @authLoginButton.
+  ///
+  /// In uz, this message translates to:
+  /// **'Kirish'**
+  String get authLoginButton;
+
+  /// No description provided for @authRegisterButton.
+  ///
+  /// In uz, this message translates to:
+  /// **'Ro\'yxatdan o\'tish'**
+  String get authRegisterButton;
+
+  /// No description provided for @authNoAccountPrompt.
+  ///
+  /// In uz, this message translates to:
+  /// **'Hisobingiz yo\'qmi?'**
+  String get authNoAccountPrompt;
+
+  /// No description provided for @authSwitchToRegister.
+  ///
+  /// In uz, this message translates to:
+  /// **'Ro\'yxatdan o\'tish'**
+  String get authSwitchToRegister;
+
+  /// No description provided for @authHaveAccountPrompt.
+  ///
+  /// In uz, this message translates to:
+  /// **'Hisobingiz bormi?'**
+  String get authHaveAccountPrompt;
+
+  /// No description provided for @authSwitchToLogin.
+  ///
+  /// In uz, this message translates to:
+  /// **'Kirish'**
+  String get authSwitchToLogin;
+
+  /// No description provided for @authIdentifierRequired.
+  ///
+  /// In uz, this message translates to:
+  /// **'Email yoki telefon raqamini kiriting'**
+  String get authIdentifierRequired;
+
+  /// No description provided for @authPasswordTooShort.
+  ///
+  /// In uz, this message translates to:
+  /// **'Parol kamida 8 belgidan iborat bo\'lishi kerak'**
+  String get authPasswordTooShort;
+
+  /// No description provided for @authLoginRequiredTitle.
+  ///
+  /// In uz, this message translates to:
+  /// **'Avval tizimga kiring'**
+  String get authLoginRequiredTitle;
+
+  /// No description provided for @authLoginRequiredMessage.
+  ///
+  /// In uz, this message translates to:
+  /// **'Xarid qilish uchun hisobingizga kiring yoki ro\'yxatdan o\'ting'**
+  String get authLoginRequiredMessage;
+
+  /// No description provided for @authLogoutConfirmTitle.
+  ///
+  /// In uz, this message translates to:
+  /// **'Chiqishni tasdiqlaysizmi?'**
+  String get authLogoutConfirmTitle;
+
+  /// No description provided for @authLogoutConfirmMessage.
+  ///
+  /// In uz, this message translates to:
+  /// **'Qaytadan kirish uchun email/telefon va parolingiz kerak bo\'ladi'**
+  String get authLogoutConfirmMessage;
+
+  /// No description provided for @authLogoutButton.
+  ///
+  /// In uz, this message translates to:
+  /// **'Chiqish'**
+  String get authLogoutButton;
+
+  /// No description provided for @homeSearchHint.
+  ///
+  /// In uz, this message translates to:
+  /// **'O\'yin qidirish'**
+  String get homeSearchHint;
+
+  /// No description provided for @homePopularGames.
+  ///
+  /// In uz, this message translates to:
+  /// **'Mashhur o\'yinlar'**
+  String get homePopularGames;
+
+  /// No description provided for @homeCategories.
+  ///
+  /// In uz, this message translates to:
+  /// **'Kategoriyalar'**
+  String get homeCategories;
+
+  /// No description provided for @homePopularTopups.
+  ///
+  /// In uz, this message translates to:
+  /// **'Ommabop to\'ldirishlar'**
+  String get homePopularTopups;
+
+  /// No description provided for @homePromotions.
+  ///
+  /// In uz, this message translates to:
+  /// **'Aksiyalar'**
+  String get homePromotions;
+
+  /// No description provided for @homeRecentOrders.
+  ///
+  /// In uz, this message translates to:
+  /// **'So\'nggi buyurtmalar'**
+  String get homeRecentOrders;
+
+  /// No description provided for @gameComingSoonBadge.
+  ///
+  /// In uz, this message translates to:
+  /// **'Tez kunda'**
+  String get gameComingSoonBadge;
+
+  /// No description provided for @gameDetailsTopupTitle.
+  ///
+  /// In uz, this message translates to:
+  /// **'To\'ldirish'**
+  String get gameDetailsTopupTitle;
+
+  /// No description provided for @gameProductsEmptyTitle.
+  ///
+  /// In uz, this message translates to:
+  /// **'Hozircha mahsulotlar mavjud emas'**
+  String get gameProductsEmptyTitle;
+
+  /// No description provided for @gameNotAvailableMessage.
+  ///
+  /// In uz, this message translates to:
+  /// **'Bu o\'yin hali ulanmagan. Tez orada qo\'shamiz!'**
+  String get gameNotAvailableMessage;
+
+  /// No description provided for @playerInfoTitle.
+  ///
+  /// In uz, this message translates to:
+  /// **'O\'yinchi ma\'lumotlari'**
+  String get playerInfoTitle;
+
+  /// No description provided for @playerInfoPlayerIdLabel.
+  ///
+  /// In uz, this message translates to:
+  /// **'Player ID'**
+  String get playerInfoPlayerIdLabel;
+
+  /// No description provided for @playerInfoPlayerIdHint.
+  ///
+  /// In uz, this message translates to:
+  /// **'Masalan: 123456789'**
+  String get playerInfoPlayerIdHint;
+
+  /// No description provided for @playerInfoServerIdLabel.
+  ///
+  /// In uz, this message translates to:
+  /// **'Server ID'**
+  String get playerInfoServerIdLabel;
+
+  /// No description provided for @playerInfoServerIdHint.
+  ///
+  /// In uz, this message translates to:
+  /// **'Masalan: 2001'**
+  String get playerInfoServerIdHint;
+
+  /// No description provided for @playerInfoContinueButton.
+  ///
+  /// In uz, this message translates to:
+  /// **'Davom etish'**
+  String get playerInfoContinueButton;
+
+  /// No description provided for @playerInfoValidationError.
+  ///
+  /// In uz, this message translates to:
+  /// **'Iltimos, Player ID ni kiriting'**
+  String get playerInfoValidationError;
+
+  /// No description provided for @playerInfoExampleLabel.
+  ///
+  /// In uz, this message translates to:
+  /// **'Qayerdan topaman?'**
+  String get playerInfoExampleLabel;
+
+  /// No description provided for @checkoutTitle.
+  ///
+  /// In uz, this message translates to:
+  /// **'Buyurtmani tasdiqlash'**
+  String get checkoutTitle;
+
+  /// No description provided for @checkoutGameLabel.
+  ///
+  /// In uz, this message translates to:
+  /// **'O\'yin'**
+  String get checkoutGameLabel;
+
+  /// No description provided for @checkoutProductLabel.
+  ///
+  /// In uz, this message translates to:
+  /// **'Mahsulot'**
+  String get checkoutProductLabel;
+
+  /// No description provided for @checkoutPlayerIdLabel.
+  ///
+  /// In uz, this message translates to:
+  /// **'Player ID'**
+  String get checkoutPlayerIdLabel;
+
+  /// No description provided for @checkoutServerIdLabel.
+  ///
+  /// In uz, this message translates to:
+  /// **'Server ID'**
+  String get checkoutServerIdLabel;
+
+  /// No description provided for @checkoutPriceLabel.
+  ///
+  /// In uz, this message translates to:
+  /// **'Narx'**
+  String get checkoutPriceLabel;
+
+  /// No description provided for @checkoutPaymentMethodLabel.
+  ///
+  /// In uz, this message translates to:
+  /// **'To\'lov usuli'**
+  String get checkoutPaymentMethodLabel;
+
+  /// No description provided for @checkoutTotalLabel.
+  ///
+  /// In uz, this message translates to:
+  /// **'Jami'**
+  String get checkoutTotalLabel;
+
+  /// No description provided for @checkoutBuyNowButton.
+  ///
+  /// In uz, this message translates to:
+  /// **'Hozir sotib olish'**
+  String get checkoutBuyNowButton;
+
+  /// No description provided for @checkoutMockPaymentLabel.
+  ///
+  /// In uz, this message translates to:
+  /// **'Test to\'lov tizimi (dev)'**
+  String get checkoutMockPaymentLabel;
+
+  /// No description provided for @checkoutCreatingOrder.
+  ///
+  /// In uz, this message translates to:
+  /// **'Buyurtma yaratilmoqda…'**
+  String get checkoutCreatingOrder;
+
+  /// No description provided for @paymentDevSimulateTitle.
+  ///
+  /// In uz, this message translates to:
+  /// **'Test to\'lovi (faqat dasturchilar uchun)'**
+  String get paymentDevSimulateTitle;
+
+  /// No description provided for @paymentDevSimulateMessage.
+  ///
+  /// In uz, this message translates to:
+  /// **'Haqiqiy to\'lov provayderi hali ulanmagan. To\'lov natijasini qo\'lda tanlang:'**
+  String get paymentDevSimulateMessage;
+
+  /// No description provided for @paymentDevSimulateSuccessButton.
+  ///
+  /// In uz, this message translates to:
+  /// **'Muvaffaqiyatli deb belgilash'**
+  String get paymentDevSimulateSuccessButton;
+
+  /// No description provided for @paymentDevSimulateFailButton.
+  ///
+  /// In uz, this message translates to:
+  /// **'Muvaffaqiyatsiz deb belgilash'**
+  String get paymentDevSimulateFailButton;
+
+  /// No description provided for @paymentWaitingTitle.
+  ///
+  /// In uz, this message translates to:
+  /// **'To\'lov kutilmoqda'**
+  String get paymentWaitingTitle;
+
+  /// No description provided for @paymentWaitingMessage.
+  ///
+  /// In uz, this message translates to:
+  /// **'To\'lovingiz tasdiqlanishini kutmoqdamiz'**
+  String get paymentWaitingMessage;
+
+  /// No description provided for @orderStatusTitle.
+  ///
+  /// In uz, this message translates to:
+  /// **'Buyurtma holati'**
+  String get orderStatusTitle;
+
+  /// No description provided for @orderNumberLabel.
+  ///
+  /// In uz, this message translates to:
+  /// **'Buyurtma raqami'**
+  String get orderNumberLabel;
+
+  /// No description provided for @orderStatusLabel.
+  ///
+  /// In uz, this message translates to:
+  /// **'Holat'**
+  String get orderStatusLabel;
+
+  /// No description provided for @orderCreatedAtLabel.
+  ///
+  /// In uz, this message translates to:
+  /// **'Yaratilgan vaqt'**
+  String get orderCreatedAtLabel;
+
+  /// No description provided for @orderAmountLabel.
+  ///
+  /// In uz, this message translates to:
+  /// **'Summa'**
+  String get orderAmountLabel;
+
+  /// No description provided for @orderPlayerIdLabel.
+  ///
+  /// In uz, this message translates to:
+  /// **'Player ID'**
+  String get orderPlayerIdLabel;
+
+  /// No description provided for @orderFailureReasonLabel.
+  ///
+  /// In uz, this message translates to:
+  /// **'Sabab'**
+  String get orderFailureReasonLabel;
+
+  /// No description provided for @orderStatusPending.
+  ///
+  /// In uz, this message translates to:
+  /// **'Kutilmoqda'**
+  String get orderStatusPending;
+
+  /// No description provided for @orderStatusPaid.
+  ///
+  /// In uz, this message translates to:
+  /// **'To\'landi'**
+  String get orderStatusPaid;
+
+  /// No description provided for @orderStatusProcessing.
+  ///
+  /// In uz, this message translates to:
+  /// **'Bajarilmoqda'**
+  String get orderStatusProcessing;
+
+  /// No description provided for @orderStatusCompleted.
+  ///
+  /// In uz, this message translates to:
+  /// **'Bajarildi'**
+  String get orderStatusCompleted;
+
+  /// No description provided for @orderStatusFailed.
+  ///
+  /// In uz, this message translates to:
+  /// **'Xatolik'**
+  String get orderStatusFailed;
+
+  /// No description provided for @orderStatusCancelled.
+  ///
+  /// In uz, this message translates to:
+  /// **'Bekor qilindi'**
+  String get orderStatusCancelled;
+
+  /// No description provided for @orderStatusRefunded.
+  ///
+  /// In uz, this message translates to:
+  /// **'Qaytarildi'**
+  String get orderStatusRefunded;
+
+  /// No description provided for @orderRefreshButton.
+  ///
+  /// In uz, this message translates to:
+  /// **'Yangilash'**
+  String get orderRefreshButton;
+
+  /// No description provided for @orderHistoryTitle.
+  ///
+  /// In uz, this message translates to:
+  /// **'Buyurtmalar tarixi'**
+  String get orderHistoryTitle;
+
+  /// No description provided for @orderHistoryEmptyTitle.
+  ///
+  /// In uz, this message translates to:
+  /// **'Hali buyurtmalar yo\'q'**
+  String get orderHistoryEmptyTitle;
+
+  /// No description provided for @orderHistoryEmptyMessage.
+  ///
+  /// In uz, this message translates to:
+  /// **'Birinchi xaridingizni amalga oshiring'**
+  String get orderHistoryEmptyMessage;
+
+  /// No description provided for @profileTitle.
+  ///
+  /// In uz, this message translates to:
+  /// **'Profil'**
+  String get profileTitle;
+
+  /// No description provided for @profileGuestTitle.
+  ///
+  /// In uz, this message translates to:
+  /// **'Mehmon sifatida ko\'rmoqdasiz'**
+  String get profileGuestTitle;
+
+  /// No description provided for @profileGuestMessage.
+  ///
+  /// In uz, this message translates to:
+  /// **'Buyurtmalar tarixini ko\'rish va xarid qilish uchun tizimga kiring'**
+  String get profileGuestMessage;
+
+  /// No description provided for @profileLoginButton.
+  ///
+  /// In uz, this message translates to:
+  /// **'Kirish'**
+  String get profileLoginButton;
+
+  /// No description provided for @profileRegisterButton.
+  ///
+  /// In uz, this message translates to:
+  /// **'Ro\'yxatdan o\'tish'**
+  String get profileRegisterButton;
+
+  /// No description provided for @profileOrderHistory.
+  ///
+  /// In uz, this message translates to:
+  /// **'Buyurtmalar tarixi'**
+  String get profileOrderHistory;
+
+  /// No description provided for @profileLogoutButton.
+  ///
+  /// In uz, this message translates to:
+  /// **'Chiqish'**
+  String get profileLogoutButton;
 }
 
 class _AppLocalizationsDelegate

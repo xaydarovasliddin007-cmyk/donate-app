@@ -6,7 +6,9 @@ plugins {
 
 android {
     namespace = "com.donateapp.donate_app"
-    compileSdk = flutter.compileSdkVersion
+    // flutter_secure_storage requires compileSdk 37+; Flutter's own default
+    // (flutter.compileSdkVersion) hasn't caught up yet, so pin it explicitly.
+    compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
     compileOptions {

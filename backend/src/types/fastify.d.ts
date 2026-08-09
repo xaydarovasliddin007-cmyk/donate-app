@@ -10,5 +10,9 @@ declare module 'fastify' {
       id: string;
       role: string;
     };
+    currentAdmin?: {
+      id: string;
+      role: string;
+    };
   }
 }

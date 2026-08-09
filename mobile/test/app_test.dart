@@ -1,43 +1,62 @@
-import 'package:donate_app/app.dart';
+import 'package:donate_app/core/localization/locale_controller.dart';
 import 'package:donate_app/core/storage/preferences_provider.dart';
 import 'package:donate_app/core/storage/preferences_service.dart';
+import 'package:donate_app/features/onboarding/presentation/onboarding_screen.dart';
+import 'package:donate_app/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+// Exercises the onboarding screen in isolation: it only depends on
+// SharedPreferences-backed providers (locale/theme), so it doesn't need the
+// secure-storage/network plumbing that AuthController pulls in for the full
+// app shell — that flow is better covered by integration testing on a
+// running backend than by a widget test with mocked platform channels.
+Widget _wrapWithApp(Widget child, PreferencesService prefs) {
+  return ProviderScope(
+    overrides: [preferencesServiceProvider.overrideWithValue(prefs)],
+    child: Consumer(
+      builder: (context, ref, _) {
+        final locale = ref.watch(localeControllerProvider);
+        return MaterialApp(
+          locale: locale,
+          supportedLocales: const [Locale('uz'), Locale('ru')],
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          home: child,
+        );
+      },
+    ),
+  );
+}
+
 void main() {
-  testWidgets('renders the home screen in the default (uz) locale', (tester) async {
+  testWidgets('onboarding renders uz text by default', (tester) async {
     SharedPreferences.setMockInitialValues({});
     final prefs = PreferencesService(await SharedPreferences.getInstance());
 
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [preferencesServiceProvider.overrideWithValue(prefs)],
-        child: const DonateApp(),
-      ),
-    );
+    await tester.pumpWidget(_wrapWithApp(const OnboardingScreen(), prefs));
     await tester.pumpAndSettle();
 
-    expect(find.text('Bosh sahifa'), findsOneWidget);
-    expect(find.text("O'zbekcha"), findsWidgets);
+    expect(find.text("Donate App-ga xush kelibsiz"), findsOneWidget);
   });
 
-  testWidgets('switching to Russian updates on-screen text', (tester) async {
+  testWidgets('switching to Russian on onboarding updates on-screen text', (tester) async {
     SharedPreferences.setMockInitialValues({});
     final prefs = PreferencesService(await SharedPreferences.getInstance());
 
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [preferencesServiceProvider.overrideWithValue(prefs)],
-        child: const DonateApp(),
-      ),
-    );
+    await tester.pumpWidget(_wrapWithApp(const OnboardingScreen(), prefs));
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('Русский').first);
     await tester.pumpAndSettle();
 
-    expect(find.text('Главная'), findsOneWidget);
+    expect(find.text('Добро пожаловать в Donate App'), findsOneWidget);
   });
 }

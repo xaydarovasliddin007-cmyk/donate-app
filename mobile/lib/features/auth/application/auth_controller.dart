@@ -1,0 +1,91 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/network/api_client_provider.dart';
+import '../../../core/storage/secure_storage_provider.dart';
+import '../data/auth_api.dart';
+import '../domain/app_user.dart';
+
+enum AuthStatus { guest, authenticated }
+
+class AuthState {
+  const AuthState({required this.status, this.user});
+
+  final AuthStatus status;
+  final AppUser? user;
+
+  bool get isAuthenticated => status == AuthStatus.authenticated;
+
+  static const guest = AuthState(status: AuthStatus.guest);
+}
+
+final authApiProvider = Provider<AuthApi>((ref) => AuthApi(ref.watch(apiClientProvider)));
+
+class AuthController extends AsyncNotifier<AuthState> {
+  @override
+  Future<AuthState> build() async {
+    final apiClient = ref.watch(apiClientProvider);
+    // Wired once per ApiClient instance: if a background token refresh ever
+    // definitively fails, drop the app back to guest state immediately.
+    apiClient.onSessionExpired = () => state = const AsyncData(AuthState.guest);
+
+    final storage = ref.watch(secureStorageServiceProvider);
+    final accessToken = await storage.readAccessToken();
+    if (accessToken == null) {
+      return AuthState.guest;
+    }
+
+    apiClient.setAccessToken(accessToken);
+    try {
+      final user = await ref.read(authApiProvider).me();
+      return AuthState(status: AuthStatus.authenticated, user: user);
+    } catch (_) {
+      await storage.clear();
+      apiClient.setAccessToken(null);
+      return AuthState.guest;
+    }
+  }
+
+  Future<void> _applyAuthResult(AuthResult result) async {
+    await ref
+        .read(secureStorageServiceProvider)
+        .saveTokens(accessToken: result.accessToken, refreshToken: result.refreshToken);
+    ref.read(apiClientProvider).setAccessToken(result.accessToken);
+    state = AsyncData(AuthState(status: AuthStatus.authenticated, user: result.user));
+  }
+
+  Future<void> login({String? email, String? phone, required String password}) async {
+    final result = await ref
+        .read(authApiProvider)
+        .login(email: email, phone: phone, password: password);
+    await _applyAuthResult(result);
+  }
+
+  Future<void> register({
+    String? email,
+    String? phone,
+    required String password,
+    String? displayName,
+    required String locale,
+  }) async {
+    final result = await ref
+        .read(authApiProvider)
+        .register(email: email, phone: phone, password: password, displayName: displayName, locale: locale);
+    await _applyAuthResult(result);
+  }
+
+  Future<void> logout() async {
+    final storage = ref.read(secureStorageServiceProvider);
+    final refreshToken = await storage.readRefreshToken();
+    if (refreshToken != null) {
+      try {
+        await ref.read(authApiProvider).logout(refreshToken);
+      } catch (_) {
+        // Best-effort server-side revocation — local logout must proceed regardless.
+      }
+    }
+    await storage.clear();
+    ref.read(apiClientProvider).setAccessToken(null);
+    state = const AsyncData(AuthState.guest);
+  }
+}
+
+final authControllerProvider = AsyncNotifierProvider<AuthController, AuthState>(AuthController.new);

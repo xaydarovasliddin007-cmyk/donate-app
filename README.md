@@ -38,14 +38,12 @@ No Docker on this machine yet — install Docker Desktop (or point `DATABASE_URL
 cd backend
 npm install
 npm run prisma:deploy   # applies prisma/migrations against DATABASE_URL
-npm run dev              # http://localhost:4000
+npm run prisma:seed      # dev catalog: games, MLBB test products, dev admin
+npm run dev               # http://localhost:4000
 ```
 
-- `GET /health` — liveness (always 200 once the process is up, never touches the DB)
-- `GET /ready` — readiness (503 if the database is unreachable)
-- `POST /api/v1/auth/register`, `/login`, `/refresh`, `/logout`, `GET /api/v1/auth/me`
-
-Secrets live in `backend/.env` (gitignored); see `backend/.env.example` for the full list.
+See [`backend/README.md`](backend/README.md) for the full API surface (games, orders,
+payments, admin) and the auth/order/payment design.
 
 ### 3. Mobile
 
@@ -56,27 +54,56 @@ flutter run --dart-define=API_BASE_URL=http://10.0.2.2:4000/api/v1
 ```
 
 `10.0.2.2` is the Android emulator's alias for the host machine's `localhost`. On a
-physical device, use your machine's LAN IP instead.
+physical device, use your machine's LAN IP instead — see
+[`mobile/README.md`](mobile/README.md) for the exact command.
+
+## What's implemented (MVP)
+
+- **Customer app**: splash → onboarding (language/theme) → home (search, popular games,
+  categories, promotions, recent orders) → game details → player ID/server ID → checkout →
+  order status → order history → profile. Guests can browse everything; buying requires an
+  account. Auth tokens are stored in Android Keystore-backed secure storage, not
+  SharedPreferences.
+- **Catalog**: Mobile Legends is the one fully working game with seeded dev/test products.
+  Other games (PUBG Mobile, Free Fire, Roblox, Valorant) are seeded as "coming soon" —
+  the catalog structure is generic, adding a real game is just data.
+- **Orders**: explicit state machine (`PENDING → PAID → PROCESSING → COMPLETED`, with
+  `FAILED`/`CANCELLED`/`REFUNDED` branches), idempotency keys, full status history.
+- **Payments**: provider-adapter architecture; a dev/mock payment provider stands in until
+  real credentials for Payme/Click/Uzum etc. are available. Nothing is ever silently marked
+  "paid" — the dev provider still goes through the same webhook-processing path a real one
+  would, just triggered manually from the order status screen instead of by a real gateway.
+- **Fulfillment**: same adapter pattern for the top-up/game-credit provider side, with
+  automatic multi-provider fallback support built into the schema (`ProviderProduct.priority`)
+  even though only one dev provider exists today.
+- **Admin API**: separate authentication (own JWT secret, own login), RBAC roles, endpoints
+  for orders/users/products/providers/payments/stats, audit-logged sensitive actions. No
+  admin UI yet — API only, by design (see Definition of Done in the project brief).
+
+## Not implemented yet (by design)
+
+- Real payment provider credentials/integrations (Payme, Click, Uzum, ...)
+- Real top-up provider credentials/integrations
+- Admin web UI
+- Push notifications
 
 ## Build phases
 
 Built incrementally; each phase is run, tested, and verified before moving to the next.
 
 - [x] **Phase 1 — Foundation**: Flutter + backend + Postgres/Prisma scaffolding, env config,
-      health/readiness endpoints, auth foundation (register/login/refresh/logout), localization
-      (uz/ru, en-ready), theme system (light/dark/system, persisted, no startup flash), app shell.
-- [ ] Phase 2 — Database + core backend (full domain schema: games, products, orders, etc.)
-- [ ] Phase 3 — Authentication (hardened, full flows)
-- [ ] Phase 4 — Game catalog
-- [ ] Phase 5 — Customer Flutter UI
-- [ ] Phase 6 — Order engine
-- [ ] Phase 7 — Payment abstraction + integration layer
-- [ ] Phase 8 — Top-up provider abstraction
-- [ ] Phase 9 — Admin backend + admin UI
-- [ ] Phase 10 — Notifications
-- [ ] Phase 11 — Security hardening
-- [ ] Phase 12 — Testing + performance optimization
-- [ ] Phase 13 — Production deployment
+      health/readiness endpoints, auth foundation, localization (uz/ru, en-ready), theme
+      system (light/dark/system, persisted, no startup flash), app shell.
+- [x] **MVP — Donate App core flow**: full domain schema (games, products, providers, orders,
+      payments, webhooks, admin, audit log), order state machine, provider adapters (payment +
+      topup, dev/mock implementations), admin API, and the complete customer Flutter app
+      (auth, home, game details, checkout, order status/history, profile).
+- [ ] Real payment/top-up provider integrations (pending credentials)
+- [ ] Admin web UI
+- [ ] Notifications
+- [ ] Security hardening pass (beyond what's already in place — see backend README)
+- [ ] Performance/load testing
+- [ ] Production deployment
 
 See [`backend/README.md`](backend/README.md) and [`mobile/README.md`](mobile/README.md) for
 module-specific detail.
