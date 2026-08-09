@@ -1,0 +1,30 @@
+{
+  "@@locale": "ru",
+
+  "appName": "Donate App",
+
+  "homeTitle": "Главная",
+  "homeWelcomeMessage": "Выберите игру и пополните счёт за пару секунд",
+
+  "commonRetry": "Повторить",
+  "commonCancel": "Отмена",
+  "commonSave": "Сохранить",
+
+  "loadingMessage": "Загрузка…",
+
+  "errorGenericTitle": "Что-то пошло не так",
+  "errorGenericMessage": "Пожалуйста, попробуйте ещё раз.",
+  "errorNoConnectionTitle": "Нет подключения к интернету",
+  "errorNoConnectionMessage": "Проверьте соединение с сетью и повторите попытку.",
+
+  "emptyGenericTitle": "Здесь пока ничего нет",
+
+  "settingsTheme": "Тема",
+  "settingsThemeLight": "Светлая",
+  "settingsThemeDark": "Тёмная",
+  "settingsThemeSystem": "Как в системе",
+
+  "settingsLanguage": "Язык",
+  "languageUzbek": "O'zbekcha",
+  "languageRussian": "Русский"
+}

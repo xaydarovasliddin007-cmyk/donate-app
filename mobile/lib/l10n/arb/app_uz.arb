@@ -1,0 +1,31 @@
+{
+  "@@locale": "uz",
+
+  "appName": "Donate App",
+  "@appName": { "description": "The application name, shown on the splash and in the OS task switcher." },
+
+  "homeTitle": "Bosh sahifa",
+  "homeWelcomeMessage": "O'yiningizni tanlang va bir necha soniyada to'ldiring",
+
+  "commonRetry": "Qayta urinish",
+  "commonCancel": "Bekor qilish",
+  "commonSave": "Saqlash",
+
+  "loadingMessage": "Yuklanmoqda…",
+
+  "errorGenericTitle": "Nimadir xato ketdi",
+  "errorGenericMessage": "Iltimos, qayta urinib ko'ring.",
+  "errorNoConnectionTitle": "Internet aloqasi yo'q",
+  "errorNoConnectionMessage": "Tarmoqqa ulanishni tekshirib, qayta urining.",
+
+  "emptyGenericTitle": "Bu yerda hali hech narsa yo'q",
+
+  "settingsTheme": "Mavzu",
+  "settingsThemeLight": "Yorug'",
+  "settingsThemeDark": "Qorong'i",
+  "settingsThemeSystem": "Tizim sozlamasi",
+
+  "settingsLanguage": "Til",
+  "languageUzbek": "O'zbekcha",
+  "languageRussian": "Русский"
+}

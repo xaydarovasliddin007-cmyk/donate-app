@@ -1,0 +1,38 @@
+name: donate_app
+description: "Donate App — fast, premium gaming top-up platform."
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  dio: ^5.11.0
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  flutter_native_splash: ^2.4.8
+  flutter_riverpod: ^3.4.2
+  go_router: ^17.4.0
+  intl: 0.20.2
+  shared_preferences: ^2.5.5
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+  generate: true
+
+flutter_native_splash:
+  color: "#FFFFFF"
+  color_dark: "#0F1115"
+  # Kept intentionally minimal (solid color, no logo asset yet) — swap in
+  # brand assets when the design system lands. This just prevents a blank
+  # white/black frame flash before Flutter's first frame renders.
+  android_12:
+    color: "#FFFFFF"
+    color_dark: "#0F1115"
