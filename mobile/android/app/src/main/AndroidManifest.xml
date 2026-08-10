@@ -1,6 +1,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Required for all API calls (games/orders/auth/etc.) — the debug/profile
+         manifests already declare this for the Flutter tool's own needs, but
+         release builds need it declared here explicitly too. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
-        android:label="donate_app"
+        android:label="UZDONATE"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

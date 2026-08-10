@@ -1,4 +1,4 @@
-# Donate App
+# UZDONATE
 
 A fast, premium gaming top-up platform. Uzbekistan first, Central Asia next, global later.
 
@@ -53,9 +53,15 @@ flutter pub get
 flutter run --dart-define=API_BASE_URL=http://10.0.2.2:4000/api/v1
 ```
 
-`10.0.2.2` is the Android emulator's alias for the host machine's `localhost`. On a
-physical device, use your machine's LAN IP instead — see
-[`mobile/README.md`](mobile/README.md) for the exact command.
+`10.0.2.2` is the Android emulator's alias for the host machine's `localhost`. For a physical
+device over USB (recommended — no LAN/network hassle):
+
+```bash
+adb reverse tcp:4000 tcp:4000
+flutter run --dart-define=API_BASE_URL=http://127.0.0.1:4000/api/v1
+```
+
+See [`mobile/README.md`](mobile/README.md) for the LAN-IP alternative and more detail.
 
 ## What's implemented (MVP)
 
@@ -64,6 +70,12 @@ physical device, use your machine's LAN IP instead — see
   order status → order history → profile. Guests can browse everything; buying requires an
   account. Auth tokens are stored in Android Keystore-backed secure storage, not
   SharedPreferences.
+- **Authentication**: email/password, and real Google Sign-In — the backend verifies Google ID
+  tokens (signature/issuer/audience/expiry) against Google's own keys via `google-auth-library`
+  rather than trusting whatever the client claims; only genuinely verified emails can link to
+  an existing account. Fully implemented, but inert until a Google Cloud OAuth client is
+  configured (see "External credentials still needed" below) — the button shows a friendly
+  message instead of crashing when unconfigured.
 - **Catalog**: Mobile Legends is the one fully working game with seeded dev/test products.
   Other games (PUBG Mobile, Free Fire, Roblox, Valorant) are seeded as "coming soon" —
   the catalog structure is generic, adding a real game is just data.
@@ -79,13 +91,32 @@ physical device, use your machine's LAN IP instead — see
 - **Admin API**: separate authentication (own JWT secret, own login), RBAC roles, endpoints
   for orders/users/products/providers/payments/stats, audit-logged sensitive actions. No
   admin UI yet — API only, by design (see Definition of Done in the project brief).
+- **My Games / Quick Buy**: a Player ID/Server ID is saved automatically per game after a
+  successful order (`saved_player_profiles`, one row per user+game). The home screen's "My
+  Games" section surfaces these with a one-tap Quick Buy straight to checkout — no re-typing,
+  no product-selection screen — and the player-info form pre-fills from the saved profile when
+  buying the normal way.
 
 ## Not implemented yet (by design)
 
 - Real payment provider credentials/integrations (Payme, Click, Uzum, ...)
 - Real top-up provider credentials/integrations
 - Admin web UI
-- Push notifications
+- Push notifications (Firebase Cloud Messaging)
+- Native app icon / launcher icon assets (in-app branding uses a vector mark; no image-editing
+  tool is available in this environment to author real icon PNGs)
+
+## External credentials/configuration still needed
+
+Nothing above is blocked on code — only on operator-provided configuration:
+
+| What | Where it plugs in | Needed for |
+|---|---|---|
+| PostgreSQL instance | `backend/.env` → `DATABASE_URL` | Everything DB-backed (this dev machine has none installed) |
+| Google Cloud OAuth Client IDs (Web + Android) | `backend/.env` → `GOOGLE_CLIENT_ID`, Flutter `--dart-define=GOOGLE_SERVER_CLIENT_ID` | Google Sign-In — see `backend/README.md` "Google Sign-In setup" for exact steps |
+| Payme/Click/Uzum (or other) merchant credentials | New adapter in `backend/src/providers/`, registered in `registry.ts` | Real payments — architecture is ready, no real provider is wired |
+| Game top-up provider API credentials | Same adapter pattern, `TopupProviderAdapter` | Real fulfillment — same story |
+| Firebase project | Not yet wired into the app | Push notifications |
 
 ## Build phases
 
@@ -94,10 +125,14 @@ Built incrementally; each phase is run, tested, and verified before moving to th
 - [x] **Phase 1 — Foundation**: Flutter + backend + Postgres/Prisma scaffolding, env config,
       health/readiness endpoints, auth foundation, localization (uz/ru, en-ready), theme
       system (light/dark/system, persisted, no startup flash), app shell.
-- [x] **MVP — Donate App core flow**: full domain schema (games, products, providers, orders,
+- [x] **MVP — core flow**: full domain schema (games, products, providers, orders,
       payments, webhooks, admin, audit log), order state machine, provider adapters (payment +
       topup, dev/mock implementations), admin API, and the complete customer Flutter app
       (auth, home, game details, checkout, order status/history, profile).
+- [x] **UZDONATE rebrand + Google Sign-In**: centralized branding (vector logo, no image
+      asset/emoji), real Google ID token verification end to end (backend verifies against
+      Google's own keys; Flutter wired via `google_sign_in` v7) — inert until a GCP OAuth
+      client is configured, see "External credentials still needed" above.
 - [ ] Real payment/top-up provider integrations (pending credentials)
 - [ ] Admin web UI
 - [ ] Notifications

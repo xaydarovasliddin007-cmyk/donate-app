@@ -1,4 +1,4 @@
-// Donate App — database schema
+// UZDONATE — database schema
 // Money is always integer minor units (e.g. amountMinor=10000, currency="UZS"
 // means 100.00 UZS) — never floating point. Every model that stores a price
 // carries its own `currency` rather than assuming a global default, so the
@@ -36,7 +36,11 @@ model User {
   id           String     @id @default(uuid()) @db.Uuid
   email        String?    @unique
   phone        String?    @unique
-  passwordHash String     @map("password_hash")
+  // Nullable: a Google-only account never sets a password. Every write path
+  // that creates a user must set at least one of passwordHash/googleId.
+  passwordHash String?    @map("password_hash")
+  googleId     String?    @unique @map("google_id")
+  avatarUrl    String?    @map("avatar_url")
   displayName  String?    @map("display_name")
   locale       String     @default("uz")
   role         UserRole   @default(CUSTOMER)
@@ -44,10 +48,30 @@ model User {
   createdAt    DateTime   @default(now()) @map("created_at")
   updatedAt    DateTime   @updatedAt @map("updated_at")
 
-  refreshTokens RefreshToken[]
-  orders        Order[]
+  refreshTokens       RefreshToken[]
+  orders              Order[]
+  savedPlayerProfiles SavedPlayerProfile[]
 
   @@map("users")
+}
+
+// One saved player identity per (user, game) — "My Games" on the home
+// screen. Upserted automatically whenever an order is created for that
+// game (see orders.service.ts), so returning users never have to retype
+// their Player ID/Server ID; also editable directly via the saved-games API.
+model SavedPlayerProfile {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gameId    String   @map("game_id") @db.Uuid
+  game      Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  playerId  String   @map("player_id")
+  serverId  String?  @map("server_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([userId, gameId])
+  @@map("saved_player_profiles")
 }
 
 model RefreshToken {
@@ -138,8 +162,9 @@ model Game {
   createdAt    DateTime          @default(now()) @map("created_at")
   updatedAt    DateTime          @updatedAt @map("updated_at")
 
-  products Product[]
-  orders   Order[]
+  products            Product[]
+  orders              Order[]
+  savedPlayerProfiles SavedPlayerProfile[]
 
   @@map("games")
 }

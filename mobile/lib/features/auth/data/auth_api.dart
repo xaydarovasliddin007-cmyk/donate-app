@@ -52,6 +52,14 @@ class AuthApi {
     return AuthResult.fromJson(json);
   }
 
+  Future<AuthResult> googleAuth({required String idToken, required String locale}) async {
+    final json = await _client.post(
+      '/auth/google',
+      body: {'idToken': idToken, 'locale': locale},
+    );
+    return AuthResult.fromJson(json);
+  }
+
   Future<void> logout(String refreshToken) =>
       _client.post('/auth/logout', body: {'refreshToken': refreshToken});
 

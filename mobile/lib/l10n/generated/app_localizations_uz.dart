@@ -9,7 +9,7 @@ class AppLocalizationsUz extends AppLocalizations {
   AppLocalizationsUz([String locale = 'uz']) : super(locale);
 
   @override
-  String get appName => 'Donate App';
+  String get appName => 'UZDONATE';
 
   @override
   String get homeTitle => 'Bosh sahifa';
@@ -109,7 +109,7 @@ class AppLocalizationsUz extends AppLocalizations {
   String get navProfile => 'Profil';
 
   @override
-  String get onboardingWelcomeTitle => 'Donate App-ga xush kelibsiz';
+  String get onboardingWelcomeTitle => 'UZDONATE-ga xush kelibsiz';
 
   @override
   String get onboardingWelcomeSubtitle =>
@@ -185,6 +185,20 @@ class AppLocalizationsUz extends AppLocalizations {
   String get authLogoutButton => 'Chiqish';
 
   @override
+  String get authContinueWithGoogle => 'Google orqali davom etish';
+
+  @override
+  String get authOrDivider => 'yoki';
+
+  @override
+  String get authGoogleUnavailableMessage =>
+      'Google orqali kirish hozircha sozlanmagan';
+
+  @override
+  String get authGoogleSignInFailed =>
+      'Google orqali kirib bo\'lmadi. Qayta urinib ko\'ring.';
+
+  @override
   String get homeSearchHint => 'O\'yin qidirish';
 
   @override
@@ -201,6 +215,12 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get homeRecentOrders => 'So\'nggi buyurtmalar';
+
+  @override
+  String get homeMyGames => 'Mening o\'yinlarim';
+
+  @override
+  String get homeQuickBuyButton => 'Tezkor xarid';
 
   @override
   String get gameComingSoonBadge => 'Tez kunda';

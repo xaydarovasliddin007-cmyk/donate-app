@@ -10,6 +10,14 @@ class ApiException implements Exception {
   factory ApiException.unknown([Object? cause]) =>
       ApiException(code: 'UNKNOWN_ERROR', message: 'Something went wrong', details: cause);
 
+  factory ApiException.googleNotConfigured() => const ApiException(
+    code: 'GOOGLE_NOT_CONFIGURED',
+    message: 'Google sign-in is not configured',
+  );
+
+  factory ApiException.googleSignInFailed([Object? cause]) =>
+      ApiException(code: 'GOOGLE_SIGN_IN_FAILED', message: 'Google sign-in failed', details: cause);
+
   final String code;
   final String message;
   final int? statusCode;

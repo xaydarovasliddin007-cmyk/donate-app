@@ -44,7 +44,7 @@ void main() {
     await tester.pumpWidget(_wrapWithApp(const OnboardingScreen(), prefs));
     await tester.pumpAndSettle();
 
-    expect(find.text("Donate App-ga xush kelibsiz"), findsOneWidget);
+    expect(find.text("UZDONATE-ga xush kelibsiz"), findsOneWidget);
   });
 
   testWidgets('switching to Russian on onboarding updates on-screen text', (tester) async {
@@ -57,6 +57,6 @@ void main() {
     await tester.tap(find.text('Русский').first);
     await tester.pumpAndSettle();
 
-    expect(find.text('Добро пожаловать в Donate App'), findsOneWidget);
+    expect(find.text('Добро пожаловать в UZDONATE'), findsOneWidget);
   });
 }

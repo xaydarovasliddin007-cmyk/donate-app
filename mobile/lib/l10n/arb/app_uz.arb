@@ -1,7 +1,7 @@
 {
   "@@locale": "uz",
 
-  "appName": "Donate App",
+  "appName": "UZDONATE",
   "@appName": { "description": "The application name, shown on the splash and in the OS task switcher." },
 
   "homeTitle": "Bosh sahifa",
@@ -43,7 +43,7 @@
   "navOrders": "Buyurtmalar",
   "navProfile": "Profil",
 
-  "onboardingWelcomeTitle": "Donate App-ga xush kelibsiz",
+  "onboardingWelcomeTitle": "UZDONATE-ga xush kelibsiz",
   "onboardingWelcomeSubtitle": "Sevimli o'yiningizni tanlang, bir necha soniyada to'ldiring",
   "onboardingChooseLanguage": "Tilni tanlang",
   "onboardingChooseTheme": "Ko'rinishni tanlang",
@@ -68,6 +68,10 @@
   "authLogoutConfirmTitle": "Chiqishni tasdiqlaysizmi?",
   "authLogoutConfirmMessage": "Qaytadan kirish uchun email/telefon va parolingiz kerak bo'ladi",
   "authLogoutButton": "Chiqish",
+  "authContinueWithGoogle": "Google orqali davom etish",
+  "authOrDivider": "yoki",
+  "authGoogleUnavailableMessage": "Google orqali kirish hozircha sozlanmagan",
+  "authGoogleSignInFailed": "Google orqali kirib bo'lmadi. Qayta urinib ko'ring.",
 
   "homeSearchHint": "O'yin qidirish",
   "homePopularGames": "Mashhur o'yinlar",
@@ -75,6 +79,8 @@
   "homePopularTopups": "Ommabop to'ldirishlar",
   "homePromotions": "Aksiyalar",
   "homeRecentOrders": "So'nggi buyurtmalar",
+  "homeMyGames": "Mening o'yinlarim",
+  "homeQuickBuyButton": "Tezkor xarid",
 
   "gameComingSoonBadge": "Tez kunda",
   "gameDetailsTopupTitle": "To'ldirish",

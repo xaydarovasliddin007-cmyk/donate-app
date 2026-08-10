@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/branding/app_branding.dart';
+import '../../../core/branding/brand_mark.dart';
 import '../../../core/storage/preferences_provider.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../auth/application/auth_controller.dart';
 
 /// Bridges the gap between the native splash (gone after Flutter's first
@@ -36,11 +37,29 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+    return Scaffold(
       body: Center(
-        child: Text(
-          'Donate App',
-          style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700, color: AppColors.brandPrimary),
+        child: TweenAnimationBuilder<double>(
+          tween: Tween(begin: 0, end: 1),
+          duration: const Duration(milliseconds: 900),
+          curve: Curves.easeOutCubic,
+          builder: (context, t, child) {
+            return Opacity(
+              opacity: t,
+              child: Transform.scale(scale: 0.9 + (0.1 * t), child: child),
+            );
+          },
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const BrandMark(size: 88),
+              const SizedBox(height: 16),
+              Text(
+                AppBranding.appName,
+                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, letterSpacing: 1.2),
+              ),
+            ],
+          ),
         ),
       ),
     );

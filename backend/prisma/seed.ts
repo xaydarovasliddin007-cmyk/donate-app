@@ -93,14 +93,14 @@ async function main() {
     update: {},
     create: {
       code: 'WELCOME',
-      title: 'Welcome to Donate App',
+      title: 'Welcome to UZDONATE',
       description: 'Fast, secure top-ups for your favorite games.',
       isActive: true,
     },
   });
 
   // --- Default admin (dev only — change this password before any shared/staging deploy) ---
-  const adminEmail = 'admin@donateapp.dev';
+  const adminEmail = 'admin@uzdonate.dev';
   const adminPasswordHash = await argon2.hash('DevAdmin123!', { type: argon2.argon2id });
   await prisma.adminUser.upsert({
     where: { email: adminEmail },

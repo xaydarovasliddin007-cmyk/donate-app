@@ -1,7 +1,7 @@
 {
   "@@locale": "ru",
 
-  "appName": "Donate App",
+  "appName": "UZDONATE",
 
   "homeTitle": "Главная",
   "homeWelcomeMessage": "Выберите игру и пополните счёт за пару секунд",
@@ -42,7 +42,7 @@
   "navOrders": "Заказы",
   "navProfile": "Профиль",
 
-  "onboardingWelcomeTitle": "Добро пожаловать в Donate App",
+  "onboardingWelcomeTitle": "Добро пожаловать в UZDONATE",
   "onboardingWelcomeSubtitle": "Выберите любимую игру и пополните счёт за секунды",
   "onboardingChooseLanguage": "Выберите язык",
   "onboardingChooseTheme": "Выберите оформление",
@@ -67,6 +67,10 @@
   "authLogoutConfirmTitle": "Подтвердите выход",
   "authLogoutConfirmMessage": "Для повторного входа понадобятся email/телефон и пароль",
   "authLogoutButton": "Выйти",
+  "authContinueWithGoogle": "Продолжить через Google",
+  "authOrDivider": "или",
+  "authGoogleUnavailableMessage": "Вход через Google пока не настроен",
+  "authGoogleSignInFailed": "Не удалось войти через Google. Попробуйте снова.",
 
   "homeSearchHint": "Поиск игры",
   "homePopularGames": "Популярные игры",
@@ -74,6 +78,8 @@
   "homePopularTopups": "Популярные пополнения",
   "homePromotions": "Акции",
   "homeRecentOrders": "Последние заказы",
+  "homeMyGames": "Мои игры",
+  "homeQuickBuyButton": "Быстрая покупка",
 
   "gameComingSoonBadge": "Скоро",
   "gameDetailsTopupTitle": "Пополнение",

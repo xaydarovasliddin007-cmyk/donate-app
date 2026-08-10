@@ -9,7 +9,7 @@ class AppLocalizationsRu extends AppLocalizations {
   AppLocalizationsRu([String locale = 'ru']) : super(locale);
 
   @override
-  String get appName => 'Donate App';
+  String get appName => 'UZDONATE';
 
   @override
   String get homeTitle => 'Главная';
@@ -109,7 +109,7 @@ class AppLocalizationsRu extends AppLocalizations {
   String get navProfile => 'Профиль';
 
   @override
-  String get onboardingWelcomeTitle => 'Добро пожаловать в Donate App';
+  String get onboardingWelcomeTitle => 'Добро пожаловать в UZDONATE';
 
   @override
   String get onboardingWelcomeSubtitle =>
@@ -185,6 +185,20 @@ class AppLocalizationsRu extends AppLocalizations {
   String get authLogoutButton => 'Выйти';
 
   @override
+  String get authContinueWithGoogle => 'Продолжить через Google';
+
+  @override
+  String get authOrDivider => 'или';
+
+  @override
+  String get authGoogleUnavailableMessage =>
+      'Вход через Google пока не настроен';
+
+  @override
+  String get authGoogleSignInFailed =>
+      'Не удалось войти через Google. Попробуйте снова.';
+
+  @override
   String get homeSearchHint => 'Поиск игры';
 
   @override
@@ -201,6 +215,12 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get homeRecentOrders => 'Последние заказы';
+
+  @override
+  String get homeMyGames => 'Мои игры';
+
+  @override
+  String get homeQuickBuyButton => 'Быстрая покупка';
 
   @override
   String get gameComingSoonBadge => 'Скоро';

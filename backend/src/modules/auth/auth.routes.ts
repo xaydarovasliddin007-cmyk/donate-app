@@ -1,9 +1,9 @@
 import type { FastifyInstance } from 'fastify';
 import { validateBody } from '../../lib/validate.js';
 import { authenticate } from '../../middleware/authenticate.js';
-import { loginSchema, refreshSchema, registerSchema } from './auth.schemas.js';
+import { googleAuthSchema, loginSchema, refreshSchema, registerSchema } from './auth.schemas.js';
 import * as authService from './auth.service.js';
-import type { LoginInput, RefreshInput, RegisterInput } from './auth.schemas.js';
+import type { GoogleAuthInput, LoginInput, RefreshInput, RegisterInput } from './auth.schemas.js';
 
 export async function authRoutes(app: FastifyInstance) {
   const ctx = { prisma: app.prisma, signAccessToken: app.jwt.sign.bind(app.jwt) };
@@ -20,6 +20,14 @@ export async function authRoutes(app: FastifyInstance) {
   app.post('/auth/login', { preHandler: validateBody(loginSchema) }, async (request) => {
     const body = request.body as LoginInput;
     return authService.login(ctx, body, {
+      userAgent: request.headers['user-agent'],
+      ipAddress: request.ip,
+    });
+  });
+
+  app.post('/auth/google', { preHandler: validateBody(googleAuthSchema) }, async (request) => {
+    const body = request.body as GoogleAuthInput;
+    return authService.googleAuth(ctx, body, {
       userAgent: request.headers['user-agent'],
       ipAddress: request.ip,
     });
@@ -46,6 +54,7 @@ export async function authRoutes(app: FastifyInstance) {
       email: user.email,
       phone: user.phone,
       displayName: user.displayName,
+      avatarUrl: user.avatarUrl,
       locale: user.locale,
       role: user.role,
     };

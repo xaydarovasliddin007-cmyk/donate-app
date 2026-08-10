@@ -1,4 +1,4 @@
-# Donate App — Mobile
+# UZDONATE — Mobile
 
 Customer-facing Flutter app. Android first, iOS-ready.
 
@@ -9,7 +9,8 @@ Feature-first, clean-ish architecture:
 ```
 lib/
   core/
-    config/          build-time config (API base URL via --dart-define)
+    branding/         AppBranding (name) + BrandMark (vector logo, no image asset/emoji)
+    config/          build-time config (API base URL + Google client ID via --dart-define)
     errors/           Failure — maps ApiException to presentation-facing title/message
     localization/     locale persistence/controller
     network/          API client (Dio): auth header injection, refresh-on-401, error mapping
@@ -19,7 +20,7 @@ lib/
     utils/             money formatting, idempotency key generation
     widgets/           shared loading/error/empty state widgets
   features/
-    splash/, onboarding/, auth/, home/, games/, orders/, payments/, profile/
+    splash/, onboarding/, auth/, home/, games/, orders/, payments/, saved_games/, profile/
       presentation/   screens/widgets
       data/            API clients (thin wrappers over ApiClient)
       domain/           models
@@ -48,6 +49,12 @@ lib/
   `onSessionExpired`, which `AuthController` wires to drop the app back to guest state.
 - Guests can browse the entire catalog. Buying (or viewing order history) prompts login —
   browsing is never gated.
+- Google sign-in (`features/auth/data/google_sign_in_service.dart`) wraps the `google_sign_in`
+  v7 singleton API and returns an ID token, which `AuthController.signInWithGoogle()` sends to
+  the backend's `/auth/google` for verification — the app never trusts Google identity data
+  itself, only whatever OUR backend hands back after verifying it. Disabled gracefully (button
+  still visible, shows a friendly "not configured" message instead of crashing) until
+  `GOOGLE_SERVER_CLIENT_ID` is provided — see `backend/README.md`'s "Google Sign-In setup".
 
 ## Purchase flow
 
@@ -90,6 +97,18 @@ flutter run --dart-define=API_BASE_URL=http://<your-lan-ip>:4000/api/v1
 
 The LAN IP isn't guaranteed stable across networks/reboots — re-check it if the app can't
 reach the backend.
+
+Physical Android device over **USB** (avoids the LAN-IP/network hassle entirely — recommended):
+
+```bash
+adb reverse tcp:4000 tcp:4000
+flutter run --dart-define=API_BASE_URL=http://127.0.0.1:4000/api/v1
+```
+
+This forwards the phone's `localhost:4000` to your computer's `localhost:4000` over the USB
+connection, so it keeps working across networks and doesn't need the LAN IP at all. Re-run
+`adb reverse` if you unplug/replug the device. Confirm the backend is reachable first with
+`curl http://localhost:4000/health` on the computer.
 
 ## Commands
 

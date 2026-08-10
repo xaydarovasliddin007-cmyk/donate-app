@@ -14,6 +14,8 @@ import '../../games/presentation/widgets/game_card.dart';
 import '../../games/presentation/widgets/product_card.dart';
 import '../../orders/application/orders_providers.dart';
 import '../../orders/presentation/widgets/order_status_badge.dart';
+import '../../saved_games/application/saved_games_providers.dart';
+import '../../saved_games/presentation/widgets/saved_game_card.dart';
 import '../application/promotions_provider.dart';
 import 'widgets/promotion_banner.dart';
 import 'widgets/section_header.dart';
@@ -213,6 +215,48 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 );
               },
             ),
+
+            if (isAuthenticated) ...[
+              Consumer(
+                builder: (context, ref, _) {
+                  final savedGamesAsync = ref.watch(savedGamesListProvider);
+                  return savedGamesAsync.when(
+                    loading: () => const SizedBox.shrink(),
+                    error: (_, _) => const SizedBox.shrink(),
+                    data: (savedGames) {
+                      if (savedGames.isEmpty) return const SizedBox.shrink();
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          SectionHeader(title: l10n.homeMyGames),
+                          SizedBox(
+                            height: 128,
+                            child: ListView.separated(
+                              scrollDirection: Axis.horizontal,
+                              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                              itemCount: savedGames.length,
+                              separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.sm),
+                              itemBuilder: (_, i) => SavedGameCard(
+                                savedGame: savedGames[i],
+                                onQuickBuy: (product) => context.push(
+                                  '/checkout/confirm',
+                                  extra: {
+                                    'game': savedGames[i].game,
+                                    'product': product,
+                                    'playerId': savedGames[i].playerId,
+                                    'serverId': savedGames[i].serverId ?? '',
+                                  },
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                },
+              ),
+            ],
 
             if (isAuthenticated) ...[
               SectionHeader(title: l10n.homeRecentOrders),

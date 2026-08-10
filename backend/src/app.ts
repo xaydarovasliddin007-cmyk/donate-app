@@ -15,6 +15,7 @@ import { gamesRoutes } from './modules/games/games.routes.js';
 import { promotionsRoutes } from './modules/promotions/promotions.routes.js';
 import { ordersRoutes } from './modules/orders/orders.routes.js';
 import { paymentsRoutes } from './modules/payments/payments.routes.js';
+import { savedGamesRoutes } from './modules/saved-games/saved-games.routes.js';
 import { adminRoutes } from './modules/admin/admin.routes.js';
 
 export async function buildApp() {
@@ -81,6 +82,7 @@ export async function buildApp() {
       await api.register(promotionsRoutes);
       await api.register(ordersRoutes);
       await api.register(paymentsRoutes);
+      await api.register(savedGamesRoutes);
       await api.register(adminRoutes, { prefix: '/admin' });
     },
     { prefix: `/api/${env.API_VERSION}` },

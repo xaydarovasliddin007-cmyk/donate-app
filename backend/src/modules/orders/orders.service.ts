@@ -2,6 +2,7 @@ import type { Order, OrderStatus, Prisma, PrismaClient } from '@prisma/client';
 import { ConflictError, ForbiddenError, NotFoundError } from '../../lib/errors.js';
 import { generateOrderNumber } from '../../lib/order-number.js';
 import { getTopupProvider } from '../../providers/registry.js';
+import { recordPlayerProfileFromOrder } from '../saved-games/saved-games.service.js';
 import { assertTransition } from './order-state-machine.js';
 import type { CreateOrderInput } from './orders.schemas.js';
 
@@ -138,6 +139,9 @@ export async function createOrder(ctx: OrderContext, userId: string, input: Crea
 
     return created;
   });
+
+  // Convenience for next time — never allowed to fail order creation itself.
+  await recordPlayerProfileFromOrder(ctx, userId, game.id, input.playerId, input.serverId ?? null);
 
   return toPublicOrder(order);
 }

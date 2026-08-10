@@ -33,6 +33,6 @@ class _BootstrappedApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     WidgetsBinding.instance.addPostFrameCallback((_) => FlutterNativeSplash.remove());
-    return const DonateApp();
+    return const UzDonateApp();
   }
 }

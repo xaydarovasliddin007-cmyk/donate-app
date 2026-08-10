@@ -101,7 +101,7 @@ abstract class AppLocalizations {
   /// The application name, shown on the splash and in the OS task switcher.
   ///
   /// In uz, this message translates to:
-  /// **'Donate App'**
+  /// **'UZDONATE'**
   String get appName;
 
   /// No description provided for @homeTitle.
@@ -293,7 +293,7 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingWelcomeTitle.
   ///
   /// In uz, this message translates to:
-  /// **'Donate App-ga xush kelibsiz'**
+  /// **'UZDONATE-ga xush kelibsiz'**
   String get onboardingWelcomeTitle;
 
   /// No description provided for @onboardingWelcomeSubtitle.
@@ -434,6 +434,30 @@ abstract class AppLocalizations {
   /// **'Chiqish'**
   String get authLogoutButton;
 
+  /// No description provided for @authContinueWithGoogle.
+  ///
+  /// In uz, this message translates to:
+  /// **'Google orqali davom etish'**
+  String get authContinueWithGoogle;
+
+  /// No description provided for @authOrDivider.
+  ///
+  /// In uz, this message translates to:
+  /// **'yoki'**
+  String get authOrDivider;
+
+  /// No description provided for @authGoogleUnavailableMessage.
+  ///
+  /// In uz, this message translates to:
+  /// **'Google orqali kirish hozircha sozlanmagan'**
+  String get authGoogleUnavailableMessage;
+
+  /// No description provided for @authGoogleSignInFailed.
+  ///
+  /// In uz, this message translates to:
+  /// **'Google orqali kirib bo\'lmadi. Qayta urinib ko\'ring.'**
+  String get authGoogleSignInFailed;
+
   /// No description provided for @homeSearchHint.
   ///
   /// In uz, this message translates to:
@@ -469,6 +493,18 @@ abstract class AppLocalizations {
   /// In uz, this message translates to:
   /// **'So\'nggi buyurtmalar'**
   String get homeRecentOrders;
+
+  /// No description provided for @homeMyGames.
+  ///
+  /// In uz, this message translates to:
+  /// **'Mening o\'yinlarim'**
+  String get homeMyGames;
+
+  /// No description provided for @homeQuickBuyButton.
+  ///
+  /// In uz, this message translates to:
+  /// **'Tezkor xarid'**
+  String get homeQuickBuyButton;
 
   /// No description provided for @gameComingSoonBadge.
   ///

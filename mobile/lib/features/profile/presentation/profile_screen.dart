@@ -50,8 +50,8 @@ class ProfileScreen extends ConsumerWidget {
           if (isAuthenticated) ...[
             Card(
               child: ListTile(
-                leading: const CircleAvatar(child: Icon(Icons.person_rounded)),
-                title: Text(authState!.user!.displayName ?? authState.user!.email ?? authState.user!.phone ?? ''),
+                leading: _ProfileAvatar(avatarUrl: authState!.user!.avatarUrl),
+                title: Text(authState.user!.displayName ?? authState.user!.email ?? authState.user!.phone ?? ''),
                 subtitle: Text(authState.user!.email ?? authState.user!.phone ?? ''),
               ),
             ),
@@ -140,6 +140,29 @@ class ProfileScreen extends ConsumerWidget {
           ],
         ],
       ),
+    );
+  }
+}
+
+/// Shows the Google account picture when available (only source of avatars
+/// today — email/password accounts have none), falling back to a plain icon.
+/// Network image failures (offline, revoked URL) fall back silently rather
+/// than showing a broken-image glyph.
+class _ProfileAvatar extends StatelessWidget {
+  const _ProfileAvatar({required this.avatarUrl});
+
+  final String? avatarUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    final url = avatarUrl;
+    if (url == null || url.isEmpty) {
+      return const CircleAvatar(child: Icon(Icons.person_rounded));
+    }
+    return CircleAvatar(
+      backgroundImage: NetworkImage(url),
+      onBackgroundImageError: (_, _) {},
+      child: null,
     );
   }
 }

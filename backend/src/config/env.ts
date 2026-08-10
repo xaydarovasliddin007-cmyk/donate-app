@@ -23,6 +23,11 @@ const envSchema = z.object({
   ADMIN_JWT_ACCESS_TTL: z.string().default('15m'),
   ADMIN_JWT_REFRESH_TTL: z.string().default('7d'),
 
+  // Optional on purpose: Google sign-in is a real, fully-implemented feature
+  // but requires a GCP OAuth client the operator must create. Without it,
+  // POST /auth/google returns a clear 503 instead of the app refusing to boot.
+  GOOGLE_CLIENT_ID: z.string().trim().min(1).optional(),
+
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(100),
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60_000),
 

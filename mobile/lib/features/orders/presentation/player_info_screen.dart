@@ -1,24 +1,47 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../games/domain/game.dart';
 import '../../games/domain/product.dart';
+import '../../saved_games/application/saved_games_providers.dart';
+import '../../saved_games/domain/saved_game.dart';
 
-class PlayerInfoScreen extends StatefulWidget {
+class PlayerInfoScreen extends ConsumerStatefulWidget {
   const PlayerInfoScreen({super.key, required this.game, required this.product});
 
   final Game game;
   final Product product;
 
   @override
-  State<PlayerInfoScreen> createState() => _PlayerInfoScreenState();
+  ConsumerState<PlayerInfoScreen> createState() => _PlayerInfoScreenState();
 }
 
-class _PlayerInfoScreenState extends State<PlayerInfoScreen> {
+class _PlayerInfoScreenState extends ConsumerState<PlayerInfoScreen> {
   final _formKey = GlobalKey<FormState>();
   final _playerIdController = TextEditingController();
   final _serverIdController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    // Best-effort convenience: if this user already has a saved profile for
+    // this game (from a prior order, or set via My Games), don't make them
+    // retype it. Silently skipped if not loaded yet — never blocks the form.
+    final savedGames = ref.read(savedGamesListProvider).value;
+    SavedGame? match;
+    for (final saved in savedGames ?? const <SavedGame>[]) {
+      if (saved.game.id == widget.game.id) {
+        match = saved;
+        break;
+      }
+    }
+    if (match != null) {
+      _playerIdController.text = match.playerId;
+      _serverIdController.text = match.serverId ?? '';
+    }
+  }
 
   @override
   void dispose() {

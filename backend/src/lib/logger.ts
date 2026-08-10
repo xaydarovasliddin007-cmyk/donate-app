@@ -12,6 +12,7 @@ export const logger = pino({
       '*.token',
       '*.accessToken',
       '*.refreshToken',
+      '*.idToken',
     ],
     censor: '[REDACTED]',
   },
