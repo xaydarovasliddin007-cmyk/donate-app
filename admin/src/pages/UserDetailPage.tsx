@@ -6,8 +6,10 @@ import { useAsync } from '../lib/useAsync';
 import { formatDate, formatMinor } from '../lib/money';
 import { StatusBadge } from '../components/StatusBadge';
 import { Loading } from '../components/Loading';
+import { useLocale } from '../i18n/LocaleContext';
 
 export function UserDetailPage() {
+  const { t } = useLocale();
   const { userId } = useParams<{ userId: string }>();
   const { data, loading, error, reload } = useAsync(
     () => api.get<UserDetail>(`/admin/users/${userId}`),
@@ -25,11 +27,11 @@ export function UserDetailPage() {
     setFormError(null);
     const amountMajor = Number(amount);
     if (!Number.isFinite(amountMajor) || amountMajor <= 0) {
-      setFormError('Enter a positive amount');
+      setFormError(t('userDetail.enterPositiveAmount'));
       return;
     }
     if (!reason.trim()) {
-      setFormError('A reason is required for every wallet adjustment');
+      setFormError(t('userDetail.reasonRequired'));
       return;
     }
     setSubmitting(true);
@@ -43,7 +45,7 @@ export function UserDetailPage() {
       setReason('');
       reload();
     } catch (err) {
-      setFormError(err instanceof ApiError ? err.message : 'Adjustment failed');
+      setFormError(err instanceof ApiError ? err.message : t('userDetail.adjustmentFailed'));
     } finally {
       setSubmitting(false);
     }
@@ -59,64 +61,64 @@ export function UserDetailPage() {
       <h1>{user.displayName ?? user.email ?? user.phone ?? user.publicId}</h1>
       <div className="panel-grid">
         <div className="panel">
-          <h3>Account</h3>
+          <h3>{t('userDetail.account')}</h3>
           <dl className="detail-list">
-            <dt>UZDONATE ID</dt>
+            <dt>{t('userDetail.id')}</dt>
             <dd>{user.publicId}</dd>
-            <dt>Email</dt>
+            <dt>{t('userDetail.email')}</dt>
             <dd>{user.email ?? '—'}</dd>
-            <dt>Phone</dt>
+            <dt>{t('userDetail.phone')}</dt>
             <dd>{user.phone ?? '—'}</dd>
-            <dt>Role</dt>
+            <dt>{t('userDetail.role')}</dt>
             <dd>{user.role}</dd>
-            <dt>Status</dt>
+            <dt>{t('userDetail.status')}</dt>
             <dd>
               <StatusBadge status={user.status} />
             </dd>
-            <dt>Joined</dt>
+            <dt>{t('userDetail.joined')}</dt>
             <dd>{formatDate(user.createdAt)}</dd>
           </dl>
         </div>
 
         <div className="panel">
-          <h3>Wallet</h3>
+          <h3>{t('userDetail.wallet')}</h3>
           <p className="stat-value">{formatMinor(wallet.balanceMinor, wallet.currency)}</p>
           <form className="stack-form" onSubmit={submitAdjustment}>
             <div className="toolbar">
               <select value={direction} onChange={(e) => setDirection(e.target.value as 'CREDIT' | 'DEBIT')}>
-                <option value="CREDIT">Credit (add funds)</option>
-                <option value="DEBIT">Debit (remove funds)</option>
+                <option value="CREDIT">{t('userDetail.credit')}</option>
+                <option value="DEBIT">{t('userDetail.debit')}</option>
               </select>
               <input
                 type="number"
                 min="0"
                 step="0.01"
-                placeholder="Amount"
+                placeholder={t('userDetail.amountPlaceholder')}
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
               />
             </div>
             <input
-              placeholder="Reason (required, audit-logged)"
+              placeholder={t('userDetail.reasonPlaceholder')}
               value={reason}
               onChange={(e) => setReason(e.target.value)}
             />
             {formError && <div className="form-error">{formError}</div>}
             <button className="btn btn-primary" type="submit" disabled={submitting}>
-              {submitting ? 'Applying…' : 'Apply adjustment'}
+              {submitting ? t('userDetail.applying') : t('userDetail.applyAdjustment')}
             </button>
           </form>
         </div>
 
         <div className="panel">
-          <h3>Active sessions</h3>
+          <h3>{t('userDetail.activeSessions')}</h3>
           {activeSessions.length === 0 ? (
-            <p className="muted">No active sessions</p>
+            <p className="muted">{t('userDetail.noSessions')}</p>
           ) : (
             <ul className="plain-list">
               {activeSessions.map((session) => (
                 <li key={session.id}>
-                  {session.userAgent ?? 'Unknown device'} · {session.ipAddress ?? '—'} ·{' '}
+                  {session.userAgent ?? t('userDetail.unknownDevice')} · {session.ipAddress ?? '—'} ·{' '}
                   {formatDate(session.createdAt)}
                 </li>
               ))}
@@ -127,9 +129,9 @@ export function UserDetailPage() {
 
       <div className="panel-grid">
         <div className="panel">
-          <h3>Recent orders</h3>
+          <h3>{t('userDetail.recentOrders')}</h3>
           {recentOrders.length === 0 ? (
-            <p className="muted">No orders yet</p>
+            <p className="muted">{t('userDetail.noOrders')}</p>
           ) : (
             <table>
               <tbody>
@@ -152,9 +154,9 @@ export function UserDetailPage() {
         </div>
 
         <div className="panel">
-          <h3>Recent wallet transactions</h3>
+          <h3>{t('userDetail.recentTransactions')}</h3>
           {recentTransactions.length === 0 ? (
-            <p className="muted">No transactions yet</p>
+            <p className="muted">{t('userDetail.noTransactions')}</p>
           ) : (
             <table>
               <tbody>

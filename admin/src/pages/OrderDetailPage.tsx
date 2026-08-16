@@ -7,8 +7,10 @@ import { formatDate, formatMinor } from '../lib/money';
 import { StatusBadge } from '../components/StatusBadge';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { Loading } from '../components/Loading';
+import { useLocale } from '../i18n/LocaleContext';
 
 export function OrderDetailPage() {
+  const { t } = useLocale();
   const { orderId } = useParams<{ orderId: string }>();
   const { data, loading, error, reload } = useAsync(
     () => api.get<OrderDetail>(`/admin/orders/${orderId}`),
@@ -26,7 +28,7 @@ export function OrderDetailPage() {
       await api.post(`/admin/orders/${orderId}/retry-fulfillment`);
       reload();
     } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : 'Retry failed');
+      setActionError(err instanceof ApiError ? err.message : t('orderDetail.retryFailed'));
     } finally {
       setBusy(false);
     }
@@ -41,7 +43,7 @@ export function OrderDetailPage() {
       setConfirmingRefund(false);
       reload();
     } catch (err) {
-      setActionError(err instanceof ApiError ? err.message : 'Refund failed');
+      setActionError(err instanceof ApiError ? err.message : t('orderDetail.refundFailed'));
     } finally {
       setBusy(false);
     }
@@ -53,35 +55,35 @@ export function OrderDetailPage() {
   return (
     <div>
       <h1>
-        Order {data.orderNumber} <StatusBadge status={data.status} />
+        {t('orderDetail.title', { orderNumber: data.orderNumber })} <StatusBadge status={data.status} />
       </h1>
       <div className="panel-grid">
         <div className="panel">
-          <h3>Summary</h3>
+          <h3>{t('orderDetail.summary')}</h3>
           <dl className="detail-list">
-            <dt>User</dt>
+            <dt>{t('orderDetail.user')}</dt>
             <dd>
               <Link to={`/users/${data.userId}`}>
                 {data.user.displayName ?? data.user.email ?? data.user.phone ?? data.userId}
               </Link>
             </dd>
-            <dt>Game</dt>
+            <dt>{t('orderDetail.game')}</dt>
             <dd>{data.game.name}</dd>
-            <dt>Player ID</dt>
+            <dt>{t('orderDetail.playerId')}</dt>
             <dd>{data.playerId}</dd>
             {data.serverId && (
               <>
-                <dt>Server ID</dt>
+                <dt>{t('orderDetail.serverId')}</dt>
                 <dd>{data.serverId}</dd>
               </>
             )}
-            <dt>Amount</dt>
+            <dt>{t('orderDetail.amount')}</dt>
             <dd>{formatMinor(data.amountMinor, data.currency)}</dd>
-            <dt>Created</dt>
+            <dt>{t('orderDetail.created')}</dt>
             <dd>{formatDate(data.createdAt)}</dd>
             {data.failureReason && (
               <>
-                <dt>Failure reason</dt>
+                <dt>{t('orderDetail.failureReason')}</dt>
                 <dd className="form-error">{data.failureReason}</dd>
               </>
             )}
@@ -90,18 +92,18 @@ export function OrderDetailPage() {
           <div className="toolbar">
             {data.status === 'FAILED' && (
               <button className="btn btn-secondary" disabled={busy} onClick={retry}>
-                Retry fulfillment
+                {t('orderDetail.retryFulfillment')}
               </button>
             )}
             {(data.status === 'COMPLETED' || data.status === 'PAID' || data.status === 'FULFILLING') && (
               <>
                 <input
-                  placeholder="Refund reason (optional)"
+                  placeholder={t('orderDetail.refundReasonPlaceholder')}
                   value={refundReason}
                   onChange={(e) => setRefundReason(e.target.value)}
                 />
                 <button className="btn btn-danger" disabled={busy} onClick={() => setConfirmingRefund(true)}>
-                  Refund to wallet
+                  {t('orderDetail.refundToWallet')}
                 </button>
               </>
             )}
@@ -110,9 +112,9 @@ export function OrderDetailPage() {
 
         <ConfirmDialog
           open={confirmingRefund}
-          title="Refund this order?"
-          message={`This credits ${formatMinor(data.amountMinor, data.currency)} back to the user's wallet and marks the order REFUNDED. This cannot be undone from here.`}
-          confirmLabel="Refund to wallet"
+          title={t('orderDetail.confirmRefundTitle')}
+          message={t('orderDetail.confirmRefundMessage', { amount: formatMinor(data.amountMinor, data.currency) })}
+          confirmLabel={t('orderDetail.refundToWallet')}
           danger
           busy={busy}
           onConfirm={refund}
@@ -120,7 +122,7 @@ export function OrderDetailPage() {
         />
 
         <div className="panel">
-          <h3>Items</h3>
+          <h3>{t('orderDetail.items')}</h3>
           <table>
             <tbody>
               {data.items.map((item) => (
@@ -135,9 +137,9 @@ export function OrderDetailPage() {
         </div>
 
         <div className="panel">
-          <h3>Payments</h3>
+          <h3>{t('orderDetail.payments')}</h3>
           {data.payments.length === 0 ? (
-            <p className="muted">No payments yet</p>
+            <p className="muted">{t('orderDetail.noPayments')}</p>
           ) : (
             <table>
               <tbody>
@@ -156,7 +158,7 @@ export function OrderDetailPage() {
         </div>
 
         <div className="panel">
-          <h3>Status history</h3>
+          <h3>{t('orderDetail.statusHistory')}</h3>
           <ul className="plain-list">
             {data.statusHistory.map((entry) => (
               <li key={entry.id}>

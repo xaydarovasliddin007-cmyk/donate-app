@@ -5,13 +5,14 @@ import { useAsync } from '../lib/useAsync';
 import { formatMinor, formatDate } from '../lib/money';
 import { BreakdownChart } from '../components/BreakdownChart';
 import { Loading } from '../components/Loading';
+import { useLocale } from '../i18n/LocaleContext';
 
-const RANGE_LABELS: Record<StatsRangePreset, string> = {
-  today: 'Today',
-  '7d': 'Last 7 days',
-  '30d': 'Last 30 days',
-  '90d': 'Last 90 days',
-  custom: 'Custom',
+const RANGE_KEYS: Record<StatsRangePreset, string> = {
+  today: 'dashboard.rangeToday',
+  '7d': 'dashboard.range7d',
+  '30d': 'dashboard.range30d',
+  '90d': 'dashboard.range90d',
+  custom: 'dashboard.rangeCustom',
 };
 
 function StatCard({ label, value }: { label: string; value: string | number }) {
@@ -24,6 +25,7 @@ function StatCard({ label, value }: { label: string; value: string | number }) {
 }
 
 export function DashboardPage() {
+  const { t } = useLocale();
   const [range, setRange] = useState<StatsRangePreset>('30d');
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
@@ -40,21 +42,21 @@ export function DashboardPage() {
 
   return (
     <div>
-      <h1>Dashboard</h1>
+      <h1>{t('dashboard.title')}</h1>
       <div className="toolbar">
-        {(Object.keys(RANGE_LABELS) as StatsRangePreset[]).map((preset) => (
+        {(Object.keys(RANGE_KEYS) as StatsRangePreset[]).map((preset) => (
           <button
             key={preset}
             className={`btn ${range === preset ? 'btn-primary' : 'btn-secondary'}`}
             onClick={() => setRange(preset)}
           >
-            {RANGE_LABELS[preset]}
+            {t(RANGE_KEYS[preset])}
           </button>
         ))}
         {range === 'custom' && (
           <>
             <input type="date" value={customFrom} onChange={(e) => setCustomFrom(e.target.value)} />
-            <span className="muted">to</span>
+            <span className="muted">{t('common.to')}</span>
             <input type="date" value={customTo} onChange={(e) => setCustomTo(e.target.value)} />
           </>
         )}
@@ -65,21 +67,19 @@ export function DashboardPage() {
         <div className="panel">
           <p className="form-error">{error}</p>
           <button className="btn btn-secondary" onClick={reload}>
-            Retry
+            {t('common.retry')}
           </button>
         </div>
       )}
       {data && (
         <>
-          <p className="muted">
-            Showing {formatDate(data.range.from)} – {formatDate(data.range.to)}
-          </p>
+          <p className="muted">{t('dashboard.showing', { from: formatDate(data.range.from), to: formatDate(data.range.to) })}</p>
           <div className="stat-grid">
-            <StatCard label="Total users" value={data.totalUsers} />
-            <StatCard label="New users in range" value={data.newUsersInRange} />
-            <StatCard label="Orders in range" value={data.ordersInRange} />
+            <StatCard label={t('dashboard.totalUsers')} value={data.totalUsers} />
+            <StatCard label={t('dashboard.newUsers')} value={data.newUsersInRange} />
+            <StatCard label={t('dashboard.ordersInRange')} value={data.ordersInRange} />
             <StatCard
-              label="Wallet liability"
+              label={t('dashboard.walletLiability')}
               value={
                 Object.entries(data.walletLiabilityByCurrency)
                   .map(([currency, amount]) => formatMinor(amount, currency))
@@ -89,19 +89,19 @@ export function DashboardPage() {
           </div>
           <div className="panel-grid">
             <BreakdownChart
-              title="Users by status"
+              title={t('dashboard.usersByStatus')}
               rows={Object.entries(data.usersByStatus).map(([label, value]) => ({ label, value }))}
             />
             <BreakdownChart
-              title="Orders by status"
+              title={t('dashboard.ordersByStatus')}
               rows={Object.entries(data.ordersByStatus).map(([label, value]) => ({ label, value }))}
             />
             <BreakdownChart
-              title="Top-ups by status"
+              title={t('dashboard.topUpsByStatus')}
               rows={Object.entries(data.topUpsByStatus).map(([label, value]) => ({ label, value }))}
             />
             <BreakdownChart
-              title="Revenue in range (completed orders)"
+              title={t('dashboard.revenueInRange')}
               rows={Object.entries(data.revenueInRangeByCurrency).map(([currency, amount]) => ({
                 label: currency,
                 value: amount,

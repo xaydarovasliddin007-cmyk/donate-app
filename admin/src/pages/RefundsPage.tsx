@@ -3,9 +3,11 @@ import { api } from '../api/client';
 import type { RefundEntry } from '../api/types';
 import { useAsync } from '../lib/useAsync';
 import { formatDate, formatMinor } from '../lib/money';
-import { Loading } from '../components/Loading';
+import { SkeletonRows } from '../components/SkeletonRows';
+import { useLocale } from '../i18n/LocaleContext';
 
 export function RefundsPage() {
+  const { t } = useLocale();
   const { data, loading, error } = useAsync(
     () => api.get<{ refunds: RefundEntry[] }>('/admin/refunds', { limit: 100 }),
     [],
@@ -13,24 +15,37 @@ export function RefundsPage() {
 
   return (
     <div>
-      <h1>Refunds</h1>
-      <p className="muted">
-        Every refund is a ledger entry (type=REFUND) credited back to the user's wallet — there is no separate
-        refund record to fall out of sync with the ledger.
-      </p>
+      <h1>{t('refunds.title')}</h1>
+      <p className="muted">{t('refunds.blurb')}</p>
 
-      {loading && <Loading />}
+      {loading && !data && (
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th>{t('refunds.colUser')}</th>
+              <th>{t('refunds.colOrder')}</th>
+              <th>{t('refunds.colAmount')}</th>
+              <th>{t('refunds.colReason')}</th>
+              <th>{t('refunds.colProcessedBy')}</th>
+              <th>{t('refunds.colWhen')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <SkeletonRows columns={6} />
+          </tbody>
+        </table>
+      )}
       {error && <p className="form-error">{error}</p>}
       {data && (
         <table className="data-table">
           <thead>
             <tr>
-              <th>User</th>
-              <th>Order</th>
-              <th>Amount</th>
-              <th>Reason</th>
-              <th>Processed by</th>
-              <th>When</th>
+              <th>{t('refunds.colUser')}</th>
+              <th>{t('refunds.colOrder')}</th>
+              <th>{t('refunds.colAmount')}</th>
+              <th>{t('refunds.colReason')}</th>
+              <th>{t('refunds.colProcessedBy')}</th>
+              <th>{t('refunds.colWhen')}</th>
             </tr>
           </thead>
           <tbody>
@@ -56,7 +71,7 @@ export function RefundsPage() {
             {data.refunds.length === 0 && (
               <tr>
                 <td colSpan={6} className="muted">
-                  No refunds issued yet
+                  {t('refunds.empty')}
                 </td>
               </tr>
             )}

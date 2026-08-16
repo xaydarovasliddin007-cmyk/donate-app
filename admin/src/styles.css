@@ -270,6 +270,36 @@ a:hover {
   text-transform: capitalize;
 }
 
+/* ---------- Language switcher ---------- */
+
+.lang-switch {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+.lang-switch-btn {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 0.3rem 0.65rem;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.lang-switch-btn:hover {
+  color: var(--text);
+}
+.lang-switch-btn.active {
+  background: var(--gradient);
+  color: white;
+}
+
 .content {
   flex: 1;
   padding: 2.25rem 2.5rem;
@@ -278,6 +308,13 @@ a:hover {
 }
 
 /* ---------- Login ---------- */
+
+.login-lang-switch {
+  position: fixed;
+  top: 1.25rem;
+  right: 1.25rem;
+  z-index: 10;
+}
 
 .login-page {
   min-height: 100vh;
@@ -792,6 +829,24 @@ table {
 @keyframes spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+.skeleton-bar {
+  display: inline-block;
+  height: 0.8em;
+  min-width: 2.5em;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--surface-alt) 25%, var(--border) 37%, var(--surface-alt) 63%);
+  background-size: 400% 100%;
+  animation: skeleton-shimmer 1.4s ease infinite;
+}
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
   }
 }
 

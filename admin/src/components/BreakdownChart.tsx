@@ -1,3 +1,5 @@
+import { useLocale } from '../i18n/LocaleContext';
+
 export interface BreakdownRow {
   label: string;
   value: number;
@@ -10,13 +12,14 @@ export interface BreakdownRow {
  * dependency or hurting load time.
  */
 export function BreakdownChart({ title, rows }: { title: string; rows: BreakdownRow[] }) {
+  const { t } = useLocale();
   const max = Math.max(1, ...rows.map((r) => r.value));
 
   return (
     <div className="panel">
       <h3>{title}</h3>
       {rows.length === 0 ? (
-        <p className="muted">No data</p>
+        <p className="muted">{t('common.noData')}</p>
       ) : (
         <div className="bar-list">
           {rows.map((row) => (

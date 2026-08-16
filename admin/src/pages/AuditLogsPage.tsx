@@ -3,9 +3,11 @@ import { api } from '../api/client';
 import type { AuditLogEntry } from '../api/types';
 import { useAsync } from '../lib/useAsync';
 import { formatDate } from '../lib/money';
-import { Loading } from '../components/Loading';
+import { SkeletonRows } from '../components/SkeletonRows';
+import { useLocale } from '../i18n/LocaleContext';
 
 export function AuditLogsPage() {
+  const { t } = useLocale();
   const [entityType, setEntityType] = useState('');
   const { data, loading, error } = useAsync(
     () => api.get<{ auditLogs: AuditLogEntry[] }>('/admin/audit-logs', { entityType: entityType || undefined, limit: 100 }),
@@ -14,11 +16,11 @@ export function AuditLogsPage() {
 
   return (
     <div>
-      <h1>Audit logs</h1>
-      <p className="muted">Immutable record of every sensitive admin action — wallet adjustments, refunds, admin changes, top-up decisions.</p>
+      <h1>{t('auditLogs.title')}</h1>
+      <p className="muted">{t('auditLogs.blurb')}</p>
       <div className="toolbar">
         <select value={entityType} onChange={(e) => setEntityType(e.target.value)}>
-          <option value="">All entity types</option>
+          <option value="">{t('auditLogs.allEntityTypes')}</option>
           <option value="Wallet">Wallet</option>
           <option value="Order">Order</option>
           <option value="TopUpRequest">TopUpRequest</option>
@@ -28,17 +30,32 @@ export function AuditLogsPage() {
         </select>
       </div>
 
-      {loading && <Loading />}
+      {loading && !data && (
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th>{t('auditLogs.colAction')}</th>
+              <th>{t('auditLogs.colEntity')}</th>
+              <th>{t('auditLogs.colActor')}</th>
+              <th>{t('auditLogs.colMetadata')}</th>
+              <th>{t('auditLogs.colWhen')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <SkeletonRows columns={5} />
+          </tbody>
+        </table>
+      )}
       {error && <p className="form-error">{error}</p>}
       {data && (
         <table className="data-table">
           <thead>
             <tr>
-              <th>Action</th>
-              <th>Entity</th>
-              <th>Actor</th>
-              <th>Metadata</th>
-              <th>When</th>
+              <th>{t('auditLogs.colAction')}</th>
+              <th>{t('auditLogs.colEntity')}</th>
+              <th>{t('auditLogs.colActor')}</th>
+              <th>{t('auditLogs.colMetadata')}</th>
+              <th>{t('auditLogs.colWhen')}</th>
             </tr>
           </thead>
           <tbody>
@@ -61,7 +78,7 @@ export function AuditLogsPage() {
             {data.auditLogs.length === 0 && (
               <tr>
                 <td colSpan={5} className="muted">
-                  No audit log entries found
+                  {t('auditLogs.empty')}
                 </td>
               </tr>
             )}

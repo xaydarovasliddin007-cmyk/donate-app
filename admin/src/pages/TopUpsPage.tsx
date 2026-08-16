@@ -4,11 +4,13 @@ import type { TopUpRequestAdmin, TopUpRequestStatus } from '../api/types';
 import { useAsync } from '../lib/useAsync';
 import { formatDate, formatMinor } from '../lib/money';
 import { StatusBadge } from '../components/StatusBadge';
-import { Loading } from '../components/Loading';
+import { SkeletonRows } from '../components/SkeletonRows';
+import { useLocale } from '../i18n/LocaleContext';
 
 const STATUSES: TopUpRequestStatus[] = ['PENDING', 'VERIFIED', 'REJECTED', 'EXPIRED'];
 
 function TopUpRow({ request, onChanged }: { request: TopUpRequestAdmin; onChanged: () => void }) {
+  const { t } = useLocale();
   const [rejecting, setRejecting] = useState(false);
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
@@ -21,7 +23,7 @@ function TopUpRow({ request, onChanged }: { request: TopUpRequestAdmin; onChange
       await api.post(`/admin/topups/${request.id}/verify`);
       onChanged();
     } catch (err) {
-      setRowError(err instanceof ApiError ? err.message : 'Verify failed');
+      setRowError(err instanceof ApiError ? err.message : t('topups.verifyFailed'));
     } finally {
       setBusy(false);
     }
@@ -29,7 +31,7 @@ function TopUpRow({ request, onChanged }: { request: TopUpRequestAdmin; onChange
 
   async function reject() {
     if (!reason.trim()) {
-      setRowError('Rejection reason is required');
+      setRowError(t('topups.reasonRequired'));
       return;
     }
     setBusy(true);
@@ -38,7 +40,7 @@ function TopUpRow({ request, onChanged }: { request: TopUpRequestAdmin; onChange
       await api.post(`/admin/topups/${request.id}/reject`, { rejectionReason: reason.trim() });
       onChanged();
     } catch (err) {
-      setRowError(err instanceof ApiError ? err.message : 'Reject failed');
+      setRowError(err instanceof ApiError ? err.message : t('topups.rejectFailed'));
     } finally {
       setBusy(false);
     }
@@ -66,24 +68,24 @@ function TopUpRow({ request, onChanged }: { request: TopUpRequestAdmin; onChange
             {!rejecting ? (
               <div className="toolbar">
                 <button className="btn btn-primary" disabled={busy} onClick={verify}>
-                  Verify
+                  {t('topups.verify')}
                 </button>
                 <button className="btn btn-danger" disabled={busy} onClick={() => setRejecting(true)}>
-                  Reject
+                  {t('topups.reject')}
                 </button>
               </div>
             ) : (
               <div className="toolbar">
                 <input
-                  placeholder="Rejection reason"
+                  placeholder={t('topups.rejectionPlaceholder')}
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
                 />
                 <button className="btn btn-danger" disabled={busy} onClick={reject}>
-                  Confirm reject
+                  {t('topups.confirmReject')}
                 </button>
                 <button className="btn btn-secondary" disabled={busy} onClick={() => setRejecting(false)}>
-                  Cancel
+                  {t('topups.cancel')}
                 </button>
               </div>
             )}
@@ -95,6 +97,7 @@ function TopUpRow({ request, onChanged }: { request: TopUpRequestAdmin; onChange
 }
 
 export function TopUpsPage() {
+  const { t } = useLocale();
   const [status, setStatus] = useState<TopUpRequestStatus | ''>('PENDING');
   const { data, loading, error, reload } = useAsync(
     () => api.get<{ topUps: TopUpRequestAdmin[] }>('/admin/topups', { status: status || undefined, limit: 50 }),
@@ -103,14 +106,11 @@ export function TopUpsPage() {
 
   return (
     <div>
-      <h1>Top-up requests</h1>
-      <p className="muted">
-        Wallets are credited only after an admin verifies the transfer against a real bank statement — a user's
-        claim alone never credits a wallet.
-      </p>
+      <h1>{t('topups.title')}</h1>
+      <p className="muted">{t('topups.blurb')}</p>
       <div className="toolbar">
         <select value={status} onChange={(e) => setStatus(e.target.value as TopUpRequestStatus | '')}>
-          <option value="">All statuses</option>
+          <option value="">{t('orders.allStatuses')}</option>
           {STATUSES.map((s) => (
             <option key={s} value={s}>
               {s}
@@ -119,19 +119,36 @@ export function TopUpsPage() {
         </select>
       </div>
 
-      {loading && <Loading />}
+      {loading && !data && (
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th>{t('topups.colUser')}</th>
+              <th>{t('topups.colAmount')}</th>
+              <th>{t('topups.colMethod')}</th>
+              <th>{t('topups.colReference')}</th>
+              <th>{t('topups.colStatus')}</th>
+              <th>{t('topups.colRequested')}</th>
+              <th>{t('topups.colActions')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <SkeletonRows columns={7} />
+          </tbody>
+        </table>
+      )}
       {error && <p className="form-error">{error}</p>}
       {data && (
         <table className="data-table">
           <thead>
             <tr>
-              <th>User</th>
-              <th>Amount</th>
-              <th>Receiving method</th>
-              <th>User reference</th>
-              <th>Status</th>
-              <th>Requested</th>
-              <th>Actions</th>
+              <th>{t('topups.colUser')}</th>
+              <th>{t('topups.colAmount')}</th>
+              <th>{t('topups.colMethod')}</th>
+              <th>{t('topups.colReference')}</th>
+              <th>{t('topups.colStatus')}</th>
+              <th>{t('topups.colRequested')}</th>
+              <th>{t('topups.colActions')}</th>
             </tr>
           </thead>
           <tbody>
@@ -141,7 +158,7 @@ export function TopUpsPage() {
             {data.topUps.length === 0 && (
               <tr>
                 <td colSpan={7} className="muted">
-                  No top-up requests found
+                  {t('topups.empty')}
                 </td>
               </tr>
             )}

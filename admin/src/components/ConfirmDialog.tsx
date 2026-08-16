@@ -1,3 +1,5 @@
+import { useLocale } from '../i18n/LocaleContext';
+
 interface ConfirmDialogProps {
   open: boolean;
   title: string;
@@ -14,12 +16,13 @@ export function ConfirmDialog({
   open,
   title,
   message,
-  confirmLabel = 'Confirm',
+  confirmLabel,
   danger = false,
   busy = false,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
+  const { t } = useLocale();
   if (!open) return null;
 
   return (
@@ -29,10 +32,10 @@ export function ConfirmDialog({
         <p className="muted">{message}</p>
         <div className="toolbar modal-actions">
           <button className="btn btn-secondary" onClick={onCancel} disabled={busy}>
-            Cancel
+            {t('common.cancel')}
           </button>
           <button className={`btn ${danger ? 'btn-danger' : 'btn-primary'}`} onClick={onConfirm} disabled={busy}>
-            {busy ? 'Working…' : confirmLabel}
+            {busy ? t('common.working') : confirmLabel ?? t('common.confirm')}
           </button>
         </div>
       </div>

@@ -1,6 +1,8 @@
 import { useState, type ReactNode } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
+import { useLocale } from '../i18n/LocaleContext';
+import { LanguageSwitcher } from './LanguageSwitcher';
 import {
   AdminsIcon,
   AuditIcon,
@@ -19,24 +21,24 @@ import {
 
 interface NavItem {
   to: string;
-  label: string;
+  labelKey: string;
   icon: ReactNode;
   end?: boolean;
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { to: '/', label: 'Dashboard', icon: <DashboardIcon />, end: true },
-  { to: '/users', label: 'Users', icon: <UsersIcon /> },
-  { to: '/orders', label: 'Orders', icon: <OrdersIcon /> },
-  { to: '/topups', label: 'Top-ups', icon: <TopUpIcon /> },
-  { to: '/refunds', label: 'Refunds', icon: <RefundIcon /> },
-  { to: '/receiving-methods', label: 'Receiving methods', icon: <CardIcon /> },
-  { to: '/products', label: 'Products', icon: <ProductIcon /> },
-  { to: '/providers', label: 'Providers', icon: <ProviderIcon /> },
-  { to: '/audit-logs', label: 'Audit logs', icon: <AuditIcon /> },
+  { to: '/', labelKey: 'nav.dashboard', icon: <DashboardIcon />, end: true },
+  { to: '/users', labelKey: 'nav.users', icon: <UsersIcon /> },
+  { to: '/orders', labelKey: 'nav.orders', icon: <OrdersIcon /> },
+  { to: '/topups', labelKey: 'nav.topups', icon: <TopUpIcon /> },
+  { to: '/refunds', labelKey: 'nav.refunds', icon: <RefundIcon /> },
+  { to: '/receiving-methods', labelKey: 'nav.receivingMethods', icon: <CardIcon /> },
+  { to: '/products', labelKey: 'nav.products', icon: <ProductIcon /> },
+  { to: '/providers', labelKey: 'nav.providers', icon: <ProviderIcon /> },
+  { to: '/audit-logs', labelKey: 'nav.auditLogs', icon: <AuditIcon /> },
 ];
 
-const SUPER_ADMIN_NAV_ITEMS: NavItem[] = [{ to: '/admins', label: 'Admins', icon: <AdminsIcon /> }];
+const SUPER_ADMIN_NAV_ITEMS: NavItem[] = [{ to: '/admins', labelKey: 'nav.admins', icon: <AdminsIcon /> }];
 
 function initials(name: string | undefined): string {
   if (!name) return '?';
@@ -47,6 +49,7 @@ function initials(name: string | undefined): string {
 
 export function Layout() {
   const { admin, logout } = useAuth();
+  const { t } = useLocale();
   const [navOpen, setNavOpen] = useState(false);
   const navItems = admin?.role === 'SUPER_ADMIN' ? [...NAV_ITEMS, ...SUPER_ADMIN_NAV_ITEMS] : NAV_ITEMS;
 
@@ -55,7 +58,7 @@ export function Layout() {
       <button
         className="nav-toggle"
         onClick={() => setNavOpen((v) => !v)}
-        aria-label={navOpen ? 'Close navigation' : 'Open navigation'}
+        aria-label={navOpen ? t('nav.closeMenu') : t('nav.openMenu')}
         aria-expanded={navOpen}
       >
         {navOpen ? <CloseIcon /> : <MenuIcon />}
@@ -68,7 +71,7 @@ export function Layout() {
           <span className="brand-mark">U</span>
           <span>
             UZDONATE
-            <small>Admin console</small>
+            <small>{t('nav.tagline')}</small>
           </span>
         </div>
         <nav onClick={() => setNavOpen(false)}>
@@ -80,11 +83,12 @@ export function Layout() {
               className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
             >
               <span className="nav-icon">{item.icon}</span>
-              {item.label}
+              {t(item.labelKey)}
             </NavLink>
           ))}
         </nav>
         <div className="sidebar-footer">
+          <LanguageSwitcher />
           <div className="admin-identity">
             <span className="admin-avatar">{initials(admin?.fullName)}</span>
             <span>
@@ -94,7 +98,7 @@ export function Layout() {
           </div>
           <button className="btn btn-secondary btn-block" onClick={logout}>
             <LogoutIcon width={16} height={16} />
-            Log out
+            {t('nav.logout')}
           </button>
         </div>
       </aside>

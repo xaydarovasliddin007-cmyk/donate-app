@@ -4,9 +4,11 @@ import type { Product } from '../api/types';
 import { useAsync } from '../lib/useAsync';
 import { formatMinor } from '../lib/money';
 import { useToast } from '../components/Toast';
-import { Loading } from '../components/Loading';
+import { SkeletonRows } from '../components/SkeletonRows';
+import { useLocale } from '../i18n/LocaleContext';
 
 function ProductRow({ product, onChanged }: { product: Product; onChanged: () => void }) {
+  const { t } = useLocale();
   const { showError } = useToast();
   const [amount, setAmount] = useState(String(product.amountMinor / 100));
   const [saving, setSaving] = useState(false);
@@ -20,7 +22,7 @@ function ProductRow({ product, onChanged }: { product: Product; onChanged: () =>
       await api.patch(`/admin/products/${product.id}`, { amountMinor: Math.round(amountMajor * 100) });
       onChanged();
     } catch (err) {
-      showError(err instanceof ApiError ? err.message : 'Could not update price');
+      showError(err instanceof ApiError ? err.message : t('products.priceFailed'));
     } finally {
       setSaving(false);
     }
@@ -32,7 +34,7 @@ function ProductRow({ product, onChanged }: { product: Product; onChanged: () =>
       await api.patch(`/admin/products/${product.id}`, { isActive: !product.isActive });
       onChanged();
     } catch (err) {
-      showError(err instanceof ApiError ? err.message : 'Could not update product status');
+      showError(err instanceof ApiError ? err.message : t('products.statusFailed'));
     } finally {
       setToggling(false);
     }
@@ -43,7 +45,7 @@ function ProductRow({ product, onChanged }: { product: Product; onChanged: () =>
       <td>{product.game.name}</td>
       <td>
         {product.name}
-        {product.isTest && <span className="badge badge-warning">TEST</span>}
+        {product.isTest && <span className="badge badge-warning">{t('products.testBadge')}</span>}
       </td>
       <td>
         <div className="toolbar">
@@ -57,15 +59,15 @@ function ProductRow({ product, onChanged }: { product: Product; onChanged: () =>
           />
           <span className="muted">{product.currency}</span>
           <button className="btn btn-secondary" disabled={saving} onClick={saveAmount}>
-            Save
+            {t('common.save')}
           </button>
         </div>
       </td>
       <td>{formatMinor(product.amountMinor, product.currency)}</td>
-      <td>{product.isActive ? 'Active' : 'Inactive'}</td>
+      <td>{product.isActive ? t('common.active') : t('common.inactive')}</td>
       <td>
         <button className="btn btn-secondary" disabled={toggling} onClick={toggleActive}>
-          {product.isActive ? 'Deactivate' : 'Activate'}
+          {product.isActive ? t('common.deactivate') : t('common.activate')}
         </button>
       </td>
     </tr>
@@ -73,22 +75,39 @@ function ProductRow({ product, onChanged }: { product: Product; onChanged: () =>
 }
 
 export function ProductsPage() {
+  const { t } = useLocale();
   const { data, loading, error, reload } = useAsync(() => api.get<{ products: Product[] }>('/admin/products'), []);
 
   return (
     <div>
-      <h1>Products</h1>
-      {loading && <Loading />}
+      <h1>{t('products.title')}</h1>
+      {loading && !data && (
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th>{t('products.colGame')}</th>
+              <th>{t('products.colProduct')}</th>
+              <th>{t('products.colSetPrice')}</th>
+              <th>{t('products.colCurrentPrice')}</th>
+              <th>{t('products.colStatus')}</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <SkeletonRows columns={6} />
+          </tbody>
+        </table>
+      )}
       {error && <p className="form-error">{error}</p>}
       {data && (
         <table className="data-table">
           <thead>
             <tr>
-              <th>Game</th>
-              <th>Product</th>
-              <th>Set price</th>
-              <th>Current price</th>
-              <th>Status</th>
+              <th>{t('products.colGame')}</th>
+              <th>{t('products.colProduct')}</th>
+              <th>{t('products.colSetPrice')}</th>
+              <th>{t('products.colCurrentPrice')}</th>
+              <th>{t('products.colStatus')}</th>
               <th></th>
             </tr>
           </thead>
@@ -99,7 +118,7 @@ export function ProductsPage() {
             {data.products.length === 0 && (
               <tr>
                 <td colSpan={6} className="muted">
-                  No products found
+                  {t('products.empty')}
                 </td>
               </tr>
             )}

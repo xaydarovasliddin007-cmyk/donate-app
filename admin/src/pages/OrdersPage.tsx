@@ -5,11 +5,13 @@ import type { OrderStatus, OrderSummary, Product } from '../api/types';
 import { useAsync } from '../lib/useAsync';
 import { formatDate, formatMinor } from '../lib/money';
 import { StatusBadge } from '../components/StatusBadge';
-import { Loading } from '../components/Loading';
+import { SkeletonRows } from '../components/SkeletonRows';
+import { useLocale } from '../i18n/LocaleContext';
 
 const STATUSES: OrderStatus[] = ['PENDING', 'PAID', 'FULFILLING', 'COMPLETED', 'FAILED', 'REFUNDED'];
 
 export function OrdersPage() {
+  const { t } = useLocale();
   const [status, setStatus] = useState<OrderStatus | ''>('');
   const [gameId, setGameId] = useState('');
   const [from, setFrom] = useState('');
@@ -38,10 +40,10 @@ export function OrdersPage() {
 
   return (
     <div>
-      <h1>Orders</h1>
+      <h1>{t('orders.title')}</h1>
       <div className="toolbar">
         <select value={status} onChange={(e) => setStatus(e.target.value as OrderStatus | '')}>
-          <option value="">All statuses</option>
+          <option value="">{t('orders.allStatuses')}</option>
           {STATUSES.map((s) => (
             <option key={s} value={s}>
               {s}
@@ -49,7 +51,7 @@ export function OrdersPage() {
           ))}
         </select>
         <select value={gameId} onChange={(e) => setGameId(e.target.value)}>
-          <option value="">All games</option>
+          <option value="">{t('orders.allGames')}</option>
           {games.map(([id, name]) => (
             <option key={id} value={id}>
               {name}
@@ -57,22 +59,38 @@ export function OrdersPage() {
           ))}
         </select>
         <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
-        <span className="muted">to</span>
+        <span className="muted">{t('common.to')}</span>
         <input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
       </div>
 
-      {loading && <Loading />}
+      {loading && !data && (
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th>{t('orders.colNumber')}</th>
+              <th>{t('orders.colUser')}</th>
+              <th>{t('orders.colGame')}</th>
+              <th>{t('orders.colAmount')}</th>
+              <th>{t('orders.colStatus')}</th>
+              <th>{t('orders.colCreated')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <SkeletonRows columns={6} />
+          </tbody>
+        </table>
+      )}
       {error && <p className="form-error">{error}</p>}
       {data && (
         <table className="data-table">
           <thead>
             <tr>
-              <th>Order #</th>
-              <th>User</th>
-              <th>Game</th>
-              <th>Amount</th>
-              <th>Status</th>
-              <th>Created</th>
+              <th>{t('orders.colNumber')}</th>
+              <th>{t('orders.colUser')}</th>
+              <th>{t('orders.colGame')}</th>
+              <th>{t('orders.colAmount')}</th>
+              <th>{t('orders.colStatus')}</th>
+              <th>{t('orders.colCreated')}</th>
             </tr>
           </thead>
           <tbody>
@@ -93,14 +111,14 @@ export function OrdersPage() {
             {data.orders.length === 0 && (
               <tr>
                 <td colSpan={6} className="muted">
-                  No orders found
+                  {t('orders.empty')}
                 </td>
               </tr>
             )}
           </tbody>
         </table>
       )}
-      {data && <p className="muted">{data.total} matching orders</p>}
+      {data && <p className="muted">{t('orders.matching', { count: data.total })}</p>}
     </div>
   );
 }

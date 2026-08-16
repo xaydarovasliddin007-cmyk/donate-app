@@ -4,11 +4,13 @@ import { api } from '../api/client';
 import type { UserListItem } from '../api/types';
 import { useAsync } from '../lib/useAsync';
 import { formatDate } from '../lib/money';
-import { Loading } from '../components/Loading';
+import { SkeletonRows } from '../components/SkeletonRows';
+import { useLocale } from '../i18n/LocaleContext';
 
 const PAGE_SIZE = 20;
 
 export function UsersPage() {
+  const { t } = useLocale();
   const [search, setSearch] = useState('');
   const [committedSearch, setCommittedSearch] = useState('');
   const [page, setPage] = useState(0);
@@ -27,7 +29,7 @@ export function UsersPage() {
 
   return (
     <div>
-      <h1>Users</h1>
+      <h1>{t('users.title')}</h1>
       <form
         className="toolbar"
         onSubmit={(e) => {
@@ -37,29 +39,46 @@ export function UsersPage() {
         }}
       >
         <input
-          placeholder="Search by UZDONATE ID, email, phone, or name"
+          placeholder={t('users.searchPlaceholder')}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
         <button className="btn btn-secondary" type="submit">
-          Search
+          {t('users.search')}
         </button>
       </form>
 
-      {loading && <Loading />}
+      {loading && !data && (
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th>{t('users.colId')}</th>
+              <th>{t('users.colContact')}</th>
+              <th>{t('users.colName')}</th>
+              <th>{t('users.colRole')}</th>
+              <th>{t('users.colStatus')}</th>
+              <th>{t('users.colOrders')}</th>
+              <th>{t('users.colJoined')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <SkeletonRows columns={7} />
+          </tbody>
+        </table>
+      )}
       {error && <p className="form-error">{error}</p>}
       {data && (
         <>
           <table className="data-table">
             <thead>
               <tr>
-                <th>UZDONATE ID</th>
-                <th>Contact</th>
-                <th>Name</th>
-                <th>Role</th>
-                <th>Status</th>
-                <th>Orders</th>
-                <th>Joined</th>
+                <th>{t('users.colId')}</th>
+                <th>{t('users.colContact')}</th>
+                <th>{t('users.colName')}</th>
+                <th>{t('users.colRole')}</th>
+                <th>{t('users.colStatus')}</th>
+                <th>{t('users.colOrders')}</th>
+                <th>{t('users.colJoined')}</th>
               </tr>
             </thead>
             <tbody>
@@ -79,7 +98,7 @@ export function UsersPage() {
               {data.users.length === 0 && (
                 <tr>
                   <td colSpan={7} className="muted">
-                    No users found
+                    {t('users.empty')}
                   </td>
                 </tr>
               )}
@@ -87,17 +106,17 @@ export function UsersPage() {
           </table>
           <div className="toolbar" style={{ marginTop: '1rem' }}>
             <button className="btn btn-secondary" disabled={page === 0} onClick={() => setPage((p) => p - 1)}>
-              Previous
+              {t('common.previous')}
             </button>
             <span className="muted">
-              Page {page + 1} of {totalPages} ({data.total} total)
+              {t('common.pageInfo', { page: page + 1, totalPages, total: data.total })}
             </span>
             <button
               className="btn btn-secondary"
               disabled={page + 1 >= totalPages}
               onClick={() => setPage((p) => p + 1)}
             >
-              Next
+              {t('common.next')}
             </button>
           </div>
         </>

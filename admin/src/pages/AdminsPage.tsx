@@ -6,11 +6,13 @@ import { useAsync } from '../lib/useAsync';
 import { formatDate } from '../lib/money';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { useToast } from '../components/Toast';
-import { Loading } from '../components/Loading';
+import { SkeletonRows } from '../components/SkeletonRows';
+import { useLocale } from '../i18n/LocaleContext';
 
 const ROLES: AdminRole[] = ['SUPER_ADMIN', 'ADMIN', 'OPERATIONS', 'SUPPORT', 'FINANCE', 'CONTENT_MANAGER'];
 
 export function AdminsPage() {
+  const { t } = useLocale();
   const { admin: currentAdmin } = useAuth();
   const { showError } = useToast();
   const { data, loading, error, reload } = useAsync(() => api.get<{ admins: AdminUserRow[] }>('/admin/admins'), []);
@@ -25,7 +27,7 @@ export function AdminsPage() {
   async function createAdmin(event: FormEvent) {
     event.preventDefault();
     if (!email.trim() || password.length < 8 || !fullName.trim()) {
-      setFormError('Email, full name, and an 8+ character password are required');
+      setFormError(t('admins.fieldsRequired'));
       return;
     }
     setSubmitting(true);
@@ -38,7 +40,7 @@ export function AdminsPage() {
       setRole('SUPPORT');
       reload();
     } catch (err) {
-      setFormError(err instanceof ApiError ? err.message : 'Could not create admin');
+      setFormError(err instanceof ApiError ? err.message : t('admins.createFailed'));
     } finally {
       setSubmitting(false);
     }
@@ -54,7 +56,7 @@ export function AdminsPage() {
       setConfirmingDeactivate(null);
       reload();
     } catch (err) {
-      showError(err instanceof ApiError ? err.message : 'Could not update admin status');
+      showError(err instanceof ApiError ? err.message : t('admins.statusFailed'));
     } finally {
       setTogglingId(null);
     }
@@ -65,28 +67,28 @@ export function AdminsPage() {
       await api.patch(`/admin/admins/${target.id}`, { role: newRole });
       reload();
     } catch (err) {
-      showError(err instanceof ApiError ? err.message : 'Could not update role');
+      showError(err instanceof ApiError ? err.message : t('admins.roleFailed'));
       reload();
     }
   }
 
   return (
     <div>
-      <h1>Admins</h1>
-      <p className="muted">SUPER_ADMIN only. Every change here is written to the audit log.</p>
+      <h1>{t('admins.title')}</h1>
+      <p className="muted">{t('admins.blurb')}</p>
 
       <div className="panel">
-        <h3>Add an admin</h3>
+        <h3>{t('admins.addAdmin')}</h3>
         <form className="stack-form" onSubmit={createAdmin}>
           <div className="toolbar">
-            <input placeholder="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+            <input placeholder={t('admins.emailPlaceholder')} type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
             <input
-              placeholder="Temporary password (8+ chars)"
+              placeholder={t('admins.passwordPlaceholder')}
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
-            <input placeholder="Full name" value={fullName} onChange={(e) => setFullName(e.target.value)} />
+            <input placeholder={t('admins.fullNamePlaceholder')} value={fullName} onChange={(e) => setFullName(e.target.value)} />
             <select value={role} onChange={(e) => setRole(e.target.value as AdminRole)}>
               {ROLES.map((r) => (
                 <option key={r} value={r}>
@@ -97,22 +99,38 @@ export function AdminsPage() {
           </div>
           {formError && <div className="form-error">{formError}</div>}
           <button className="btn btn-primary" type="submit" disabled={submitting}>
-            {submitting ? 'Adding…' : 'Add admin'}
+            {submitting ? t('admins.adding') : t('admins.addButton')}
           </button>
         </form>
       </div>
 
-      {loading && <Loading />}
+      {loading && !data && (
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th>{t('admins.colEmail')}</th>
+              <th>{t('admins.colFullName')}</th>
+              <th>{t('admins.colRole')}</th>
+              <th>{t('admins.colStatus')}</th>
+              <th>{t('admins.colCreated')}</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <SkeletonRows columns={6} />
+          </tbody>
+        </table>
+      )}
       {error && <p className="form-error">{error}</p>}
       {data && (
         <table className="data-table">
           <thead>
             <tr>
-              <th>Email</th>
-              <th>Full name</th>
-              <th>Role</th>
-              <th>Status</th>
-              <th>Created</th>
+              <th>{t('admins.colEmail')}</th>
+              <th>{t('admins.colFullName')}</th>
+              <th>{t('admins.colRole')}</th>
+              <th>{t('admins.colStatus')}</th>
+              <th>{t('admins.colCreated')}</th>
               <th></th>
             </tr>
           </thead>
@@ -130,16 +148,16 @@ export function AdminsPage() {
                     ))}
                   </select>
                 </td>
-                <td>{row.isActive ? 'Active' : 'Inactive'}</td>
+                <td>{row.isActive ? t('common.active') : t('common.inactive')}</td>
                 <td>{formatDate(row.createdAt)}</td>
                 <td>
                   <button
                     className="btn btn-secondary"
                     disabled={row.id === currentAdmin?.id && row.isActive}
-                    title={row.id === currentAdmin?.id && row.isActive ? "You can't deactivate your own account" : undefined}
+                    title={row.id === currentAdmin?.id && row.isActive ? t('admins.cannotDeactivateSelf') : undefined}
                     onClick={() => (row.isActive ? setConfirmingDeactivate(row) : setActive(row, true))}
                   >
-                    {row.isActive ? 'Deactivate' : 'Activate'}
+                    {row.isActive ? t('common.deactivate') : t('common.activate')}
                   </button>
                 </td>
               </tr>
@@ -147,7 +165,7 @@ export function AdminsPage() {
             {data.admins.length === 0 && (
               <tr>
                 <td colSpan={6} className="muted">
-                  No admins found
+                  {t('admins.empty')}
                 </td>
               </tr>
             )}
@@ -157,13 +175,13 @@ export function AdminsPage() {
 
       <ConfirmDialog
         open={confirmingDeactivate !== null}
-        title="Deactivate this admin?"
+        title={t('admins.confirmDeactivateTitle')}
         message={
           confirmingDeactivate
-            ? `${confirmingDeactivate.fullName} (${confirmingDeactivate.email}) will immediately lose admin access.`
+            ? t('admins.confirmDeactivateMessage', { name: confirmingDeactivate.fullName, email: confirmingDeactivate.email })
             : ''
         }
-        confirmLabel="Deactivate"
+        confirmLabel={t('admins.deactivateButton')}
         danger
         busy={togglingId !== null}
         onConfirm={() => confirmingDeactivate && setActive(confirmingDeactivate, false)}

@@ -3,9 +3,11 @@ import { api, ApiError } from '../api/client';
 import type { ReceivingMethod } from '../api/types';
 import { useAsync } from '../lib/useAsync';
 import { useToast } from '../components/Toast';
-import { Loading } from '../components/Loading';
+import { SkeletonRows } from '../components/SkeletonRows';
+import { useLocale } from '../i18n/LocaleContext';
 
 export function ReceivingMethodsPage() {
+  const { t } = useLocale();
   const { showError } = useToast();
   const { data, loading, error, reload } = useAsync(
     () => api.get<{ receivingMethods: ReceivingMethod[] }>('/admin/receiving-methods'),
@@ -21,7 +23,7 @@ export function ReceivingMethodsPage() {
   async function createMethod(event: FormEvent) {
     event.preventDefault();
     if (!cardNumberMasked.trim() || !cardHolderName.trim()) {
-      setFormError('Card number and holder name are required');
+      setFormError(t('receivingMethods.fieldsRequired'));
       return;
     }
     setSubmitting(true);
@@ -37,7 +39,7 @@ export function ReceivingMethodsPage() {
       setBankName('');
       reload();
     } catch (err) {
-      setFormError(err instanceof ApiError ? err.message : 'Could not create receiving method');
+      setFormError(err instanceof ApiError ? err.message : t('receivingMethods.createFailed'));
     } finally {
       setSubmitting(false);
     }
@@ -51,7 +53,7 @@ export function ReceivingMethodsPage() {
       await api.patch(`/admin/receiving-methods/${method.id}`, { isActive: !method.isActive });
       reload();
     } catch (err) {
-      showError(err instanceof ApiError ? err.message : 'Could not update receiving method');
+      showError(err instanceof ApiError ? err.message : t('receivingMethods.updateFailed'));
     } finally {
       setTogglingId(null);
     }
@@ -59,45 +61,61 @@ export function ReceivingMethodsPage() {
 
   return (
     <div>
-      <h1>Receiving methods</h1>
-      <p className="muted">
-        Cards shown to users for manual top-up transfers. There is no hardcoded card anywhere in the codebase —
-        every card here is admin-configured.
-      </p>
+      <h1>{t('receivingMethods.title')}</h1>
+      <p className="muted">{t('receivingMethods.blurb')}</p>
 
       <div className="panel">
-        <h3>Add a receiving card</h3>
+        <h3>{t('receivingMethods.addCard')}</h3>
         <form className="stack-form" onSubmit={createMethod}>
           <div className="toolbar">
             <input
-              placeholder="Masked card number (e.g. 8600 **** **** 1234)"
+              placeholder={t('receivingMethods.cardNumberPlaceholder')}
               value={cardNumberMasked}
               onChange={(e) => setCardNumberMasked(e.target.value)}
             />
             <input
-              placeholder="Card holder name"
+              placeholder={t('receivingMethods.cardHolderPlaceholder')}
               value={cardHolderName}
               onChange={(e) => setCardHolderName(e.target.value)}
             />
-            <input placeholder="Bank name (optional)" value={bankName} onChange={(e) => setBankName(e.target.value)} />
+            <input
+              placeholder={t('receivingMethods.bankPlaceholder')}
+              value={bankName}
+              onChange={(e) => setBankName(e.target.value)}
+            />
           </div>
           {formError && <div className="form-error">{formError}</div>}
           <button className="btn btn-primary" type="submit" disabled={submitting}>
-            {submitting ? 'Adding…' : 'Add receiving method'}
+            {submitting ? t('receivingMethods.adding') : t('receivingMethods.addMethod')}
           </button>
         </form>
       </div>
 
-      {loading && <Loading />}
+      {loading && !data && (
+        <table className="data-table">
+          <thead>
+            <tr>
+              <th>{t('receivingMethods.colCard')}</th>
+              <th>{t('receivingMethods.colHolder')}</th>
+              <th>{t('receivingMethods.colBank')}</th>
+              <th>{t('receivingMethods.colActive')}</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <SkeletonRows columns={5} />
+          </tbody>
+        </table>
+      )}
       {error && <p className="form-error">{error}</p>}
       {data && (
         <table className="data-table">
           <thead>
             <tr>
-              <th>Card</th>
-              <th>Holder</th>
-              <th>Bank</th>
-              <th>Active</th>
+              <th>{t('receivingMethods.colCard')}</th>
+              <th>{t('receivingMethods.colHolder')}</th>
+              <th>{t('receivingMethods.colBank')}</th>
+              <th>{t('receivingMethods.colActive')}</th>
               <th></th>
             </tr>
           </thead>
@@ -107,14 +125,14 @@ export function ReceivingMethodsPage() {
                 <td>{method.cardNumberMasked}</td>
                 <td>{method.cardHolderName}</td>
                 <td>{method.bankName ?? '—'}</td>
-                <td>{method.isActive ? 'Active' : 'Inactive'}</td>
+                <td>{method.isActive ? t('common.active') : t('common.inactive')}</td>
                 <td>
                   <button
                     className="btn btn-secondary"
                     disabled={togglingId === method.id}
                     onClick={() => toggleActive(method)}
                   >
-                    {method.isActive ? 'Deactivate' : 'Activate'}
+                    {method.isActive ? t('common.deactivate') : t('common.activate')}
                   </button>
                 </td>
               </tr>
@@ -122,7 +140,7 @@ export function ReceivingMethodsPage() {
             {data.receivingMethods.length === 0 && (
               <tr>
                 <td colSpan={5} className="muted">
-                  No receiving methods configured yet
+                  {t('receivingMethods.empty')}
                 </td>
               </tr>
             )}
