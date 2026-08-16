@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/money_formatter.dart';
+import '../../../../core/widgets/pressable_scale.dart';
 import '../../domain/product.dart';
 
 class ProductCard extends StatelessWidget {
@@ -14,9 +15,8 @@ class ProductCard extends StatelessWidget {
     final theme = Theme.of(context);
     final localeName = Localizations.localeOf(context).toString();
 
-    return InkWell(
+    return PressableScale(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(AppRadius.md),
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.md),
         decoration: BoxDecoration(

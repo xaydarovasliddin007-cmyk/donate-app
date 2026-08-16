@@ -6,13 +6,18 @@ import 'package:intl/intl.dart';
 import '../../../core/errors/failure.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/utils/money_formatter.dart';
+import '../../../core/utils/support_launcher.dart';
 import '../../../core/widgets/error_view.dart';
 import '../../../core/widgets/loading_view.dart';
+import '../../../core/widgets/success_checkmark.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../auth/application/auth_controller.dart';
 import '../../payments/application/payments_providers.dart';
 import '../application/orders_providers.dart';
+import '../domain/order.dart';
 import '../domain/order_status.dart';
-import 'widgets/order_status_badge.dart';
+import 'widgets/order_progress_timeline.dart';
+import 'widgets/order_status_badge.dart' show orderStatusLabel;
 
 class OrderStatusScreen extends ConsumerStatefulWidget {
   const OrderStatusScreen({super.key, required this.orderId});
@@ -42,6 +47,19 @@ class _OrderStatusScreenState extends ConsumerState<OrderStatusScreen> {
     super.dispose();
   }
 
+  Future<void> _contactSupport(Order order) async {
+    final l10n = AppLocalizations.of(context);
+    final publicId = ref.read(authControllerProvider).value?.user?.publicId ?? '—';
+    final body = [
+      '${l10n.profileUzdonateIdLabel}: $publicId',
+      '${l10n.orderNumberLabel}: ${order.orderNumber}',
+      '${l10n.checkoutGameLabel}: ${order.game.name}',
+      '${l10n.checkoutProductLabel}: ${order.items.first.productName}',
+      '${l10n.orderStatusLabel}: ${orderStatusLabel(context, order.status)}',
+    ].join('\n');
+    await launchSupportContact(subject: l10n.supportRequestSubject(order.orderNumber), body: body);
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -69,7 +87,11 @@ class _OrderStatusScreenState extends ConsumerState<OrderStatusScreen> {
           child: ListView(
             padding: const EdgeInsets.all(AppSpacing.lg),
             children: [
-              Center(child: OrderStatusBadge(status: order.status)),
+              if (order.status == OrderStatus.completed) ...[
+                const Center(child: SuccessCheckmark(size: 56)),
+                const SizedBox(height: AppSpacing.md),
+              ],
+              OrderProgressTimeline(status: order.status),
               const SizedBox(height: AppSpacing.lg),
               Card(
                 child: Padding(
@@ -100,6 +122,12 @@ class _OrderStatusScreenState extends ConsumerState<OrderStatusScreen> {
               ),
               if (order.status == OrderStatus.pending && order.latestPaymentId != null)
                 _DevPaymentSimulator(orderId: order.id, paymentId: order.latestPaymentId!),
+              const SizedBox(height: AppSpacing.lg),
+              OutlinedButton.icon(
+                onPressed: () => _contactSupport(order),
+                icon: const Icon(Icons.support_agent_outlined),
+                label: Text(l10n.orderContactSupportButton),
+              ),
             ],
           ),
         ),

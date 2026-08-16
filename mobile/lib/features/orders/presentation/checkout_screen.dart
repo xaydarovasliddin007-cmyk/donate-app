@@ -9,7 +9,10 @@ import '../../../l10n/generated/app_localizations.dart';
 import '../../games/domain/game.dart';
 import '../../games/domain/product.dart';
 import '../../payments/application/payments_providers.dart';
+import '../../wallet/application/wallet_providers.dart';
 import '../application/orders_providers.dart';
+
+enum _PaymentMethod { wallet, mock }
 
 class CheckoutScreen extends ConsumerStatefulWidget {
   const CheckoutScreen({
@@ -33,14 +36,17 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   // Generated once when the screen is built, not per tap, so a retried
   // "Buy now" after a timeout is still deduped by the backend.
   late final String _idempotencyKey = generateIdempotencyKey();
+  _PaymentMethod _method = _PaymentMethod.wallet;
   bool _submitting = false;
   String? _errorMessage;
+  bool _insufficientBalance = false;
 
   Future<void> _buyNow() async {
     final l10n = AppLocalizations.of(context);
     setState(() {
       _submitting = true;
       _errorMessage = null;
+      _insufficientBalance = false;
     });
 
     try {
@@ -54,15 +60,24 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
             idempotencyKey: _idempotencyKey,
           );
 
-      await ref
-          .read(paymentsApiProvider)
-          .createPayment(orderId: order.id, idempotencyKey: '$_idempotencyKey-pay');
+      if (_method == _PaymentMethod.wallet) {
+        await ref
+            .read(paymentsApiProvider)
+            .payWithWallet(orderId: order.id, idempotencyKey: '$_idempotencyKey-pay');
+      } else {
+        await ref
+            .read(paymentsApiProvider)
+            .createPayment(orderId: order.id, idempotencyKey: '$_idempotencyKey-pay');
+      }
 
       if (mounted) context.go('/orders/${order.id}');
     } catch (error) {
       final failure = Failure.from(error);
       setState(() {
-        _errorMessage = failure.isNetworkError ? l10n.errorNoConnectionMessage : failure.message;
+        _insufficientBalance = failure.code == 'INSUFFICIENT_BALANCE';
+        _errorMessage = failure.isNetworkError
+            ? l10n.errorNoConnectionMessage
+            : (_insufficientBalance ? l10n.checkoutInsufficientBalanceMessage : failure.message);
       });
     } finally {
       if (mounted) setState(() => _submitting = false);
@@ -74,6 +89,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     final l10n = AppLocalizations.of(context);
     final localeName = Localizations.localeOf(context).toString();
     final theme = Theme.of(context);
+    final walletAsync = ref.watch(walletProvider);
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.checkoutTitle)),
@@ -95,10 +111,6 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                       label: l10n.checkoutPriceLabel,
                       value: formatMoney(widget.product.amountMinor, widget.product.currency, localeName),
                     ),
-                    _SummaryRow(
-                      label: l10n.checkoutPaymentMethodLabel,
-                      value: l10n.checkoutMockPaymentLabel,
-                    ),
                     const Divider(height: AppSpacing.lg),
                     _SummaryRow(
                       label: l10n.checkoutTotalLabel,
@@ -109,9 +121,47 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                 ),
               ),
             ),
+            const SizedBox(height: AppSpacing.lg),
+            Text(l10n.checkoutPaymentMethodLabel, style: theme.textTheme.titleSmall),
+            const SizedBox(height: AppSpacing.sm),
+            _PaymentMethodTile(
+              icon: Icons.account_balance_wallet_outlined,
+              title: l10n.checkoutPayWithWalletLabel,
+              subtitle: walletAsync.when(
+                loading: () => null,
+                error: (_, _) => null,
+                data: (wallet) =>
+                    l10n.checkoutPayWithWalletBalance(formatMoney(wallet.balanceMinor, wallet.currency, localeName)),
+              ),
+              selected: _method == _PaymentMethod.wallet,
+              onTap: () => setState(() {
+                _method = _PaymentMethod.wallet;
+                _errorMessage = null;
+                _insufficientBalance = false;
+              }),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            _PaymentMethodTile(
+              icon: Icons.credit_card_outlined,
+              title: l10n.checkoutMockPaymentLabel,
+              subtitle: null,
+              selected: _method == _PaymentMethod.mock,
+              onTap: () => setState(() {
+                _method = _PaymentMethod.mock;
+                _errorMessage = null;
+                _insufficientBalance = false;
+              }),
+            ),
             if (_errorMessage != null) ...[
               const SizedBox(height: AppSpacing.md),
               Text(_errorMessage!, style: TextStyle(color: theme.colorScheme.error)),
+              if (_insufficientBalance) ...[
+                const SizedBox(height: AppSpacing.sm),
+                OutlinedButton(
+                  onPressed: () => context.push('/wallet/topup'),
+                  child: Text(l10n.checkoutTopUpNowButton),
+                ),
+              ],
             ],
             const SizedBox(height: AppSpacing.lg),
             FilledButton(
@@ -130,6 +180,71 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                       ],
                     )
                   : Text(l10n.checkoutBuyNowButton),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PaymentMethodTile extends StatelessWidget {
+  const _PaymentMethodTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String? subtitle;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppRadius.md),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.all(AppSpacing.md),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          border: Border.all(
+            color: selected ? theme.colorScheme.primary : theme.colorScheme.outlineVariant,
+            width: selected ? 1.5 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              selected ? Icons.radio_button_checked_rounded : Icons.radio_button_unchecked_rounded,
+              color: selected ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Icon(icon, size: 20, color: theme.colorScheme.onSurfaceVariant),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(title, style: theme.textTheme.titleSmall),
+                  if (subtitle != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle!,
+                      style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                    ),
+                  ],
+                ],
+              ),
             ),
           ],
         ),

@@ -1,8 +1,12 @@
 import type { Order, OrderStatus, Prisma, PrismaClient } from '@prisma/client';
 import { ConflictError, ForbiddenError, NotFoundError } from '../../lib/errors.js';
 import { generateOrderNumber } from '../../lib/order-number.js';
+import { notifyAdmins } from '../../lib/telegram.js';
+import { formatMinorAmount } from '../../lib/money.js';
 import { getTopupProvider } from '../../providers/registry.js';
+import { createNotification } from '../notifications/notifications.service.js';
 import { recordPlayerProfileFromOrder } from '../saved-games/saved-games.service.js';
+import * as walletService from '../wallet/wallet.service.js';
 import { assertTransition } from './order-state-machine.js';
 import type { CreateOrderInput } from './orders.schemas.js';
 
@@ -143,6 +147,10 @@ export async function createOrder(ctx: OrderContext, userId: string, input: Crea
   // Convenience for next time — never allowed to fail order creation itself.
   await recordPlayerProfileFromOrder(ctx, userId, game.id, input.playerId, input.serverId ?? null);
 
+  notifyAdmins(
+    `🆕 <b>New order</b> #${order.orderNumber}\n${game.name} — ${formatMinorAmount(order.amountMinor, order.currency)}`,
+  );
+
   return toPublicOrder(order);
 }
 
@@ -216,7 +224,7 @@ export async function fulfillPaidOrder(ctx: OrderContext, orderId: string): Prom
 
   await runFulfillmentAttempt(
     ctx,
-    { id: order.id, status, playerId: order.playerId, serverId: order.serverId },
+    { id: order.id, orderNumber: order.orderNumber, userId: order.userId, status, playerId: order.playerId, serverId: order.serverId },
     providerProduct,
   );
 }
@@ -250,14 +258,21 @@ export async function retryFulfillment(ctx: OrderContext, orderId: string): Prom
   );
   await runFulfillmentAttempt(
     ctx,
-    { id: order.id, status, playerId: order.playerId, serverId: order.serverId },
+    { id: order.id, orderNumber: order.orderNumber, userId: order.userId, status, playerId: order.playerId, serverId: order.serverId },
     providerProduct,
   );
 }
 
 async function runFulfillmentAttempt(
   ctx: OrderContext,
-  order: { id: string; status: OrderStatus; playerId: string; serverId: string | null },
+  order: {
+    id: string;
+    orderNumber: string;
+    userId: string;
+    status: OrderStatus;
+    playerId: string;
+    serverId: string | null;
+  },
   providerProduct: { providerId: string; providerProductCode: string; provider: { code: string } },
 ): Promise<void> {
   const adapter = getTopupProvider(providerProduct.provider.code);
@@ -286,13 +301,76 @@ async function runFulfillmentAttempt(
 
   if (result.success) {
     await transitionOrder(ctx, order, 'COMPLETED', 'Fulfillment succeeded');
+    notifyAdmins(`✅ <b>Order completed</b> #${order.orderNumber}`);
+    await createNotification(ctx, {
+      userId: order.userId,
+      type: 'ORDER_SUCCESS',
+      title: 'Top-up completed',
+      body: `Order #${order.orderNumber} was delivered successfully.`,
+      deepLink: `/orders/${order.id}`,
+    });
   } else {
+    const reason = result.reason ?? 'Fulfillment failed';
     await ctx.prisma.order.update({
       where: { id: order.id },
-      data: { failureReason: result.reason ?? 'Fulfillment failed' },
+      data: { failureReason: reason },
     });
-    await transitionOrder(ctx, order, 'FAILED', result.reason ?? 'Fulfillment failed');
+    await transitionOrder(ctx, order, 'FAILED', reason);
+    notifyAdmins(`❌ <b>Order failed</b> #${order.orderNumber}\nReason: ${reason}`);
+    await createNotification(ctx, {
+      userId: order.userId,
+      type: 'ORDER_FAILED',
+      title: 'Order failed',
+      body: `Order #${order.orderNumber} could not be completed. We'll help sort it out.`,
+      deepLink: `/orders/${order.id}`,
+    });
   }
+}
+
+/**
+ * Refunds an order back to the customer's UZDONATE wallet — the only refund
+ * destination currently implementable (reversing the original external
+ * payment provider would need real provider APIs we don't have credentials
+ * for). Order status machine already permits PAID/COMPLETED -> REFUNDED.
+ * Admin-only — see modules/admin.
+ */
+export async function refundOrderToWallet(
+  ctx: OrderContext,
+  adminId: string,
+  orderId: string,
+  reason?: string,
+): Promise<Order> {
+  const order = await ctx.prisma.order.findUnique({ where: { id: orderId } });
+  if (!order) {
+    throw new NotFoundError('Order not found');
+  }
+
+  await transitionOrder(ctx, order, 'REFUNDED', reason ?? 'Refunded by admin');
+
+  await walletService.creditWallet(ctx, {
+    userId: order.userId,
+    type: 'REFUND',
+    amountMinor: order.amountMinor,
+    // Deterministic on the order — retrying this admin action never double-credits.
+    idempotencyKey: `refund:${order.id}`,
+    reference: `Refund for order ${order.orderNumber}`,
+    orderId: order.id,
+    createdByAdminId: adminId,
+    reason,
+  });
+
+  notifyAdmins(
+    `↩️ <b>Refund issued</b> #${order.orderNumber} — ${formatMinorAmount(order.amountMinor, order.currency)}`,
+  );
+  await createNotification(ctx, {
+    userId: order.userId,
+    type: 'REFUND',
+    title: 'Refund credited',
+    body: `${formatMinorAmount(order.amountMinor, order.currency)} was refunded to your UZDONATE wallet for order #${order.orderNumber}.`,
+    deepLink: `/orders/${order.id}`,
+  });
+
+  return ctx.prisma.order.findUniqueOrThrow({ where: { id: orderId } });
 }
 
 /** Marks a still-PENDING order FAILED when its payment fails before ever succeeding. */

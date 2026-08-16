@@ -23,6 +23,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool _submitting = false;
   bool _googleSubmitting = false;
   String? _errorMessage;
+  String? _googleErrorMessage;
 
   bool get _busy => _submitting || _googleSubmitting;
 
@@ -66,7 +67,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final l10n = AppLocalizations.of(context);
     setState(() {
       _googleSubmitting = true;
-      _errorMessage = null;
+      _googleErrorMessage = null;
     });
 
     try {
@@ -76,7 +77,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       final failure = Failure.from(error);
       if (!mounted) return;
       setState(() {
-        _errorMessage = failure.code == 'GOOGLE_NOT_CONFIGURED'
+        _googleErrorMessage = failure.code == 'GOOGLE_NOT_CONFIGURED'
             ? l10n.authGoogleUnavailableMessage
             : l10n.authGoogleSignInFailed;
       });
@@ -105,6 +106,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 loading: _googleSubmitting,
                 onPressed: _busy ? null : _submitGoogle,
               ),
+              if (_googleErrorMessage != null) ...[
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  _googleErrorMessage!,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: theme.colorScheme.error),
+                ),
+              ],
               const SizedBox(height: AppSpacing.lg),
               Row(
                 children: [

@@ -28,6 +28,13 @@ const envSchema = z.object({
   // POST /auth/google returns a clear 503 instead of the app refusing to boot.
   GOOGLE_CLIENT_ID: z.string().trim().min(1).optional(),
 
+  // Optional: admin alerts (new order, payment, top-up, refund, provider
+  // error, ...) via a Telegram bot. Both must be set for notifications to
+  // actually send; if either is missing, the notifier silently no-ops
+  // rather than failing the request that triggered it.
+  TELEGRAM_BOT_TOKEN: z.string().trim().min(1).optional(),
+  TELEGRAM_ADMIN_CHAT_ID: z.string().trim().min(1).optional(),
+
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(100),
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60_000),
 

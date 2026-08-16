@@ -1,22 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/branding/brand_mark.dart';
 import '../../../core/errors/failure.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/empty_view.dart';
 import '../../../core/widgets/error_view.dart';
-import '../../../core/widgets/loading_view.dart';
+import '../../../core/widgets/skeletons.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../games/application/games_providers.dart';
 import '../../games/domain/game.dart';
 import '../../games/presentation/widgets/game_card.dart';
 import '../../games/presentation/widgets/product_card.dart';
+import '../../notifications/application/notifications_providers.dart';
 import '../../orders/application/orders_providers.dart';
 import '../../orders/presentation/widgets/order_status_badge.dart';
 import '../../saved_games/application/saved_games_providers.dart';
 import '../../saved_games/presentation/widgets/saved_game_card.dart';
+import '../../wallet/presentation/widgets/wallet_balance_card.dart';
 import '../application/promotions_provider.dart';
+import 'widgets/hero_banner.dart';
 import 'widgets/promotion_banner.dart';
 import 'widgets/section_header.dart';
 
@@ -53,7 +57,31 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final isAuthenticated = ref.watch(authControllerProvider).value?.isAuthenticated ?? false;
 
     return Scaffold(
-      appBar: AppBar(title: Text(l10n.homeTitle)),
+      appBar: AppBar(
+        title: const BrandMark(size: 28, showWordmark: true),
+        actions: [
+          if (isAuthenticated)
+            Consumer(
+              builder: (context, ref, _) {
+                final unreadCount = ref.watch(notificationsProvider).value?.unreadCount ?? 0;
+                return IconButton(
+                  icon: Badge(
+                    isLabelVisible: unreadCount > 0,
+                    label: Text('$unreadCount'),
+                    child: const Icon(Icons.notifications_outlined),
+                  ),
+                  tooltip: l10n.notificationsTitle,
+                  onPressed: () => context.push('/notifications'),
+                );
+              },
+            ),
+          IconButton(
+            icon: const Icon(Icons.person_outline_rounded),
+            onPressed: () => context.push('/profile'),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+        ],
+      ),
       body: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(gamesListProvider);
@@ -80,6 +108,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
             ),
 
+            if (isAuthenticated) ...[
+              const WalletBalanceCard(),
+              const SizedBox(height: AppSpacing.lg),
+            ],
+
+            const HeroBanner(),
+            const SizedBox(height: AppSpacing.lg),
+
             promotionsAsync.when(
               data: (promotions) => promotions.isEmpty
                   ? const SizedBox.shrink()
@@ -99,8 +135,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
             gamesAsync.when(
               loading: () => const Padding(
-                padding: EdgeInsets.all(AppSpacing.xl),
-                child: LoadingView(),
+                padding: EdgeInsets.only(top: AppSpacing.md),
+                child: GameGridSkeleton(),
               ),
               error: (error, _) {
                 final failure = Failure.from(error);
@@ -188,8 +224,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           final productsAsync = ref.watch(gameProductsProvider(mlbb.id));
                           return productsAsync.when(
                             loading: () => const Padding(
-                              padding: EdgeInsets.all(AppSpacing.lg),
-                              child: LoadingView(),
+                              padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                              child: Column(
+                                children: [
+                                  Padding(
+                                    padding: EdgeInsets.only(bottom: AppSpacing.sm),
+                                    child: ListRowSkeleton(),
+                                  ),
+                                  ListRowSkeleton(),
+                                ],
+                              ),
                             ),
                             error: (_, _) => const SizedBox.shrink(),
                             data: (products) => Padding(
@@ -265,8 +309,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   final ordersAsync = ref.watch(myOrdersProvider);
                   return ordersAsync.when(
                     loading: () => const Padding(
-                      padding: EdgeInsets.all(AppSpacing.lg),
-                      child: LoadingView(),
+                      padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                      child: Column(
+                        children: [
+                          Padding(padding: EdgeInsets.only(bottom: AppSpacing.sm), child: ListRowSkeleton()),
+                          ListRowSkeleton(),
+                        ],
+                      ),
                     ),
                     error: (_, _) => const SizedBox.shrink(),
                     data: (orders) {

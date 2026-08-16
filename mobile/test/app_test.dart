@@ -37,7 +37,7 @@ Widget _wrapWithApp(Widget child, PreferencesService prefs) {
 }
 
 void main() {
-  testWidgets('onboarding renders uz text by default', (tester) async {
+  testWidgets('onboarding renders uz text by default (test harness locale is unsupported)', (tester) async {
     SharedPreferences.setMockInitialValues({});
     final prefs = PreferencesService(await SharedPreferences.getInstance());
 
@@ -47,16 +47,53 @@ void main() {
     expect(find.text("UZDONATE-ga xush kelibsiz"), findsOneWidget);
   });
 
-  testWidgets('switching to Russian on onboarding updates on-screen text', (tester) async {
+  testWidgets('onboarding never shows a language or theme picker', (tester) async {
     SharedPreferences.setMockInitialValues({});
     final prefs = PreferencesService(await SharedPreferences.getInstance());
 
     await tester.pumpWidget(_wrapWithApp(const OnboardingScreen(), prefs));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Русский').first);
-    await tester.pumpAndSettle();
+    expect(find.byType(SegmentedButton<Locale>), findsNothing);
+    expect(find.byType(SegmentedButton<ThemeMode>), findsNothing);
+  });
 
-    expect(find.text('Добро пожаловать в UZDONATE'), findsOneWidget);
+  group('LocaleController', () {
+    test('falls back to Uzbek when no preference is saved and the device locale is unsupported', () async {
+      // The flutter_test harness's platform locale defaults to en_US, which
+      // this app doesn't ship — LocaleController must fall back to Uzbek
+      // rather than crash or pick an unsupported locale.
+      SharedPreferences.setMockInitialValues({});
+      final prefs = PreferencesService(await SharedPreferences.getInstance());
+      final container = ProviderContainer(
+        overrides: [preferencesServiceProvider.overrideWithValue(prefs)],
+      );
+      addTearDown(container.dispose);
+
+      expect(container.read(localeControllerProvider), const Locale('uz'));
+    });
+
+    test('an explicit setLocale choice is persisted and wins on the next app start regardless of device locale', () async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = PreferencesService(await SharedPreferences.getInstance());
+
+      final container1 = ProviderContainer(
+        overrides: [preferencesServiceProvider.overrideWithValue(prefs)],
+      );
+      addTearDown(container1.dispose);
+
+      await container1.read(localeControllerProvider.notifier).setLocale(const Locale('ru'));
+      expect(prefs.locale, 'ru');
+
+      // Simulate a fresh app start (new container, same persisted prefs) —
+      // the saved choice must win even though the test harness's platform
+      // locale is neither 'uz' nor 'ru'.
+      final container2 = ProviderContainer(
+        overrides: [preferencesServiceProvider.overrideWithValue(prefs)],
+      );
+      addTearDown(container2.dispose);
+
+      expect(container2.read(localeControllerProvider), const Locale('ru'));
+    });
   });
 }

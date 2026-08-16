@@ -34,6 +34,11 @@ enum UserStatus {
 
 model User {
   id           String     @id @default(uuid()) @db.Uuid
+  // Permanent, human-readable, user-facing identity ("UZD-XXXXXXXX") — never
+  // the DB primary key. Generated once at account creation (see
+  // lib/public-id.ts) and never changes; safe to show in support/admin
+  // search contexts instead of the internal UUID.
+  publicId     String     @unique @map("public_id")
   email        String?    @unique
   phone        String?    @unique
   // Nullable: a Google-only account never sets a password. Every write path
@@ -51,6 +56,9 @@ model User {
   refreshTokens       RefreshToken[]
   orders              Order[]
   savedPlayerProfiles SavedPlayerProfile[]
+  wallet              Wallet?
+  topUpRequests       TopUpRequest[]
+  notifications       Notification[]
 
   @@map("users")
 }
@@ -117,8 +125,10 @@ model AdminUser {
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @map("updated_at")
 
-  refreshTokens AdminRefreshToken[]
-  auditLogs     AuditLog[]
+  refreshTokens        AdminRefreshToken[]
+  auditLogs            AuditLog[]
+  walletTransactions   WalletTransaction[]
+  reviewedTopUps       TopUpRequest[]
 
   @@map("admin_users")
 }
@@ -290,10 +300,11 @@ model Order {
   paidAt         DateTime?   @map("paid_at")
   completedAt    DateTime?   @map("completed_at")
 
-  items            OrderItem[]
-  statusHistory     OrderStatusHistory[]
-  payments          Payment[]
-  providerAttempts  ProviderAttempt[]
+  items              OrderItem[]
+  statusHistory      OrderStatusHistory[]
+  payments           Payment[]
+  providerAttempts   ProviderAttempt[]
+  walletTransactions WalletTransaction[]
 
   @@index([userId])
   @@index([status])
@@ -485,4 +496,194 @@ model AuditLog {
 
   @@index([entityType, entityId])
   @@map("audit_logs")
+}
+
+// ---------------------------------------------------------------------------
+// Wallet — a CLOSED internal balance for UZDONATE purchases only. No P2P
+// transfers, no withdrawal to cards, no cash-out — enforced entirely in
+// application code (wallet.service.ts never exposes an operation that moves
+// money to anything but an order/refund/admin-adjustment/top-up).
+//
+// The balance on `Wallet.balanceMinor` is a cache, not the source of truth:
+// every mutation happens inside walletService.applyLedgerEntry(), which
+// writes the WalletTransaction row and updates balanceMinor in the SAME
+// database transaction, and every entry carries an idempotencyKey with a
+// unique constraint — that's what actually prevents double-crediting a
+// webhook retry or a concurrent admin double-click, not just "careful code".
+// ---------------------------------------------------------------------------
+
+enum WalletTransactionType {
+  TOPUP
+  PURCHASE
+  REFUND
+  ADJUSTMENT
+  BONUS
+
+  @@map("wallet_transaction_type")
+}
+
+enum WalletTransactionDirection {
+  CREDIT
+  DEBIT
+
+  @@map("wallet_transaction_direction")
+}
+
+model Wallet {
+  id           String   @id @default(uuid()) @db.Uuid
+  userId       String   @unique @map("user_id") @db.Uuid
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  balanceMinor Int      @default(0) @map("balance_minor")
+  currency     String   @default("UZS")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  transactions WalletTransaction[]
+
+  @@map("wallets")
+}
+
+model WalletTransaction {
+  id                String                     @id @default(uuid()) @db.Uuid
+  walletId          String                     @map("wallet_id") @db.Uuid
+  wallet            Wallet                     @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  type              WalletTransactionType
+  direction         WalletTransactionDirection
+  // Always positive — `direction` says which way it moved.
+  amountMinor       Int                        @map("amount_minor")
+  currency          String                     @default("UZS")
+  // Immutable snapshot of the balance immediately after this entry, so the
+  // running balance can be verified/reconstructed without re-summing the
+  // whole table.
+  balanceAfterMinor Int                        @map("balance_after_minor")
+  // The actual double-application guard for this specific ledger entry
+  // (e.g. "topup:<topUpRequestId>", "order-refund:<orderId>",
+  // "order-purchase:<orderId>") — not best-effort, DB-enforced.
+  idempotencyKey    String                     @unique @map("idempotency_key")
+  reference         String?
+  // Required (enforced in service code) for ADJUSTMENT entries — why an
+  // admin moved money without a top-up/order behind it.
+  reason            String?
+  orderId           String?                    @map("order_id") @db.Uuid
+  order             Order?                     @relation(fields: [orderId], references: [id])
+  topUpRequestId    String?                    @map("top_up_request_id") @db.Uuid
+  topUpRequest      TopUpRequest?              @relation(fields: [topUpRequestId], references: [id])
+  createdByAdminId  String?                    @map("created_by_admin_id") @db.Uuid
+  createdByAdmin    AdminUser?                 @relation(fields: [createdByAdminId], references: [id])
+  metadata          Json?
+  createdAt         DateTime                   @default(now()) @map("created_at")
+
+  @@index([walletId])
+  @@index([orderId])
+  @@index([topUpRequestId])
+  @@map("wallet_transactions")
+}
+
+// ---------------------------------------------------------------------------
+// UZDONATE card-transfer top-up — a manual method: admin configures which
+// cards receive transfers, the user submits a request after transferring,
+// and balance is credited ONLY once an admin (or a future automated bank
+// integration) verifies it actually arrived. A user claiming "I paid" is
+// never sufficient by itself — see saved-games.service-style honesty
+// comments throughout this codebase re: never faking success.
+// ---------------------------------------------------------------------------
+
+enum ReceivingMethodType {
+  CARD_TRANSFER
+
+  @@map("receiving_method_type")
+}
+
+model ReceivingMethod {
+  id               String              @id @default(uuid()) @db.Uuid
+  type             ReceivingMethodType @default(CARD_TRANSFER)
+  // Display-only masked PAN (e.g. "8600 **** **** 1234") — admin enters
+  // this already masked; the platform never needs/stores a full card
+  // number since money only ever flows one direction (user -> this card).
+  cardNumberMasked String              @map("card_number_masked")
+  cardHolderName   String              @map("card_holder_name")
+  bankName         String?             @map("bank_name")
+  isActive         Boolean             @default(true) @map("is_active")
+  sortOrder        Int                 @default(0) @map("sort_order")
+  createdAt        DateTime            @default(now()) @map("created_at")
+  updatedAt        DateTime            @updatedAt @map("updated_at")
+
+  topUpRequests TopUpRequest[]
+
+  @@map("receiving_methods")
+}
+
+enum TopUpRequestStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+  EXPIRED
+
+  @@map("top_up_request_status")
+}
+
+model TopUpRequest {
+  id                String             @id @default(uuid()) @db.Uuid
+  userId            String             @map("user_id") @db.Uuid
+  user              User               @relation(fields: [userId], references: [id])
+  receivingMethodId String             @map("receiving_method_id") @db.Uuid
+  receivingMethod   ReceivingMethod    @relation(fields: [receivingMethodId], references: [id])
+  amountMinor       Int                @map("amount_minor")
+  currency          String             @default("UZS")
+  status            TopUpRequestStatus @default(PENDING)
+  // What the user tells us (their card's last digits, transfer time, etc.)
+  // to help an admin match it against a real bank statement — a hint, not
+  // proof; only `reviewedByAdminId`+`status=VERIFIED` actually credits the
+  // wallet.
+  userReference     String?            @map("user_reference")
+  reviewedByAdminId String?            @map("reviewed_by_admin_id") @db.Uuid
+  reviewedByAdmin   AdminUser?         @relation(fields: [reviewedByAdminId], references: [id])
+  reviewedAt        DateTime?          @map("reviewed_at")
+  rejectionReason   String?            @map("rejection_reason")
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
+
+  walletTransactions WalletTransaction[]
+
+  @@index([userId])
+  @@index([status])
+  @@map("top_up_requests")
+}
+
+// ---------------------------------------------------------------------------
+// In-app notifications — real, DB-backed, listed via GET /notifications.
+// Actual push delivery (Firebase Cloud Messaging) is not wired: that needs
+// a Firebase project's credentials, which this environment doesn't have.
+// Rows are still created for every event listed below, so the in-app
+// notification center is fully real even before FCM exists.
+// ---------------------------------------------------------------------------
+
+enum NotificationType {
+  ORDER_SUCCESS
+  ORDER_FAILED
+  PAYMENT_SUCCESS
+  TOPUP_SUCCESS
+  REFUND
+  SECURITY
+  PROMOTION
+
+  @@map("notification_type")
+}
+
+model Notification {
+  id        String           @id @default(uuid()) @db.Uuid
+  userId    String           @map("user_id") @db.Uuid
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  title     String
+  body      String
+  // Deep-link target the Flutter app navigates to on tap, e.g. "/orders/<id>".
+  deepLink  String?          @map("deep_link")
+  readAt    DateTime?        @map("read_at")
+  metadata  Json?
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([userId, readAt])
+  @@map("notifications")
 }

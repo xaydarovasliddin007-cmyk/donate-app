@@ -14,6 +14,10 @@ backend/coverage/
 backend/*.tsbuildinfo
 npm-debug.log*
 
+# --- Node / admin panel ---
+admin/dist/
+admin/*.tsbuildinfo
+
 # --- Prisma ---
 backend/prisma/dev.db
 backend/prisma/dev.db-journal
@@ -40,6 +44,9 @@ mobile/**/*.freezed.dart
 .idea/
 .vscode/
 *.iml
+
+# --- Claude Code local state ---
+.claude/scheduled_tasks.lock
 
 # --- Logs ---
 *.log

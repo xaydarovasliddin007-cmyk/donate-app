@@ -49,14 +49,30 @@ export async function authRoutes(app: FastifyInstance) {
 
   app.get('/auth/me', { preHandler: authenticate }, async (request) => {
     const user = await app.prisma.user.findUniqueOrThrow({ where: { id: request.currentUser!.id } });
-    return {
-      id: user.id,
-      email: user.email,
-      phone: user.phone,
-      displayName: user.displayName,
-      avatarUrl: user.avatarUrl,
-      locale: user.locale,
-      role: user.role,
-    };
+    return authService.toPublicUser(user);
+  });
+
+  app.get('/auth/sessions', { preHandler: authenticate }, async (request) => {
+    const sessions = await authService.listSessions(ctx, request.currentUser!.id);
+    return { sessions };
+  });
+
+  app.delete<{ Params: { id: string } }>(
+    '/auth/sessions/:id',
+    { preHandler: authenticate },
+    async (request, reply) => {
+      await authService.revokeSession(ctx, request.currentUser!.id, request.params.id);
+      return reply.status(204).send();
+    },
+  );
+
+  app.post('/auth/logout-all', { preHandler: authenticate }, async (request, reply) => {
+    await authService.revokeAllSessions(ctx, request.currentUser!.id);
+    return reply.status(204).send();
+  });
+
+  app.post('/auth/account/delete-request', { preHandler: authenticate }, async (request, reply) => {
+    await authService.requestAccountDeletion(ctx, request.currentUser!.id);
+    return reply.status(204).send();
   });
 }

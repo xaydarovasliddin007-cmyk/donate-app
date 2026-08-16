@@ -19,6 +19,7 @@ dependencies:
   google_sign_in: ^7.2.0
   intl: 0.20.2
   shared_preferences: ^2.5.5
+  url_launcher: ^6.3.1
 
 dev_dependencies:
   flutter_test:
@@ -28,13 +29,26 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   generate: true
+  assets:
+    - assets/branding/
 
+# Native (pre-Flutter-engine) splash — this is what's actually on screen for
+# most of cold start, since it's shown by the OS before the Flutter engine
+# has even loaded. `splash_logo.png` mirrors BrandMark's gradient+bolt mark
+# exactly (same colors, same path geometry) so there's no visual seam when
+# Flutter's first frame (with the real animated BrandMark) takes over.
 flutter_native_splash:
   color: "#FFFFFF"
   color_dark: "#0F1115"
-  # Kept intentionally minimal (solid color, no logo asset yet) — swap in
-  # brand assets when the design system lands. This just prevents a blank
-  # white/black frame flash before Flutter's first frame renders.
+  image: assets/branding/splash_logo.png
+  image_dark: assets/branding/splash_logo.png
   android_12:
     color: "#FFFFFF"
     color_dark: "#0F1115"
+    image: assets/branding/splash_logo.png
+    image_dark: assets/branding/splash_logo.png
+    # Android 12+ constrains the icon to a masked safe zone — keep it modest
+    # relative to the canvas (our mark already only fills the center ~47%)
+    # rather than fighting the OS clip.
+    icon_background_color: "#FFFFFF"
+    icon_background_color_dark: "#0F1115"

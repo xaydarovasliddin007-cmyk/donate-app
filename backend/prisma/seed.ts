@@ -87,6 +87,25 @@ async function main() {
     });
   }
 
+  // --- Receiving method (dev placeholder — admin replaces with a real card
+  // via the admin API/panel before any shared/staging deploy; this is a
+  // fake masked number, never a real one) ---------------------------------
+  const existingReceivingMethod = await prisma.receivingMethod.findFirst({
+    where: { cardHolderName: 'UZDONATE (dev placeholder)' },
+  });
+  if (!existingReceivingMethod) {
+    await prisma.receivingMethod.create({
+      data: {
+        type: 'CARD_TRANSFER',
+        cardNumberMasked: '8600 0000 0000 0000',
+        cardHolderName: 'UZDONATE (dev placeholder)',
+        bankName: 'Dev Bank',
+        isActive: true,
+        sortOrder: 0,
+      },
+    });
+  }
+
   // --- Promotion ----------------------------------------------------------------
   await prisma.promotion.upsert({
     where: { code: 'WELCOME' },

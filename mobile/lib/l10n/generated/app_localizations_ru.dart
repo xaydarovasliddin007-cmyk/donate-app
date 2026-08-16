@@ -116,12 +116,6 @@ class AppLocalizationsRu extends AppLocalizations {
       'Выберите любимую игру и пополните счёт за секунды';
 
   @override
-  String get onboardingChooseLanguage => 'Выберите язык';
-
-  @override
-  String get onboardingChooseTheme => 'Выберите оформление';
-
-  @override
   String get onboardingGetStarted => 'Начать';
 
   @override
@@ -200,6 +194,15 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get homeSearchHint => 'Поиск игры';
+
+  @override
+  String get homeHeroTitle => 'Быстрый донат';
+
+  @override
+  String get homeHeroSubtitle => 'Пополняйте любимую игру в пару нажатий';
+
+  @override
+  String get notificationsComingSoon => 'Уведомления скоро';
 
   @override
   String get homePopularGames => 'Популярные игры';
@@ -293,6 +296,21 @@ class AppLocalizationsRu extends AppLocalizations {
   String get checkoutCreatingOrder => 'Создание заказа…';
 
   @override
+  String get checkoutPayWithWalletLabel => 'Кошелёк UZDONATE';
+
+  @override
+  String checkoutPayWithWalletBalance(String amount) {
+    return 'Баланс: $amount';
+  }
+
+  @override
+  String get checkoutInsufficientBalanceMessage =>
+      'Недостаточно средств на кошельке';
+
+  @override
+  String get checkoutTopUpNowButton => 'Пополнить кошелёк';
+
+  @override
   String get paymentDevSimulateTitle =>
       'Тестовый платёж (только для разработки)';
 
@@ -358,6 +376,14 @@ class AppLocalizationsRu extends AppLocalizations {
   String get orderRefreshButton => 'Обновить';
 
   @override
+  String get orderContactSupportButton => 'Связаться с поддержкой';
+
+  @override
+  String supportRequestSubject(String orderNumber) {
+    return 'Запрос в поддержку UZDONATE — заказ $orderNumber';
+  }
+
+  @override
   String get orderHistoryTitle => 'История заказов';
 
   @override
@@ -387,4 +413,195 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get profileLogoutButton => 'Выйти';
+
+  @override
+  String get walletTitle => 'Кошелёк';
+
+  @override
+  String get walletBalanceLabel => 'Баланс';
+
+  @override
+  String get walletTopUpButton => 'Пополнить кошелёк';
+
+  @override
+  String get walletHistoryButton => 'История';
+
+  @override
+  String get walletTransactionHistoryTitle => 'История кошелька';
+
+  @override
+  String get walletTransactionHistoryEmpty => 'Пока нет транзакций';
+
+  @override
+  String get walletTypeTopup => 'Пополнение';
+
+  @override
+  String get walletTypePurchase => 'Покупка';
+
+  @override
+  String get walletTypeRefund => 'Возврат';
+
+  @override
+  String get walletTypeAdjustment => 'Корректировка';
+
+  @override
+  String get walletTypeBonus => 'Бонус';
+
+  @override
+  String get checkoutPayWithWallet => 'Оплатить с кошелька';
+
+  @override
+  String checkoutWalletBalance(Object balance) {
+    return 'Баланс: $balance';
+  }
+
+  @override
+  String get checkoutInsufficientBalance => 'Недостаточно средств на кошельке';
+
+  @override
+  String get checkoutTopUpNow => 'Пополнить сейчас';
+
+  @override
+  String get topupTitle => 'Пополнить кошелёк';
+
+  @override
+  String get topupAmountLabel => 'Сумма';
+
+  @override
+  String get topupAmountHint => 'Например: 50000';
+
+  @override
+  String get topupSelectMethodTitle => 'Выберите способ пополнения';
+
+  @override
+  String get topupBankLabel => 'Банк';
+
+  @override
+  String get topupSubmitButton => 'Подтвердить оплату';
+
+  @override
+  String get topupInstructionsTitle => 'Как пополнить?';
+
+  @override
+  String get topupInstructions =>
+      '1. Переведите указанную сумму на карту ниже.\n2. Нажмите «Подтвердить оплату».\n3. После проверки администратором баланс пополнится автоматически.';
+
+  @override
+  String get topupUserReferenceLabel => 'Комментарий (необязательно)';
+
+  @override
+  String get topupUserReferenceHint =>
+      'Например: последние 4 цифры вашей карты';
+
+  @override
+  String get topupSuccessTitle => 'Заявка отправлена';
+
+  @override
+  String get topupSuccessMessage =>
+      'Ваш платёж проверяется. После подтверждения баланс пополнится автоматически.';
+
+  @override
+  String get topupHistoryTitle => 'История пополнений';
+
+  @override
+  String get topupStatusPending => 'Проверяется';
+
+  @override
+  String get topupStatusVerified => 'Подтверждено';
+
+  @override
+  String get topupStatusRejected => 'Отклонено';
+
+  @override
+  String get topupStatusExpired => 'Истёк срок';
+
+  @override
+  String get topupValidationError => 'Введите сумму';
+
+  @override
+  String get profileUzdonateIdLabel => 'UZDONATE ID';
+
+  @override
+  String get profileCopyButton => 'Копировать';
+
+  @override
+  String get profileCopiedMessage => 'Скопировано';
+
+  @override
+  String get profileSecurityCenter => 'Безопасность';
+
+  @override
+  String get profileWallet => 'Кошелёк';
+
+  @override
+  String get profileNotifications => 'Уведомления';
+
+  @override
+  String get profileSupport => 'Поддержка';
+
+  @override
+  String get securityCenterTitle => 'Центр безопасности';
+
+  @override
+  String get securityAccountSection => 'Аккаунт';
+
+  @override
+  String get securityEmailLabel => 'Email';
+
+  @override
+  String get securityGoogleLinkedLabel => 'Google аккаунт подключён';
+
+  @override
+  String get securityGoogleNotLinkedLabel => 'Google аккаунт не подключён';
+
+  @override
+  String get securitySessionsSection => 'Активные сеансы';
+
+  @override
+  String get securitySessionsEmpty => 'Активные сеансы не найдены';
+
+  @override
+  String get securitySessionCurrentBadge => 'Текущий';
+
+  @override
+  String get securitySessionRevokeButton => 'Выйти';
+
+  @override
+  String get securityLogoutAllButton => 'Выйти со всех устройств';
+
+  @override
+  String get securityLogoutAllConfirmTitle => 'Выйти со всех устройств?';
+
+  @override
+  String get securityLogoutAllConfirmMessage =>
+      'Все сеансы будут завершены, потребуется повторный вход';
+
+  @override
+  String get securityDeleteAccountSection => 'Опасная зона';
+
+  @override
+  String get securityDeleteAccountButton => 'Удалить аккаунт';
+
+  @override
+  String get securityDeleteAccountConfirmTitle => 'Удалить аккаунт?';
+
+  @override
+  String get securityDeleteAccountConfirmMessage =>
+      'Это действие нельзя отменить. Аккаунт будет удалён, все сеансы завершатся.';
+
+  @override
+  String get securityDeleteAccountWalletNotEmptyMessage =>
+      'Перед удалением аккаунта потратьте баланс кошелька или обратитесь в поддержку — вывод средств из кошелька UZDONATE недоступен.';
+
+  @override
+  String get securityDeleteAccountSuccessMessage => 'Ваш аккаунт удалён';
+
+  @override
+  String get notificationsTitle => 'Уведомления';
+
+  @override
+  String get notificationsEmpty => 'Пока нет уведомлений';
+
+  @override
+  String get notificationsMarkAllRead => 'Отметить всё как прочитанное';
 }

@@ -2,9 +2,9 @@ import type { FastifyInstance } from 'fastify';
 import { authenticate } from '../../middleware/authenticate.js';
 import { validateBody } from '../../lib/validate.js';
 import { isProduction } from '../../config/env.js';
-import { createPaymentSchema, simulateWebhookSchema } from './payments.schemas.js';
+import { createPaymentSchema, payWithWalletSchema, simulateWebhookSchema } from './payments.schemas.js';
 import * as paymentsService from './payments.service.js';
-import type { CreatePaymentInput, SimulateWebhookInput } from './payments.schemas.js';
+import type { CreatePaymentInput, PayWithWalletInput, SimulateWebhookInput } from './payments.schemas.js';
 
 export async function paymentsRoutes(app: FastifyInstance) {
   const ctx = { prisma: app.prisma };
@@ -15,6 +15,21 @@ export async function paymentsRoutes(app: FastifyInstance) {
     async (request, reply) => {
       const body = request.body as CreatePaymentInput;
       const payment = await paymentsService.createPayment(ctx, request.currentUser!.id, body);
+      return reply.status(201).send(payment);
+    },
+  );
+
+  app.post(
+    '/payments/wallet',
+    { preHandler: [authenticate, validateBody(payWithWalletSchema)] },
+    async (request, reply) => {
+      const body = request.body as PayWithWalletInput;
+      const payment = await paymentsService.payWithWallet(
+        ctx,
+        request.currentUser!.id,
+        body.orderId,
+        body.idempotencyKey,
+      );
       return reply.status(201).send(payment);
     },
   );

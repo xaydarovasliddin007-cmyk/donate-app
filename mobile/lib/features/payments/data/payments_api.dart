@@ -18,6 +18,14 @@ class PaymentsApi {
     return Payment.fromJson(json);
   }
 
+  Future<Payment> payWithWallet({required String orderId, required String idempotencyKey}) async {
+    final json = await _client.post(
+      '/payments/wallet',
+      body: {'orderId': orderId, 'idempotencyKey': idempotencyKey},
+    );
+    return Payment.fromJson(json);
+  }
+
   Future<Payment> simulateWebhook(String paymentId, {required bool succeed}) async {
     final json = await _client.post(
       '/payments/$paymentId/dev-simulate',

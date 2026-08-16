@@ -5,15 +5,31 @@ import '../../../../l10n/generated/app_localizations.dart';
 import '../../domain/order_status.dart';
 
 (Color, String) _statusVisuals(BuildContext context, OrderStatus status) {
+  return (_statusColor(status), orderStatusLabel(context, status));
+}
+
+Color _statusColor(OrderStatus status) => switch (status) {
+  OrderStatus.pending => AppColors.warning,
+  OrderStatus.paid => AppColors.brandPrimary,
+  OrderStatus.processing => AppColors.brandPrimary,
+  OrderStatus.completed => AppColors.success,
+  OrderStatus.failed => AppColors.danger,
+  OrderStatus.cancelled => AppColors.danger,
+  OrderStatus.refunded => AppColors.warning,
+};
+
+/// Public so other screens (e.g. the "Contact support" pre-filled message)
+/// can reuse the same localized status text instead of re-deriving it.
+String orderStatusLabel(BuildContext context, OrderStatus status) {
   final l10n = AppLocalizations.of(context);
   return switch (status) {
-    OrderStatus.pending => (AppColors.warning, l10n.orderStatusPending),
-    OrderStatus.paid => (AppColors.brandPrimary, l10n.orderStatusPaid),
-    OrderStatus.processing => (AppColors.brandPrimary, l10n.orderStatusProcessing),
-    OrderStatus.completed => (AppColors.success, l10n.orderStatusCompleted),
-    OrderStatus.failed => (AppColors.danger, l10n.orderStatusFailed),
-    OrderStatus.cancelled => (AppColors.danger, l10n.orderStatusCancelled),
-    OrderStatus.refunded => (AppColors.warning, l10n.orderStatusRefunded),
+    OrderStatus.pending => l10n.orderStatusPending,
+    OrderStatus.paid => l10n.orderStatusPaid,
+    OrderStatus.processing => l10n.orderStatusProcessing,
+    OrderStatus.completed => l10n.orderStatusCompleted,
+    OrderStatus.failed => l10n.orderStatusFailed,
+    OrderStatus.cancelled => l10n.orderStatusCancelled,
+    OrderStatus.refunded => l10n.orderStatusRefunded,
   };
 }
 

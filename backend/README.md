@@ -18,15 +18,22 @@ src/
     duration.ts            tiny "15m"/"30d" duration parser
     order-number.ts         human-readable order reference generator
     audit.ts                 admin audit-log writer
+    public-id.ts             permanent "UZD-XXXXXXXX" public user ID generator
+    money.ts                 integer-minor-units money formatting for Telegram/notification text
+    telegram.ts               fire-and-forget Telegram Bot API admin alerts (env-gated)
   middleware/authenticate.ts   customer JWT access-token verification preHandler
   modules/
     health/                /health (liveness) and /ready (readiness)
-    auth/                    customer register/login/refresh/logout/me
+    auth/                    customer register/login/refresh/logout/me, sessions, Google sign-in
     games/                    GET /games, /games/:id, /games/:id/products
     promotions/               GET /promotions
-    orders/                    order creation/list/detail + state machine + fulfillment
-    payments/                  payment intent creation + idempotent webhook processing
+    orders/                    order creation/list/detail + state machine + fulfillment + refunds
+    payments/                  payment intent creation + wallet payment + idempotent webhook
     saved-games/                "My Games" — saved Player ID/Server ID per game, for Quick Buy
+    wallet/                      ledger-based wallet: balance + transaction history
+    topup/                       UZDONATE card-transfer top-up requests + admin-configured
+                                  receiving methods
+    notifications/                real in-app notification center (DB-backed)
     admin/                      separate admin auth (own JWT secret) + protected admin API
 prisma/
   schema.prisma           Full domain model: users, admin users, games, products, providers,
@@ -64,7 +71,19 @@ directly rather than a second `@fastify/jwt` registration (Fastify's `decorateRe
 rejects re-declaring the same request property from a nested plugin — see
 `src/modules/admin/admin-token.ts`). A leaked customer secret must never be enough to forge
 admin access. Admin login is additionally rate-limited tighter than the API default.
-RBAC roles: `SUPER_ADMIN`, `ADMIN`, `OPERATIONS`, `SUPPORT`, `FINANCE`, `CONTENT_MANAGER`.
+RBAC roles: `SUPER_ADMIN`, `ADMIN`, `OPERATIONS`, `SUPPORT`, `FINANCE`, `CONTENT_MANAGER`. New
+admins are created only by an existing `SUPER_ADMIN` (`POST /admin/admins`) — there is no
+public admin registration endpoint.
+
+`refresh()` re-checks `user.status === 'ACTIVE'` on every call (not just at login) — a
+suspended/deleted account's refresh token stops working immediately instead of continuing to
+mint fresh access tokens until it expires on its own.
+
+**Account deletion** (`POST /auth/account/delete-request`): soft-deletes only (`status =
+'DELETED'`) — orders/payments/ledger history are never hard-deleted, for audit and financial
+reasons. Blocked with `409 WALLET_NOT_EMPTY` while the wallet balance is non-zero, since the
+wallet has no withdrawal path (see "Wallet & ledger design" below) — the user must spend the
+balance or ask support to settle it first.
 
 ## Order state machine
 
@@ -102,6 +121,29 @@ stands in for that webhook, but it still runs through the exact same
 nothing is short-circuited. Webhook idempotency is enforced by a DB unique constraint on
 `(provider, providerEventId)`, not by application-level "probably won't happen twice" logic.
 
+## Wallet & ledger design
+
+The UZDONATE wallet is **closed-loop**: users can top up (via admin-verified card transfer) and
+spend on purchases, but there is no P2P transfer, withdrawal, or cash-out anywhere in the API.
+
+- `Wallet.balanceMinor` is a cached, denormalized value — the source of truth is the sum of
+  `WalletTransaction` rows. Every transaction snapshots `balanceAfterMinor` at write time.
+- `walletService.applyLedgerEntry()` (`src/modules/wallet/wallet.service.ts`) is the **only**
+  function in the codebase allowed to change a balance. The balance update and the
+  negative-balance guard happen in one atomic `UPDATE wallets SET balance_minor = balance_minor
+  + $delta WHERE balance_minor + $delta >= 0 RETURNING ...` — Postgres guarantees two concurrent
+  debits can never both succeed past a balance neither could individually afford, with no
+  explicit row lock needed.
+- `idempotencyKey` has a DB unique constraint, so a retried webhook, a double-tapped admin
+  action, or two racing requests can never apply the same ledger entry twice — the losing
+  request gets back the entry that already won instead of erroring.
+- Card-transfer top-ups (`TopUpRequest`) only ever credit a wallet through
+  `topupService.verifyTopUpRequest()`, which requires an authenticated admin action. There is no
+  code path that credits a wallet from a user-submitted claim alone.
+- Admin balance adjustments (`POST /admin/users/:id/wallet/adjust`) always go through the same
+  `applyLedgerEntry()`, always require a `reason`, and are always audit-logged
+  (`writeAuditLog`) — there is no endpoint that writes `wallets.balance_minor` directly.
+
 ## API surface
 
 ```
@@ -111,6 +153,10 @@ GET    /ready                                readiness, 503 if DB unreachable
 POST   /api/v1/auth/register|login|refresh|logout
 POST   /api/v1/auth/google                   real Google ID token verification, see below
 GET    /api/v1/auth/me
+GET    /api/v1/auth/sessions                  auth required — active device/session list
+DELETE /api/v1/auth/sessions/:id              auth required — revoke one session
+POST   /api/v1/auth/logout-all                auth required — "log out everywhere"
+POST   /api/v1/auth/account/delete-request    auth required — soft-delete; blocked if wallet balance > 0
 
 GET    /api/v1/games
 GET    /api/v1/games/:id
@@ -122,6 +168,7 @@ GET    /api/v1/orders
 GET    /api/v1/orders/:id
 
 POST   /api/v1/payments                      auth required
+POST   /api/v1/payments/wallet                auth required — pay from UZDONATE wallet balance
 GET    /api/v1/payments/:id
 POST   /api/v1/payments/:id/dev-simulate      dev/test only
 
@@ -129,17 +176,44 @@ GET    /api/v1/saved-games                   auth required — "My Games" for Qu
 PUT    /api/v1/saved-games/:gameId           auth required — {playerId, serverId?}
 DELETE /api/v1/saved-games/:gameId           auth required
 
+GET    /api/v1/wallet                         auth required — balance
+GET    /api/v1/wallet/transactions            auth required — ledger history
+
+GET    /api/v1/topups/receiving-methods       active admin-configured receiving cards
+POST   /api/v1/topups                         auth required — submit a top-up request
+GET    /api/v1/topups                         auth required — my top-up requests
+GET    /api/v1/topups/:id                     auth required
+
+GET    /api/v1/notifications                  auth required
+POST   /api/v1/notifications/:id/read         auth required
+POST   /api/v1/notifications/read-all         auth required
+
 POST   /api/v1/admin/auth/login|refresh|logout
 GET    /api/v1/admin/auth/me                  admin auth required
 GET    /api/v1/admin/orders(?status=&limit=)
 GET    /api/v1/admin/orders/:id
 POST   /api/v1/admin/orders/:id/retry-fulfillment   SUPER_ADMIN/ADMIN/OPERATIONS only
-GET    /api/v1/admin/users
+POST   /api/v1/admin/orders/:id/refund              SUPER_ADMIN/ADMIN/FINANCE only — refunds to wallet
+GET    /api/v1/admin/users(?search=&limit=)
+GET    /api/v1/admin/users/:id                 profile + wallet + recent orders/transactions/sessions
+GET    /api/v1/admin/users/:id/wallet
+GET    /api/v1/admin/users/:id/wallet/transactions
+POST   /api/v1/admin/users/:id/wallet/adjust   SUPER_ADMIN/ADMIN/FINANCE only — ledger-only, reason required
+GET    /api/v1/admin/topups(?status=&limit=)
+POST   /api/v1/admin/topups/:id/verify         credits the wallet — the only path that does
+POST   /api/v1/admin/topups/:id/reject         requires rejectionReason
+GET    /api/v1/admin/receiving-methods
+POST   /api/v1/admin/receiving-methods         SUPER_ADMIN/ADMIN only
+PATCH  /api/v1/admin/receiving-methods/:id     SUPER_ADMIN/ADMIN only
 GET    /api/v1/admin/products(?gameId=)
 PATCH  /api/v1/admin/products/:id             {isActive?, amountMinor?} — elevated roles only
 GET    /api/v1/admin/providers
 GET    /api/v1/admin/payments/:id
 GET    /api/v1/admin/stats
+GET    /api/v1/admin/admins                    SUPER_ADMIN only
+POST   /api/v1/admin/admins                    SUPER_ADMIN only — create an admin
+PATCH  /api/v1/admin/admins/:id                SUPER_ADMIN only — {isActive?, role?}; can't deactivate self
+GET    /api/v1/admin/audit-logs(?entityType=&limit=)   SUPER_ADMIN/ADMIN only
 ```
 
 ## Running
@@ -189,7 +263,19 @@ Google Sign-In flow to hand back a token this backend can verify.
 
 See `.env.example` for the full list. Required: `DATABASE_URL`, `JWT_ACCESS_SECRET`,
 `JWT_REFRESH_SECRET`, `ADMIN_JWT_ACCESS_SECRET` (all three secrets must be ≥32 chars — the
-app refuses to boot otherwise — and must all be *different* from each other).
+app refuses to boot otherwise — and must all be *different* from each other). Optional:
+`TELEGRAM_BOT_TOKEN`/`TELEGRAM_ADMIN_CHAT_ID` (admin alerts silently no-op without them) and
+`GOOGLE_CLIENT_ID` (Google Sign-In responds `503` without it).
+
+## Telegram admin notifications
+
+`src/lib/telegram.ts`'s `notifyAdmins()` posts to `https://api.telegram.org/bot<token>/sendMessage`
+via native `fetch`, fire-and-forget (never awaited by the request it's reporting on, errors are
+only logged). Wired into: new top-up requests, top-up verified, new orders, payment
+success/failure, and refunds. To enable: create a bot via
+[@BotFather](https://t.me/BotFather), add it to the admin group/channel, send one message there,
+then call `https://api.telegram.org/bot<token>/getUpdates` to find the numeric chat ID. Set both
+`TELEGRAM_BOT_TOKEN` and `TELEGRAM_ADMIN_CHAT_ID` in `backend/.env`.
 
 ## A note on error-handler registration order
 

@@ -1,5 +1,6 @@
 import '../../../core/network/api_client.dart';
 import '../domain/app_user.dart';
+import '../domain/session.dart';
 
 class AuthResult {
   const AuthResult({required this.user, required this.accessToken, required this.refreshToken});
@@ -67,4 +68,16 @@ class AuthApi {
     final json = await _client.get('/auth/me');
     return AppUser.fromJson(json);
   }
+
+  Future<List<Session>> listSessions() async {
+    final json = await _client.get('/auth/sessions');
+    final sessions = json['sessions'] as List<dynamic>;
+    return sessions.map((s) => Session.fromJson(s as Map<String, dynamic>)).toList();
+  }
+
+  Future<void> revokeSession(String sessionId) => _client.delete('/auth/sessions/$sessionId');
+
+  Future<void> logoutAllDevices() => _client.post('/auth/logout-all');
+
+  Future<void> requestAccountDeletion() => _client.post('/auth/account/delete-request');
 }

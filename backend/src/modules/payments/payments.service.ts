@@ -2,8 +2,12 @@ import { Prisma, type Payment, type PrismaClient } from '@prisma/client';
 import { randomUUID } from 'node:crypto';
 import { ConflictError, ForbiddenError, NotFoundError, ServiceUnavailableError } from '../../lib/errors.js';
 import { isProduction } from '../../config/env.js';
+import { formatMinorAmount } from '../../lib/money.js';
+import { notifyAdmins } from '../../lib/telegram.js';
 import { fulfillPaidOrder, markOrderPaymentFailed } from '../orders/orders.service.js';
+import { createNotification } from '../notifications/notifications.service.js';
 import { getPaymentProvider } from '../../providers/registry.js';
+import { InsufficientBalanceError, debitWallet } from '../wallet/wallet.service.js';
 import type { CreatePaymentInput } from './payments.schemas.js';
 
 interface PaymentContext {
@@ -81,6 +85,78 @@ export async function createPayment(ctx: PaymentContext, userId: string, input: 
   return toPublicPayment(payment);
 }
 
+/**
+ * Pay for an order directly from the customer's UZDONATE wallet — internal
+ * money movement only, so unlike an external provider this settles
+ * synchronously: no redirect, no webhook, no PENDING window. `providerId`
+ * stays null on the resulting Payment row (nothing external was involved);
+ * that's what distinguishes a wallet-paid Payment from a provider-paid one.
+ *
+ * On insufficient balance, the order is deliberately left PENDING (not
+ * failed) — unlike a declined card, "not enough balance" is something the
+ * user can fix immediately (top up) and retry, so we don't want to burn
+ * the order.
+ */
+export async function payWithWallet(
+  ctx: PaymentContext,
+  userId: string,
+  orderId: string,
+  idempotencyKey: string,
+) {
+  const existing = await ctx.prisma.payment.findUnique({ where: { idempotencyKey } });
+  if (existing) {
+    if (existing.orderId !== orderId) {
+      throw new ConflictError('Idempotency key already used for a different order');
+    }
+    return toPublicPayment(existing);
+  }
+
+  const order = await ctx.prisma.order.findUnique({ where: { id: orderId } });
+  if (!order) {
+    throw new NotFoundError('Order not found');
+  }
+  if (order.userId !== userId) {
+    throw new ForbiddenError('This order does not belong to you');
+  }
+  if (order.status !== 'PENDING') {
+    throw new ConflictError(`Order is not payable in its current status (${order.status})`);
+  }
+
+  const payment = await ctx.prisma.payment.create({
+    data: {
+      orderId: order.id,
+      amountMinor: order.amountMinor,
+      currency: order.currency,
+      status: 'PENDING',
+      idempotencyKey,
+    },
+  });
+
+  try {
+    await debitWallet(ctx, {
+      userId,
+      type: 'PURCHASE',
+      amountMinor: order.amountMinor,
+      idempotencyKey: `wallet-debit:${payment.id}`,
+      reference: `Order ${order.orderNumber}`,
+      orderId: order.id,
+    });
+  } catch (err) {
+    if (err instanceof InsufficientBalanceError) {
+      await ctx.prisma.payment.update({ where: { id: payment.id }, data: { status: 'FAILED' } });
+      await ctx.prisma.paymentAttempt.create({ data: { paymentId: payment.id, status: 'FAILED' } });
+    }
+    throw err;
+  }
+
+  const succeeded = await ctx.prisma.payment.update({ where: { id: payment.id }, data: { status: 'SUCCEEDED' } });
+  await ctx.prisma.paymentAttempt.create({ data: { paymentId: payment.id, status: 'SUCCEEDED' } });
+
+  await fulfillPaidOrder(ctx, order.id);
+
+  return toPublicPayment(succeeded);
+}
+
 export async function getPaymentById(ctx: PaymentContext, userId: string, paymentId: string) {
   const payment = await ctx.prisma.payment.findUnique({
     where: { id: paymentId },
@@ -130,7 +206,10 @@ export async function processPaymentWebhook(
     throw err;
   }
 
-  const payment = await ctx.prisma.payment.findUnique({ where: { id: params.paymentId } });
+  const payment = await ctx.prisma.payment.findUnique({
+    where: { id: params.paymentId },
+    include: { order: { select: { userId: true } } },
+  });
   if (!payment || payment.status !== 'PENDING') {
     await ctx.prisma.webhookEvent.update({
       where: { id: webhookEvent.id },
@@ -145,8 +224,17 @@ export async function processPaymentWebhook(
   });
 
   if (params.outcome === 'SUCCEEDED') {
+    notifyAdmins(`💳 <b>Payment succeeded</b> — ${formatMinorAmount(payment.amountMinor, payment.currency)}`);
+    await createNotification(ctx, {
+      userId: payment.order.userId,
+      type: 'PAYMENT_SUCCESS',
+      title: 'Payment received',
+      body: `Your payment of ${formatMinorAmount(payment.amountMinor, payment.currency)} was received.`,
+      deepLink: `/orders/${payment.orderId}`,
+    });
     await fulfillPaidOrder(ctx, payment.orderId);
   } else {
+    notifyAdmins(`⚠️ <b>Payment failed</b> — ${formatMinorAmount(payment.amountMinor, payment.currency)}`);
     await markOrderPaymentFailed(ctx, payment.orderId, 'Payment failed');
   }
 

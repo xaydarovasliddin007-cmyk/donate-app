@@ -116,12 +116,6 @@ class AppLocalizationsUz extends AppLocalizations {
       'Sevimli o\'yiningizni tanlang, bir necha soniyada to\'ldiring';
 
   @override
-  String get onboardingChooseLanguage => 'Tilni tanlang';
-
-  @override
-  String get onboardingChooseTheme => 'Ko\'rinishni tanlang';
-
-  @override
   String get onboardingGetStarted => 'Boshlash';
 
   @override
@@ -200,6 +194,16 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get homeSearchHint => 'O\'yin qidirish';
+
+  @override
+  String get homeHeroTitle => 'Tezkor donat';
+
+  @override
+  String get homeHeroSubtitle =>
+      'Sevimli o\'yiningizni bir necha bosishda to\'ldiring';
+
+  @override
+  String get notificationsComingSoon => 'Bildirishnomalar tez kunda';
 
   @override
   String get homePopularGames => 'Mashhur o\'yinlar';
@@ -293,6 +297,21 @@ class AppLocalizationsUz extends AppLocalizations {
   String get checkoutCreatingOrder => 'Buyurtma yaratilmoqda…';
 
   @override
+  String get checkoutPayWithWalletLabel => 'UZDONATE hamyoni';
+
+  @override
+  String checkoutPayWithWalletBalance(String amount) {
+    return 'Balans: $amount';
+  }
+
+  @override
+  String get checkoutInsufficientBalanceMessage =>
+      'Hamyoningizda mablag\' yetarli emas';
+
+  @override
+  String get checkoutTopUpNowButton => 'Hamyonni to\'ldirish';
+
+  @override
   String get paymentDevSimulateTitle =>
       'Test to\'lovi (faqat dasturchilar uchun)';
 
@@ -359,6 +378,14 @@ class AppLocalizationsUz extends AppLocalizations {
   String get orderRefreshButton => 'Yangilash';
 
   @override
+  String get orderContactSupportButton => 'Yordamga murojaat qilish';
+
+  @override
+  String supportRequestSubject(String orderNumber) {
+    return 'UZDONATE yordam so\'rovi — buyurtma $orderNumber';
+  }
+
+  @override
   String get orderHistoryTitle => 'Buyurtmalar tarixi';
 
   @override
@@ -389,4 +416,195 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get profileLogoutButton => 'Chiqish';
+
+  @override
+  String get walletTitle => 'Hamyon';
+
+  @override
+  String get walletBalanceLabel => 'Balans';
+
+  @override
+  String get walletTopUpButton => 'Hamyonni to\'ldirish';
+
+  @override
+  String get walletHistoryButton => 'Tarix';
+
+  @override
+  String get walletTransactionHistoryTitle => 'Hamyon tarixi';
+
+  @override
+  String get walletTransactionHistoryEmpty => 'Hali tranzaksiyalar yo\'q';
+
+  @override
+  String get walletTypeTopup => 'To\'ldirish';
+
+  @override
+  String get walletTypePurchase => 'Xarid';
+
+  @override
+  String get walletTypeRefund => 'Qaytarish';
+
+  @override
+  String get walletTypeAdjustment => 'Tuzatish';
+
+  @override
+  String get walletTypeBonus => 'Bonus';
+
+  @override
+  String get checkoutPayWithWallet => 'Hamyondan to\'lash';
+
+  @override
+  String checkoutWalletBalance(Object balance) {
+    return 'Balans: $balance';
+  }
+
+  @override
+  String get checkoutInsufficientBalance => 'Hamyonda mablag\' yetarli emas';
+
+  @override
+  String get checkoutTopUpNow => 'Hozir to\'ldirish';
+
+  @override
+  String get topupTitle => 'Hamyonni to\'ldirish';
+
+  @override
+  String get topupAmountLabel => 'Summa';
+
+  @override
+  String get topupAmountHint => 'Masalan: 50000';
+
+  @override
+  String get topupSelectMethodTitle => 'To\'ldirish usulini tanlang';
+
+  @override
+  String get topupBankLabel => 'Bank';
+
+  @override
+  String get topupSubmitButton => 'To\'lovni tasdiqlash';
+
+  @override
+  String get topupInstructionsTitle => 'Qanday to\'ldirish mumkin?';
+
+  @override
+  String get topupInstructions =>
+      '1. Ko\'rsatilgan summani quyidagi kartaga o\'tkazing.\n2. \"To\'lovni tasdiqlash\" tugmasini bosing.\n3. Admin tekshiruvidan so\'ng balansingiz to\'ldiriladi.';
+
+  @override
+  String get topupUserReferenceLabel => 'Izoh (ixtiyoriy)';
+
+  @override
+  String get topupUserReferenceHint => 'Masalan: kartangizning oxirgi 4 raqami';
+
+  @override
+  String get topupSuccessTitle => 'So\'rov yuborildi';
+
+  @override
+  String get topupSuccessMessage =>
+      'To\'lovingiz tekshirilmoqda. Tasdiqlangach, balansingiz avtomatik to\'ldiriladi.';
+
+  @override
+  String get topupHistoryTitle => 'To\'ldirishlar tarixi';
+
+  @override
+  String get topupStatusPending => 'Tekshirilmoqda';
+
+  @override
+  String get topupStatusVerified => 'Tasdiqlandi';
+
+  @override
+  String get topupStatusRejected => 'Rad etildi';
+
+  @override
+  String get topupStatusExpired => 'Muddati o\'tgan';
+
+  @override
+  String get topupValidationError => 'Summani kiriting';
+
+  @override
+  String get profileUzdonateIdLabel => 'UZDONATE ID';
+
+  @override
+  String get profileCopyButton => 'Nusxalash';
+
+  @override
+  String get profileCopiedMessage => 'Nusxalandi';
+
+  @override
+  String get profileSecurityCenter => 'Xavfsizlik';
+
+  @override
+  String get profileWallet => 'Hamyon';
+
+  @override
+  String get profileNotifications => 'Bildirishnomalar';
+
+  @override
+  String get profileSupport => 'Yordam';
+
+  @override
+  String get securityCenterTitle => 'Xavfsizlik markazi';
+
+  @override
+  String get securityAccountSection => 'Hisob';
+
+  @override
+  String get securityEmailLabel => 'Email';
+
+  @override
+  String get securityGoogleLinkedLabel => 'Google hisobi ulangan';
+
+  @override
+  String get securityGoogleNotLinkedLabel => 'Google hisobi ulanmagan';
+
+  @override
+  String get securitySessionsSection => 'Faol seanslar';
+
+  @override
+  String get securitySessionsEmpty => 'Faol seanslar topilmadi';
+
+  @override
+  String get securitySessionCurrentBadge => 'Joriy';
+
+  @override
+  String get securitySessionRevokeButton => 'Chiqish';
+
+  @override
+  String get securityLogoutAllButton => 'Barcha qurilmalardan chiqish';
+
+  @override
+  String get securityLogoutAllConfirmTitle =>
+      'Barcha qurilmalardan chiqasizmi?';
+
+  @override
+  String get securityLogoutAllConfirmMessage =>
+      'Barcha seanslar tugatiladi, qayta kirishingiz kerak bo\'ladi';
+
+  @override
+  String get securityDeleteAccountSection => 'Xavfli hudud';
+
+  @override
+  String get securityDeleteAccountButton => 'Hisobni o\'chirish';
+
+  @override
+  String get securityDeleteAccountConfirmTitle => 'Hisobni o\'chirasizmi?';
+
+  @override
+  String get securityDeleteAccountConfirmMessage =>
+      'Bu amalni bekor qilib bo\'lmaydi. Hisobingiz o\'chiriladi va barcha seanslar tugatiladi.';
+
+  @override
+  String get securityDeleteAccountWalletNotEmptyMessage =>
+      'Hisobni o\'chirishdan oldin hamyon balansini sarflang yoki yordam xizmatiga murojaat qiling — UZDONATE hamyonidan mablag\' yechib olish imkoni yo\'q.';
+
+  @override
+  String get securityDeleteAccountSuccessMessage => 'Hisobingiz o\'chirildi';
+
+  @override
+  String get notificationsTitle => 'Bildirishnomalar';
+
+  @override
+  String get notificationsEmpty => 'Hali bildirishnomalar yo\'q';
+
+  @override
+  String get notificationsMarkAllRead => 'Barchasini o\'qilgan deb belgilash';
 }

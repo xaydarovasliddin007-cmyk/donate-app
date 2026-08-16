@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/widgets/pressable_scale.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 import '../../domain/game.dart';
 
@@ -14,9 +15,8 @@ class GameCard extends StatelessWidget {
     final theme = Theme.of(context);
     final comingSoon = !game.isPurchasable;
 
-    return InkWell(
+    return PressableScale(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(AppRadius.md),
       child: Container(
         decoration: BoxDecoration(
           color: theme.colorScheme.surface,

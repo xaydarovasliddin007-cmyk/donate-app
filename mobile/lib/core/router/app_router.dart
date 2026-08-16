@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/auth/presentation/login_screen.dart';
@@ -6,13 +7,18 @@ import '../../features/games/domain/game.dart';
 import '../../features/games/domain/product.dart';
 import '../../features/games/presentation/game_details_screen.dart';
 import '../../features/home/presentation/home_screen.dart';
+import '../../features/notifications/presentation/notifications_screen.dart';
 import '../../features/onboarding/presentation/onboarding_screen.dart';
 import '../../features/orders/presentation/checkout_screen.dart';
 import '../../features/orders/presentation/order_history_screen.dart';
 import '../../features/orders/presentation/order_status_screen.dart';
 import '../../features/orders/presentation/player_info_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
+import '../../features/profile/presentation/security_center_screen.dart';
 import '../../features/splash/presentation/splash_screen.dart';
+import '../../features/topup/presentation/topup_screen.dart';
+import '../../features/wallet/presentation/wallet_history_screen.dart';
+import '../theme/app_motion.dart';
 import 'app_shell.dart';
 
 abstract final class AppRoutes {
@@ -25,41 +31,93 @@ abstract final class AppRoutes {
   static const profile = '/profile';
 }
 
+/// A subtle fade + upward-slide push transition, used for every route pushed
+/// on top of the bottom-nav shell — the shell's own tab switches stay
+/// instant (no transition), only "going somewhere new" animates.
+CustomTransitionPage<void> _fadeSlidePage(GoRouterState state, Widget child) {
+  return CustomTransitionPage<void>(
+    key: state.pageKey,
+    child: child,
+    transitionDuration: AppMotion.medium,
+    reverseTransitionDuration: AppMotion.medium,
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      final curved = CurvedAnimation(parent: animation, curve: AppMotion.standard);
+      return FadeTransition(
+        opacity: curved,
+        child: SlideTransition(
+          position: Tween<Offset>(begin: const Offset(0, 0.04), end: Offset.zero).animate(curved),
+          child: child,
+        ),
+      );
+    },
+  );
+}
+
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: AppRoutes.splash,
     routes: [
       GoRoute(path: AppRoutes.splash, builder: (context, state) => const SplashScreen()),
       GoRoute(path: AppRoutes.onboarding, builder: (context, state) => const OnboardingScreen()),
-      GoRoute(path: AppRoutes.login, builder: (context, state) => const LoginScreen()),
-      GoRoute(path: AppRoutes.register, builder: (context, state) => const RegisterScreen()),
+      GoRoute(
+        path: AppRoutes.login,
+        pageBuilder: (context, state) => _fadeSlidePage(state, const LoginScreen()),
+      ),
+      GoRoute(
+        path: AppRoutes.register,
+        pageBuilder: (context, state) => _fadeSlidePage(state, const RegisterScreen()),
+      ),
 
       GoRoute(
         path: '/games/:gameId',
-        builder: (context, state) => GameDetailsScreen(gameId: state.pathParameters['gameId']!),
+        pageBuilder: (context, state) =>
+            _fadeSlidePage(state, GameDetailsScreen(gameId: state.pathParameters['gameId']!)),
       ),
       GoRoute(
         path: '/checkout/player-info',
-        builder: (context, state) {
+        pageBuilder: (context, state) {
           final extra = state.extra! as Map<String, Object?>;
-          return PlayerInfoScreen(game: extra['game']! as Game, product: extra['product']! as Product);
+          return _fadeSlidePage(
+            state,
+            PlayerInfoScreen(game: extra['game']! as Game, product: extra['product']! as Product),
+          );
         },
       ),
       GoRoute(
         path: '/checkout/confirm',
-        builder: (context, state) {
+        pageBuilder: (context, state) {
           final extra = state.extra! as Map<String, Object?>;
-          return CheckoutScreen(
-            game: extra['game']! as Game,
-            product: extra['product']! as Product,
-            playerId: extra['playerId']! as String,
-            serverId: extra['serverId']! as String,
+          return _fadeSlidePage(
+            state,
+            CheckoutScreen(
+              game: extra['game']! as Game,
+              product: extra['product']! as Product,
+              playerId: extra['playerId']! as String,
+              serverId: extra['serverId']! as String,
+            ),
           );
         },
       ),
       GoRoute(
         path: '/orders/:orderId',
-        builder: (context, state) => OrderStatusScreen(orderId: state.pathParameters['orderId']!),
+        pageBuilder: (context, state) =>
+            _fadeSlidePage(state, OrderStatusScreen(orderId: state.pathParameters['orderId']!)),
+      ),
+      GoRoute(
+        path: '/wallet/topup',
+        pageBuilder: (context, state) => _fadeSlidePage(state, const TopupScreen()),
+      ),
+      GoRoute(
+        path: '/wallet/history',
+        pageBuilder: (context, state) => _fadeSlidePage(state, const WalletHistoryScreen()),
+      ),
+      GoRoute(
+        path: '/security',
+        pageBuilder: (context, state) => _fadeSlidePage(state, const SecurityCenterScreen()),
+      ),
+      GoRoute(
+        path: '/notifications',
+        pageBuilder: (context, state) => _fadeSlidePage(state, const NotificationsScreen()),
       ),
 
       StatefulShellRoute.indexedStack(

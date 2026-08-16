@@ -5,8 +5,20 @@ import { generateRefreshToken, hashRefreshToken } from './refresh-token.js';
 import { verifyGoogleIdToken } from './google-token.js';
 import { env } from '../../config/env.js';
 import { parseDurationMs } from '../../lib/duration.js';
-import { ConflictError, UnauthorizedError } from '../../lib/errors.js';
+import { AppError, ConflictError, ForbiddenError, NotFoundError, UnauthorizedError } from '../../lib/errors.js';
+import { generateUniquePublicId } from '../../lib/public-id.js';
+import { formatMinorAmount } from '../../lib/money.js';
+import { notifyAdmins } from '../../lib/telegram.js';
+import { getWalletSummary } from '../wallet/wallet.service.js';
 import type { GoogleAuthInput, LoginInput, RegisterInput } from './auth.schemas.js';
+
+/** Distinct code so the client can show "spend down your balance or contact support" instead of a generic error. */
+export class WalletNotEmptyError extends AppError {
+  constructor() {
+    super(409, 'WALLET_NOT_EMPTY', 'Wallet balance must be zero before account deletion');
+    this.name = 'WalletNotEmptyError';
+  }
+}
 
 interface AuthContext {
   prisma: PrismaClient;
@@ -18,23 +30,29 @@ interface TokenPair {
   refreshToken: string;
 }
 
-function toPublicUser(user: {
+export function toPublicUser(user: {
   id: string;
+  publicId: string;
   email: string | null;
   phone: string | null;
   displayName: string | null;
   avatarUrl: string | null;
   locale: string;
   role: string;
+  googleId?: string | null;
 }) {
   return {
     id: user.id,
+    publicId: user.publicId,
     email: user.email,
     phone: user.phone,
     displayName: user.displayName,
     avatarUrl: user.avatarUrl,
     locale: user.locale,
     role: user.role,
+    // Never the raw googleId — just whether an account is linked, for the
+    // security center's "Google account connected" indicator.
+    hasGoogleAccount: Boolean(user.googleId),
   };
 }
 
@@ -80,14 +98,22 @@ export async function register(
     throw new ConflictError('An account with this email or phone already exists');
   }
 
-  const passwordHash = await hashPassword(input.password);
+  const [passwordHash, publicId] = await Promise.all([
+    hashPassword(input.password),
+    generateUniquePublicId(ctx.prisma),
+  ]);
   const user = await ctx.prisma.user.create({
     data: {
+      publicId,
       email: input.email,
       phone: input.phone,
       passwordHash,
       displayName: input.displayName,
       locale: input.locale,
+      // Every account gets exactly one wallet, created atomically with the
+      // account itself — nothing in this codebase should ever need to
+      // handle "a user with no wallet".
+      wallet: { create: {} },
     },
   });
 
@@ -164,13 +190,16 @@ export async function googleAuth(
           },
         });
       } else {
+        const publicId = await generateUniquePublicId(ctx.prisma);
         user = await ctx.prisma.user.create({
           data: {
+            publicId,
             email: identity.email,
             googleId: identity.googleId,
             displayName: identity.name,
             avatarUrl: identity.avatarUrl,
             locale: input.locale,
+            wallet: { create: {} },
           },
         });
       }
@@ -219,6 +248,17 @@ export async function refresh(
     throw new UnauthorizedError('Refresh token is no longer valid');
   }
 
+  if (stored.user.status !== 'ACTIVE') {
+    // A suspended/deleted account must not be able to keep minting fresh
+    // access tokens off an old refresh token — kill the whole session
+    // family, matching what a fresh login attempt would already reject.
+    await ctx.prisma.refreshToken.updateMany({
+      where: { userId: stored.userId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+    throw new UnauthorizedError('This account is not active');
+  }
+
   const tokens = await issueTokenPair(ctx, stored.user, meta);
 
   await ctx.prisma.refreshToken.update({
@@ -235,4 +275,75 @@ export async function logout(ctx: AuthContext, refreshTokenValue: string) {
     where: { tokenHash, revokedAt: null },
     data: { revokedAt: new Date() },
   });
+}
+
+/**
+ * "Active sessions" for the security center — reuses `refresh_tokens`
+ * directly rather than a separate Session model: a live (non-revoked,
+ * non-expired) refresh token IS a logged-in session on some device, and it
+ * already carries the device fingerprint (`userAgent`/`ipAddress`) captured
+ * at login/refresh time. The raw token hash is never returned.
+ */
+export async function listSessions(ctx: AuthContext, userId: string) {
+  const sessions = await ctx.prisma.refreshToken.findMany({
+    where: { userId, revokedAt: null, expiresAt: { gt: new Date() } },
+    orderBy: { createdAt: 'desc' },
+    select: { id: true, userAgent: true, ipAddress: true, createdAt: true, expiresAt: true },
+  });
+  return sessions;
+}
+
+export async function revokeSession(ctx: AuthContext, userId: string, sessionId: string) {
+  const session = await ctx.prisma.refreshToken.findUnique({ where: { id: sessionId } });
+  if (!session) {
+    throw new NotFoundError('Session not found');
+  }
+  if (session.userId !== userId) {
+    throw new ForbiddenError('This session does not belong to you');
+  }
+  await ctx.prisma.refreshToken.update({
+    where: { id: sessionId },
+    data: { revokedAt: new Date() },
+  });
+}
+
+/** Logout everywhere — revokes every active session for this user, including the one making this request. */
+export async function revokeAllSessions(ctx: AuthContext, userId: string) {
+  await ctx.prisma.refreshToken.updateMany({
+    where: { userId, revokedAt: null },
+    data: { revokedAt: new Date() },
+  });
+}
+
+/**
+ * Self-service account deletion. The wallet is closed-loop (no withdrawal —
+ * see wallet.service.ts), so a non-zero balance would otherwise strand the
+ * user's money; deletion is blocked until it's spent down or support settles
+ * it manually. Never a hard delete — orders/payments/ledger history must
+ * survive for financial/audit reasons, so this only soft-deletes the account
+ * (status=DELETED) and kills every session.
+ */
+export async function requestAccountDeletion(ctx: AuthContext, userId: string) {
+  const user = await ctx.prisma.user.findUnique({ where: { id: userId } });
+  if (!user) {
+    throw new NotFoundError('User not found');
+  }
+
+  const wallet = await getWalletSummary(ctx, userId);
+  if (wallet.balanceMinor > 0) {
+    throw new WalletNotEmptyError();
+  }
+
+  await ctx.prisma.$transaction([
+    ctx.prisma.user.update({ where: { id: userId }, data: { status: 'DELETED' } }),
+    ctx.prisma.refreshToken.updateMany({
+      where: { userId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    }),
+  ]);
+
+  notifyAdmins(
+    `🗑️ <b>Account deletion</b> — ${user.publicId} (${user.email ?? user.phone ?? 'no contact'})\n` +
+      `Final wallet balance: ${formatMinorAmount(wallet.balanceMinor, wallet.currency)}`,
+  );
 }

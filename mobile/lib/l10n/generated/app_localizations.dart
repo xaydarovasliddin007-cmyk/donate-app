@@ -302,18 +302,6 @@ abstract class AppLocalizations {
   /// **'Sevimli o\'yiningizni tanlang, bir necha soniyada to\'ldiring'**
   String get onboardingWelcomeSubtitle;
 
-  /// No description provided for @onboardingChooseLanguage.
-  ///
-  /// In uz, this message translates to:
-  /// **'Tilni tanlang'**
-  String get onboardingChooseLanguage;
-
-  /// No description provided for @onboardingChooseTheme.
-  ///
-  /// In uz, this message translates to:
-  /// **'Ko\'rinishni tanlang'**
-  String get onboardingChooseTheme;
-
   /// No description provided for @onboardingGetStarted.
   ///
   /// In uz, this message translates to:
@@ -463,6 +451,24 @@ abstract class AppLocalizations {
   /// In uz, this message translates to:
   /// **'O\'yin qidirish'**
   String get homeSearchHint;
+
+  /// No description provided for @homeHeroTitle.
+  ///
+  /// In uz, this message translates to:
+  /// **'Tezkor donat'**
+  String get homeHeroTitle;
+
+  /// No description provided for @homeHeroSubtitle.
+  ///
+  /// In uz, this message translates to:
+  /// **'Sevimli o\'yiningizni bir necha bosishda to\'ldiring'**
+  String get homeHeroSubtitle;
+
+  /// No description provided for @notificationsComingSoon.
+  ///
+  /// In uz, this message translates to:
+  /// **'Bildirishnomalar tez kunda'**
+  String get notificationsComingSoon;
 
   /// No description provided for @homePopularGames.
   ///
@@ -644,6 +650,30 @@ abstract class AppLocalizations {
   /// **'Buyurtma yaratilmoqda…'**
   String get checkoutCreatingOrder;
 
+  /// No description provided for @checkoutPayWithWalletLabel.
+  ///
+  /// In uz, this message translates to:
+  /// **'UZDONATE hamyoni'**
+  String get checkoutPayWithWalletLabel;
+
+  /// No description provided for @checkoutPayWithWalletBalance.
+  ///
+  /// In uz, this message translates to:
+  /// **'Balans: {amount}'**
+  String checkoutPayWithWalletBalance(String amount);
+
+  /// No description provided for @checkoutInsufficientBalanceMessage.
+  ///
+  /// In uz, this message translates to:
+  /// **'Hamyoningizda mablag\' yetarli emas'**
+  String get checkoutInsufficientBalanceMessage;
+
+  /// No description provided for @checkoutTopUpNowButton.
+  ///
+  /// In uz, this message translates to:
+  /// **'Hamyonni to\'ldirish'**
+  String get checkoutTopUpNowButton;
+
   /// No description provided for @paymentDevSimulateTitle.
   ///
   /// In uz, this message translates to:
@@ -770,6 +800,18 @@ abstract class AppLocalizations {
   /// **'Yangilash'**
   String get orderRefreshButton;
 
+  /// No description provided for @orderContactSupportButton.
+  ///
+  /// In uz, this message translates to:
+  /// **'Yordamga murojaat qilish'**
+  String get orderContactSupportButton;
+
+  /// No description provided for @supportRequestSubject.
+  ///
+  /// In uz, this message translates to:
+  /// **'UZDONATE yordam so\'rovi — buyurtma {orderNumber}'**
+  String supportRequestSubject(String orderNumber);
+
   /// No description provided for @orderHistoryTitle.
   ///
   /// In uz, this message translates to:
@@ -829,6 +871,372 @@ abstract class AppLocalizations {
   /// In uz, this message translates to:
   /// **'Chiqish'**
   String get profileLogoutButton;
+
+  /// No description provided for @walletTitle.
+  ///
+  /// In uz, this message translates to:
+  /// **'Hamyon'**
+  String get walletTitle;
+
+  /// No description provided for @walletBalanceLabel.
+  ///
+  /// In uz, this message translates to:
+  /// **'Balans'**
+  String get walletBalanceLabel;
+
+  /// No description provided for @walletTopUpButton.
+  ///
+  /// In uz, this message translates to:
+  /// **'Hamyonni to\'ldirish'**
+  String get walletTopUpButton;
+
+  /// No description provided for @walletHistoryButton.
+  ///
+  /// In uz, this message translates to:
+  /// **'Tarix'**
+  String get walletHistoryButton;
+
+  /// No description provided for @walletTransactionHistoryTitle.
+  ///
+  /// In uz, this message translates to:
+  /// **'Hamyon tarixi'**
+  String get walletTransactionHistoryTitle;
+
+  /// No description provided for @walletTransactionHistoryEmpty.
+  ///
+  /// In uz, this message translates to:
+  /// **'Hali tranzaksiyalar yo\'q'**
+  String get walletTransactionHistoryEmpty;
+
+  /// No description provided for @walletTypeTopup.
+  ///
+  /// In uz, this message translates to:
+  /// **'To\'ldirish'**
+  String get walletTypeTopup;
+
+  /// No description provided for @walletTypePurchase.
+  ///
+  /// In uz, this message translates to:
+  /// **'Xarid'**
+  String get walletTypePurchase;
+
+  /// No description provided for @walletTypeRefund.
+  ///
+  /// In uz, this message translates to:
+  /// **'Qaytarish'**
+  String get walletTypeRefund;
+
+  /// No description provided for @walletTypeAdjustment.
+  ///
+  /// In uz, this message translates to:
+  /// **'Tuzatish'**
+  String get walletTypeAdjustment;
+
+  /// No description provided for @walletTypeBonus.
+  ///
+  /// In uz, this message translates to:
+  /// **'Bonus'**
+  String get walletTypeBonus;
+
+  /// No description provided for @checkoutPayWithWallet.
+  ///
+  /// In uz, this message translates to:
+  /// **'Hamyondan to\'lash'**
+  String get checkoutPayWithWallet;
+
+  /// No description provided for @checkoutWalletBalance.
+  ///
+  /// In uz, this message translates to:
+  /// **'Balans: {balance}'**
+  String checkoutWalletBalance(Object balance);
+
+  /// No description provided for @checkoutInsufficientBalance.
+  ///
+  /// In uz, this message translates to:
+  /// **'Hamyonda mablag\' yetarli emas'**
+  String get checkoutInsufficientBalance;
+
+  /// No description provided for @checkoutTopUpNow.
+  ///
+  /// In uz, this message translates to:
+  /// **'Hozir to\'ldirish'**
+  String get checkoutTopUpNow;
+
+  /// No description provided for @topupTitle.
+  ///
+  /// In uz, this message translates to:
+  /// **'Hamyonni to\'ldirish'**
+  String get topupTitle;
+
+  /// No description provided for @topupAmountLabel.
+  ///
+  /// In uz, this message translates to:
+  /// **'Summa'**
+  String get topupAmountLabel;
+
+  /// No description provided for @topupAmountHint.
+  ///
+  /// In uz, this message translates to:
+  /// **'Masalan: 50000'**
+  String get topupAmountHint;
+
+  /// No description provided for @topupSelectMethodTitle.
+  ///
+  /// In uz, this message translates to:
+  /// **'To\'ldirish usulini tanlang'**
+  String get topupSelectMethodTitle;
+
+  /// No description provided for @topupBankLabel.
+  ///
+  /// In uz, this message translates to:
+  /// **'Bank'**
+  String get topupBankLabel;
+
+  /// No description provided for @topupSubmitButton.
+  ///
+  /// In uz, this message translates to:
+  /// **'To\'lovni tasdiqlash'**
+  String get topupSubmitButton;
+
+  /// No description provided for @topupInstructionsTitle.
+  ///
+  /// In uz, this message translates to:
+  /// **'Qanday to\'ldirish mumkin?'**
+  String get topupInstructionsTitle;
+
+  /// No description provided for @topupInstructions.
+  ///
+  /// In uz, this message translates to:
+  /// **'1. Ko\'rsatilgan summani quyidagi kartaga o\'tkazing.\n2. \"To\'lovni tasdiqlash\" tugmasini bosing.\n3. Admin tekshiruvidan so\'ng balansingiz to\'ldiriladi.'**
+  String get topupInstructions;
+
+  /// No description provided for @topupUserReferenceLabel.
+  ///
+  /// In uz, this message translates to:
+  /// **'Izoh (ixtiyoriy)'**
+  String get topupUserReferenceLabel;
+
+  /// No description provided for @topupUserReferenceHint.
+  ///
+  /// In uz, this message translates to:
+  /// **'Masalan: kartangizning oxirgi 4 raqami'**
+  String get topupUserReferenceHint;
+
+  /// No description provided for @topupSuccessTitle.
+  ///
+  /// In uz, this message translates to:
+  /// **'So\'rov yuborildi'**
+  String get topupSuccessTitle;
+
+  /// No description provided for @topupSuccessMessage.
+  ///
+  /// In uz, this message translates to:
+  /// **'To\'lovingiz tekshirilmoqda. Tasdiqlangach, balansingiz avtomatik to\'ldiriladi.'**
+  String get topupSuccessMessage;
+
+  /// No description provided for @topupHistoryTitle.
+  ///
+  /// In uz, this message translates to:
+  /// **'To\'ldirishlar tarixi'**
+  String get topupHistoryTitle;
+
+  /// No description provided for @topupStatusPending.
+  ///
+  /// In uz, this message translates to:
+  /// **'Tekshirilmoqda'**
+  String get topupStatusPending;
+
+  /// No description provided for @topupStatusVerified.
+  ///
+  /// In uz, this message translates to:
+  /// **'Tasdiqlandi'**
+  String get topupStatusVerified;
+
+  /// No description provided for @topupStatusRejected.
+  ///
+  /// In uz, this message translates to:
+  /// **'Rad etildi'**
+  String get topupStatusRejected;
+
+  /// No description provided for @topupStatusExpired.
+  ///
+  /// In uz, this message translates to:
+  /// **'Muddati o\'tgan'**
+  String get topupStatusExpired;
+
+  /// No description provided for @topupValidationError.
+  ///
+  /// In uz, this message translates to:
+  /// **'Summani kiriting'**
+  String get topupValidationError;
+
+  /// No description provided for @profileUzdonateIdLabel.
+  ///
+  /// In uz, this message translates to:
+  /// **'UZDONATE ID'**
+  String get profileUzdonateIdLabel;
+
+  /// No description provided for @profileCopyButton.
+  ///
+  /// In uz, this message translates to:
+  /// **'Nusxalash'**
+  String get profileCopyButton;
+
+  /// No description provided for @profileCopiedMessage.
+  ///
+  /// In uz, this message translates to:
+  /// **'Nusxalandi'**
+  String get profileCopiedMessage;
+
+  /// No description provided for @profileSecurityCenter.
+  ///
+  /// In uz, this message translates to:
+  /// **'Xavfsizlik'**
+  String get profileSecurityCenter;
+
+  /// No description provided for @profileWallet.
+  ///
+  /// In uz, this message translates to:
+  /// **'Hamyon'**
+  String get profileWallet;
+
+  /// No description provided for @profileNotifications.
+  ///
+  /// In uz, this message translates to:
+  /// **'Bildirishnomalar'**
+  String get profileNotifications;
+
+  /// No description provided for @profileSupport.
+  ///
+  /// In uz, this message translates to:
+  /// **'Yordam'**
+  String get profileSupport;
+
+  /// No description provided for @securityCenterTitle.
+  ///
+  /// In uz, this message translates to:
+  /// **'Xavfsizlik markazi'**
+  String get securityCenterTitle;
+
+  /// No description provided for @securityAccountSection.
+  ///
+  /// In uz, this message translates to:
+  /// **'Hisob'**
+  String get securityAccountSection;
+
+  /// No description provided for @securityEmailLabel.
+  ///
+  /// In uz, this message translates to:
+  /// **'Email'**
+  String get securityEmailLabel;
+
+  /// No description provided for @securityGoogleLinkedLabel.
+  ///
+  /// In uz, this message translates to:
+  /// **'Google hisobi ulangan'**
+  String get securityGoogleLinkedLabel;
+
+  /// No description provided for @securityGoogleNotLinkedLabel.
+  ///
+  /// In uz, this message translates to:
+  /// **'Google hisobi ulanmagan'**
+  String get securityGoogleNotLinkedLabel;
+
+  /// No description provided for @securitySessionsSection.
+  ///
+  /// In uz, this message translates to:
+  /// **'Faol seanslar'**
+  String get securitySessionsSection;
+
+  /// No description provided for @securitySessionsEmpty.
+  ///
+  /// In uz, this message translates to:
+  /// **'Faol seanslar topilmadi'**
+  String get securitySessionsEmpty;
+
+  /// No description provided for @securitySessionCurrentBadge.
+  ///
+  /// In uz, this message translates to:
+  /// **'Joriy'**
+  String get securitySessionCurrentBadge;
+
+  /// No description provided for @securitySessionRevokeButton.
+  ///
+  /// In uz, this message translates to:
+  /// **'Chiqish'**
+  String get securitySessionRevokeButton;
+
+  /// No description provided for @securityLogoutAllButton.
+  ///
+  /// In uz, this message translates to:
+  /// **'Barcha qurilmalardan chiqish'**
+  String get securityLogoutAllButton;
+
+  /// No description provided for @securityLogoutAllConfirmTitle.
+  ///
+  /// In uz, this message translates to:
+  /// **'Barcha qurilmalardan chiqasizmi?'**
+  String get securityLogoutAllConfirmTitle;
+
+  /// No description provided for @securityLogoutAllConfirmMessage.
+  ///
+  /// In uz, this message translates to:
+  /// **'Barcha seanslar tugatiladi, qayta kirishingiz kerak bo\'ladi'**
+  String get securityLogoutAllConfirmMessage;
+
+  /// No description provided for @securityDeleteAccountSection.
+  ///
+  /// In uz, this message translates to:
+  /// **'Xavfli hudud'**
+  String get securityDeleteAccountSection;
+
+  /// No description provided for @securityDeleteAccountButton.
+  ///
+  /// In uz, this message translates to:
+  /// **'Hisobni o\'chirish'**
+  String get securityDeleteAccountButton;
+
+  /// No description provided for @securityDeleteAccountConfirmTitle.
+  ///
+  /// In uz, this message translates to:
+  /// **'Hisobni o\'chirasizmi?'**
+  String get securityDeleteAccountConfirmTitle;
+
+  /// No description provided for @securityDeleteAccountConfirmMessage.
+  ///
+  /// In uz, this message translates to:
+  /// **'Bu amalni bekor qilib bo\'lmaydi. Hisobingiz o\'chiriladi va barcha seanslar tugatiladi.'**
+  String get securityDeleteAccountConfirmMessage;
+
+  /// No description provided for @securityDeleteAccountWalletNotEmptyMessage.
+  ///
+  /// In uz, this message translates to:
+  /// **'Hisobni o\'chirishdan oldin hamyon balansini sarflang yoki yordam xizmatiga murojaat qiling — UZDONATE hamyonidan mablag\' yechib olish imkoni yo\'q.'**
+  String get securityDeleteAccountWalletNotEmptyMessage;
+
+  /// No description provided for @securityDeleteAccountSuccessMessage.
+  ///
+  /// In uz, this message translates to:
+  /// **'Hisobingiz o\'chirildi'**
+  String get securityDeleteAccountSuccessMessage;
+
+  /// No description provided for @notificationsTitle.
+  ///
+  /// In uz, this message translates to:
+  /// **'Bildirishnomalar'**
+  String get notificationsTitle;
+
+  /// No description provided for @notificationsEmpty.
+  ///
+  /// In uz, this message translates to:
+  /// **'Hali bildirishnomalar yo\'q'**
+  String get notificationsEmpty;
+
+  /// No description provided for @notificationsMarkAllRead.
+  ///
+  /// In uz, this message translates to:
+  /// **'Barchasini o\'qilgan deb belgilash'**
+  String get notificationsMarkAllRead;
 }
 
 class _AppLocalizationsDelegate

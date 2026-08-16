@@ -6,6 +6,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/theme_controller.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../auth/application/auth_controller.dart';
+import 'widgets/public_id_row.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -57,11 +58,37 @@ class ProfileScreen extends ConsumerWidget {
             ),
             const SizedBox(height: AppSpacing.md),
             Card(
-              child: ListTile(
-                leading: const Icon(Icons.receipt_long_outlined),
-                title: Text(l10n.profileOrderHistory),
-                trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () => context.go('/orders'),
+              clipBehavior: Clip.antiAlias,
+              child: Column(
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.account_balance_wallet_outlined),
+                    title: Text(l10n.profileWallet),
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () => context.push('/wallet/history'),
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
+                    leading: const Icon(Icons.receipt_long_outlined),
+                    title: Text(l10n.profileOrderHistory),
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () => context.go('/orders'),
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
+                    leading: const Icon(Icons.notifications_outlined),
+                    title: Text(l10n.profileNotifications),
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () => context.push('/notifications'),
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
+                    leading: const Icon(Icons.shield_outlined),
+                    title: Text(l10n.profileSecurityCenter),
+                    trailing: const Icon(Icons.chevron_right_rounded),
+                    onTap: () => context.push('/security'),
+                  ),
+                ],
               ),
             ),
           ] else ...[
@@ -99,6 +126,11 @@ class ProfileScreen extends ConsumerWidget {
                 ),
               ),
             ),
+          ],
+
+          if (isAuthenticated) ...[
+            const SizedBox(height: AppSpacing.xl),
+            PublicIdRow(publicId: authState!.user!.publicId),
           ],
 
           const SizedBox(height: AppSpacing.xl),

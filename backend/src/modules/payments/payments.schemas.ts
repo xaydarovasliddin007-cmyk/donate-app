@@ -10,5 +10,11 @@ export const simulateWebhookSchema = z.object({
   outcome: z.enum(['SUCCEEDED', 'FAILED']),
 });
 
+export const payWithWalletSchema = z.object({
+  orderId: z.string().uuid(),
+  idempotencyKey: z.string().trim().min(8).max(128),
+});
+
 export type CreatePaymentInput = z.infer<typeof createPaymentSchema>;
 export type SimulateWebhookInput = z.infer<typeof simulateWebhookSchema>;
+export type PayWithWalletInput = z.infer<typeof payWithWalletSchema>;
