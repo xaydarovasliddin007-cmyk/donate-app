@@ -9,6 +9,7 @@ import {
   CardIcon,
   CloseIcon,
   DashboardIcon,
+  GamepadIcon,
   LogoutIcon,
   MenuIcon,
   OrdersIcon,
@@ -28,6 +29,7 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { to: '/', labelKey: 'nav.dashboard', icon: <DashboardIcon />, end: true },
+  { to: '/games', labelKey: 'nav.games', icon: <GamepadIcon /> },
   { to: '/users', labelKey: 'nav.users', icon: <UsersIcon /> },
   { to: '/orders', labelKey: 'nav.orders', icon: <OrdersIcon /> },
   { to: '/topups', labelKey: 'nav.topups', icon: <TopUpIcon /> },

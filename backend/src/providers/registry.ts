@@ -1,5 +1,8 @@
+import { env } from '../config/env.js';
+import { ClickProvider } from './click/click-provider.js';
 import { MockPaymentProvider } from './mock/mock-payment-provider.js';
 import { MockTopupProvider } from './mock/mock-topup-provider.js';
+import { PaymeProvider } from './payme/payme-provider.js';
 import type { PaymentProviderAdapter } from './payment-provider.js';
 import type { TopupProviderAdapter } from './topup-provider.js';
 
@@ -15,6 +18,16 @@ const topupAdapters: Record<string, TopupProviderAdapter> = {
 const paymentAdapters: Record<string, PaymentProviderAdapter> = {
   DEV_MOCK_PAYMENT: new MockPaymentProvider(),
 };
+
+// Payme/Click only register themselves once their credentials are present —
+// same "wired but inert without config" pattern as Google Sign-In
+// (AppConfig.isGoogleSignInConfigured on the mobile side).
+if (env.PAYME_MERCHANT_ID && env.PAYME_SECRET_KEY) {
+  paymentAdapters.PAYME = new PaymeProvider(env.PAYME_MERCHANT_ID, env.PAYME_TEST_MODE);
+}
+if (env.CLICK_MERCHANT_ID && env.CLICK_SERVICE_ID && env.CLICK_SECRET_KEY) {
+  paymentAdapters.CLICK = new ClickProvider(env.CLICK_MERCHANT_ID, env.CLICK_SERVICE_ID);
+}
 
 export function getTopupProvider(code: string): TopupProviderAdapter {
   const adapter = topupAdapters[code];

@@ -23,13 +23,13 @@ abstract final class AppConfig {
 
   static bool get isGoogleSignInConfigured => googleServerClientId.isNotEmpty;
 
-  /// Telegram support username (without the leading @), e.g. "uzdonate_support".
-  /// Empty by default — a real support channel can't be invented; see
-  /// mobile/README.md. When empty, support entry points fall back to
-  /// [supportEmail] instead.
+  /// Telegram support username (without the leading @).
   ///
   /// Example: flutter run --dart-define=SUPPORT_TELEGRAM_USERNAME=uzdonate_support
-  static const String supportTelegramUsername = String.fromEnvironment('SUPPORT_TELEGRAM_USERNAME');
+  static const String supportTelegramUsername = String.fromEnvironment(
+    'SUPPORT_TELEGRAM_USERNAME',
+    defaultValue: 'The_Anonimous_uzb',
+  );
 
   /// Fallback support contact when Telegram isn't configured.
   static const String supportEmail = String.fromEnvironment(

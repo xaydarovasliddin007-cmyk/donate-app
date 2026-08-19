@@ -1,18 +1,34 @@
-import { api } from '../api/client';
+import { useState } from 'react';
+import { api, ApiError } from '../api/client';
 import type { Provider } from '../api/types';
 import { useAsync } from '../lib/useAsync';
 import { formatDate } from '../lib/money';
 import { StatusBadge } from '../components/StatusBadge';
 import { SkeletonRows } from '../components/SkeletonRows';
+import { useToast } from '../components/Toast';
 import { useLocale } from '../i18n/LocaleContext';
 
 export function ProvidersPage() {
   const { t } = useLocale();
-  const { data, loading, error } = useAsync(() => api.get<{ providers: Provider[] }>('/admin/providers'), []);
+  const { showError } = useToast();
+  const { data, loading, error, reload } = useAsync(() => api.get<{ providers: Provider[] }>('/admin/providers'), []);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   function successRateLabel(rate: number | null): string {
     if (rate === null) return t('providers.noAttempts');
     return `${(rate * 100).toFixed(1)}%`;
+  }
+
+  async function toggleActive(provider: Provider) {
+    setTogglingId(provider.id);
+    try {
+      await api.patch(`/admin/providers/${provider.id}`, { isActive: !provider.isActive });
+      reload();
+    } catch (err) {
+      showError(err instanceof ApiError ? err.message : t('providers.statusFailed'));
+    } finally {
+      setTogglingId(null);
+    }
   }
 
   return (
@@ -31,10 +47,11 @@ export function ProvidersPage() {
               <th>{t('providers.colSuccessRate')}</th>
               <th>{t('providers.colAttempts')}</th>
               <th>{t('providers.colLastChecked')}</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
-            <SkeletonRows columns={8} />
+            <SkeletonRows columns={9} />
           </tbody>
         </table>
       )}
@@ -51,6 +68,7 @@ export function ProvidersPage() {
               <th>{t('providers.colSuccessRate')}</th>
               <th>{t('providers.colAttempts')}</th>
               <th>{t('providers.colLastChecked')}</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
@@ -72,11 +90,20 @@ export function ProvidersPage() {
                   })}
                 </td>
                 <td>{provider.lastCheckedAt ? formatDate(provider.lastCheckedAt) : '—'}</td>
+                <td>
+                  <button
+                    className="btn btn-secondary"
+                    disabled={togglingId === provider.id}
+                    onClick={() => toggleActive(provider)}
+                  >
+                    {provider.isActive ? t('common.deactivate') : t('common.activate')}
+                  </button>
+                </td>
               </tr>
             ))}
             {data.providers.length === 0 && (
               <tr>
-                <td colSpan={8} className="muted">
+                <td colSpan={9} className="muted">
                   {t('providers.empty')}
                 </td>
               </tr>

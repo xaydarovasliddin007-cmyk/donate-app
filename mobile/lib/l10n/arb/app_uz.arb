@@ -36,6 +36,9 @@
   "settingsThemeSystem": "Tizim sozlamasi",
 
   "settingsLanguage": "Til",
+  "settingsReduceMotion": "Animatsiyalarni kamaytirish",
+  "settingsReduceMotionDescription": "Ba'zi effektlarni o'chirib, ilovani yengilroq qiling",
+  "profileStatOrders": "Buyurtmalar",
   "languageUzbek": "O'zbekcha",
   "languageRussian": "Русский",
 
@@ -72,8 +75,6 @@
   "authGoogleSignInFailed": "Google orqali kirib bo'lmadi. Qayta urinib ko'ring.",
 
   "homeSearchHint": "O'yin qidirish",
-  "homeHeroTitle": "Tezkor donat",
-  "homeHeroSubtitle": "Sevimli o'yiningizni bir necha bosishda to'ldiring",
   "notificationsComingSoon": "Bildirishnomalar tez kunda",
   "homePopularGames": "Mashhur o'yinlar",
   "homeCategories": "Kategoriyalar",
@@ -87,6 +88,7 @@
   "gameDetailsTopupTitle": "To'ldirish",
   "gameProductsEmptyTitle": "Hozircha mahsulotlar mavjud emas",
   "gameNotAvailableMessage": "Bu o'yin hali ulanmagan. Tez orada qo'shamiz!",
+  "gameServerPickerLabel": "Serverni tanlang",
 
   "playerInfoTitle": "O'yinchi ma'lumotlari",
   "playerInfoPlayerIdLabel": "Player ID",
@@ -143,6 +145,8 @@
   "@supportRequestSubject": {
     "placeholders": { "orderNumber": { "type": "String" } }
   },
+  "supportGeneralSubject": "UZDONATE yordam so'rovi",
+  "supportGeneralBody": "Salom! Yordam kerak edi.",
 
   "orderHistoryTitle": "Buyurtmalar tarixi",
   "orderHistoryEmptyTitle": "Hali buyurtmalar yo'q",
@@ -159,6 +163,8 @@
   "walletTitle": "Hamyon",
   "walletBalanceLabel": "Balans",
   "walletTopUpButton": "Hamyonni to'ldirish",
+  "walletTopUpShortButton": "To'ldirish",
+  "walletSupportButton": "Yordam",
   "walletHistoryButton": "Tarix",
   "walletTransactionHistoryTitle": "Hamyon tarixi",
   "walletTransactionHistoryEmpty": "Hali tranzaksiyalar yo'q",

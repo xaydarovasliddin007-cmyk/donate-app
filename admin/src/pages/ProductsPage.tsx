@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { api, ApiError } from '../api/client';
-import type { Product } from '../api/types';
+import type { Game, GameServer, Product } from '../api/types';
 import { useAsync } from '../lib/useAsync';
 import { formatMinor } from '../lib/money';
 import { useToast } from '../components/Toast';
@@ -43,6 +43,7 @@ function ProductRow({ product, onChanged }: { product: Product; onChanged: () =>
   return (
     <tr>
       <td>{product.game.name}</td>
+      <td className="muted">{product.server?.name ?? '—'}</td>
       <td>
         {product.name}
         {product.isTest && <span className="badge badge-warning">{t('products.testBadge')}</span>}
@@ -74,18 +75,133 @@ function ProductRow({ product, onChanged }: { product: Product; onChanged: () =>
   );
 }
 
+function CreateProductForm({ games, onCreated }: { games: Game[]; onCreated: () => void }) {
+  const { t } = useLocale();
+  const [gameId, setGameId] = useState('');
+  const [serverId, setServerId] = useState('');
+  const [servers, setServers] = useState<GameServer[]>([]);
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [amount, setAmount] = useState('');
+  const [currency, setCurrency] = useState('UZS');
+  const [formError, setFormError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    setServerId('');
+    if (!gameId) {
+      setServers([]);
+      return;
+    }
+    api.get<{ servers: GameServer[] }>(`/admin/games/${gameId}/servers`).then((res) => setServers(res.servers));
+  }, [gameId]);
+
+  async function createProduct(event: FormEvent) {
+    event.preventDefault();
+    const amountMajor = Number(amount);
+    if (!gameId || !name.trim() || !Number.isFinite(amountMajor) || amountMajor <= 0) {
+      setFormError(t('products.fieldsRequired'));
+      return;
+    }
+    setSubmitting(true);
+    setFormError(null);
+    try {
+      await api.post('/admin/products', {
+        gameId,
+        serverId: serverId || undefined,
+        name: name.trim(),
+        description: description.trim() || undefined,
+        amountMinor: Math.round(amountMajor * 100),
+        currency,
+      });
+      setName('');
+      setDescription('');
+      setAmount('');
+      onCreated();
+    } catch (err) {
+      setFormError(err instanceof ApiError ? err.message : t('products.createFailed'));
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="panel">
+      <h3>{t('products.addProduct')}</h3>
+      <form className="stack-form" onSubmit={createProduct}>
+        <div className="toolbar">
+          <select value={gameId} onChange={(e) => setGameId(e.target.value)}>
+            <option value="">{t('products.selectGame')}</option>
+            {games.map((g) => (
+              <option key={g.id} value={g.id}>
+                {g.name}
+              </option>
+            ))}
+          </select>
+          {servers.length > 0 && (
+            <select value={serverId} onChange={(e) => setServerId(e.target.value)}>
+              <option value="">{t('products.selectServer')}</option>
+              {servers.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+        <div className="toolbar">
+          <input placeholder={t('products.namePlaceholder')} value={name} onChange={(e) => setName(e.target.value)} />
+          <input
+            placeholder={t('products.descriptionPlaceholder')}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            style={{ flex: 1, minWidth: 200 }}
+          />
+        </div>
+        <div className="toolbar">
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            placeholder={t('products.amountPlaceholder')}
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            style={{ width: 120 }}
+          />
+          <input
+            placeholder={t('products.currencyPlaceholder')}
+            value={currency}
+            onChange={(e) => setCurrency(e.target.value.toUpperCase())}
+            style={{ width: 80 }}
+            maxLength={3}
+          />
+        </div>
+        {formError && <div className="form-error">{formError}</div>}
+        <button className="btn btn-primary" type="submit" disabled={submitting}>
+          {submitting ? t('products.adding') : t('products.addButton')}
+        </button>
+      </form>
+    </div>
+  );
+}
+
 export function ProductsPage() {
   const { t } = useLocale();
   const { data, loading, error, reload } = useAsync(() => api.get<{ products: Product[] }>('/admin/products'), []);
+  const { data: gamesData } = useAsync(() => api.get<{ games: Game[] }>('/admin/games'), []);
 
   return (
     <div>
       <h1>{t('products.title')}</h1>
+
+      {gamesData && <CreateProductForm games={gamesData.games} onCreated={reload} />}
+
       {loading && !data && (
         <table className="data-table">
           <thead>
             <tr>
               <th>{t('products.colGame')}</th>
+              <th>{t('products.colServer')}</th>
               <th>{t('products.colProduct')}</th>
               <th>{t('products.colSetPrice')}</th>
               <th>{t('products.colCurrentPrice')}</th>
@@ -94,7 +210,7 @@ export function ProductsPage() {
             </tr>
           </thead>
           <tbody>
-            <SkeletonRows columns={6} />
+            <SkeletonRows columns={7} />
           </tbody>
         </table>
       )}
@@ -104,6 +220,7 @@ export function ProductsPage() {
           <thead>
             <tr>
               <th>{t('products.colGame')}</th>
+              <th>{t('products.colServer')}</th>
               <th>{t('products.colProduct')}</th>
               <th>{t('products.colSetPrice')}</th>
               <th>{t('products.colCurrentPrice')}</th>
@@ -117,7 +234,7 @@ export function ProductsPage() {
             ))}
             {data.products.length === 0 && (
               <tr>
-                <td colSpan={6} className="muted">
+                <td colSpan={7} className="muted">
                   {t('products.empty')}
                 </td>
               </tr>

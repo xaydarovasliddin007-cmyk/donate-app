@@ -79,7 +79,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           final extra = state.extra! as Map<String, Object?>;
           return _fadeSlidePage(
             state,
-            PlayerInfoScreen(game: extra['game']! as Game, product: extra['product']! as Product),
+            PlayerInfoScreen(
+              game: extra['game']! as Game,
+              product: extra['product']! as Product,
+              serverCode: extra['serverCode'] as String?,
+              serverName: extra['serverName'] as String?,
+            ),
           );
         },
       ),

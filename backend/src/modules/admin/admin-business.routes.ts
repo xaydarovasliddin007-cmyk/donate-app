@@ -3,8 +3,12 @@ import { validateBody, validateQuery } from '../../lib/validate.js';
 import { requireAdminRole } from './admin.middleware.js';
 import {
   adminCreateAdminSchema,
+  adminCreateGameSchema,
+  adminCreateGameServerSchema,
+  adminCreateProductSchema,
   adminCreateReceivingMethodSchema,
   adminListAuditLogsQuerySchema,
+  adminListGamesQuerySchema,
   adminListOrdersQuerySchema,
   adminListProductsQuerySchema,
   adminListQuerySchema,
@@ -14,15 +18,22 @@ import {
   adminSearchUsersQuerySchema,
   adminStatsQuerySchema,
   adminUpdateAdminSchema,
+  adminUpdateGameSchema,
+  adminUpdateGameServerSchema,
   adminUpdateProductSchema,
+  adminUpdateProviderSchema,
   adminUpdateReceivingMethodSchema,
   adminWalletAdjustSchema,
 } from './admin.schemas.js';
 import * as adminService from './admin.service.js';
 import type {
   AdminCreateAdminInput,
+  AdminCreateGameInput,
+  AdminCreateGameServerInput,
+  AdminCreateProductInput,
   AdminCreateReceivingMethodInput,
   AdminListAuditLogsQuery,
+  AdminListGamesQuery,
   AdminListOrdersQuery,
   AdminListProductsQuery,
   AdminListQuery,
@@ -32,7 +43,10 @@ import type {
   AdminSearchUsersQuery,
   AdminStatsQuery,
   AdminUpdateAdminInput,
+  AdminUpdateGameInput,
+  AdminUpdateGameServerInput,
   AdminUpdateProductInput,
+  AdminUpdateProviderInput,
   AdminUpdateReceivingMethodInput,
   AdminWalletAdjustInput,
 } from './admin.schemas.js';
@@ -41,6 +55,7 @@ const FINANCE_ROLES = ['SUPER_ADMIN', 'ADMIN', 'FINANCE'];
 const OPS_ROLES = ['SUPER_ADMIN', 'ADMIN', 'OPERATIONS'];
 const TOPUP_REVIEW_ROLES = ['SUPER_ADMIN', 'ADMIN', 'FINANCE', 'SUPPORT'];
 const AUDIT_READ_ROLES = ['SUPER_ADMIN', 'ADMIN'];
+const CATALOG_ROLES = ['SUPER_ADMIN', 'ADMIN', 'OPERATIONS', 'CONTENT_MANAGER'];
 
 /** Everything here requires an authenticated admin session — see admin.routes.ts for the auth hook. */
 export async function adminBusinessRoutes(app: FastifyInstance) {
@@ -166,6 +181,57 @@ export async function adminBusinessRoutes(app: FastifyInstance) {
     },
   );
 
+  // --- Games & servers --------------------------------------------------------
+
+  app.get('/games', { preHandler: validateQuery(adminListGamesQuerySchema) }, async (request) => {
+    const query = request.query as AdminListGamesQuery;
+    const games = await adminService.listGamesAdmin(ctx, query);
+    return { games };
+  });
+
+  app.post(
+    '/games',
+    { preHandler: [requireAdminRole(...CATALOG_ROLES), validateBody(adminCreateGameSchema)] },
+    async (request, reply) => {
+      const body = request.body as AdminCreateGameInput;
+      const created = await adminService.createGameAdmin(ctx, request.currentAdmin!.id, body);
+      return reply.status(201).send(created);
+    },
+  );
+
+  app.patch<{ Params: { id: string } }>(
+    '/games/:id',
+    { preHandler: [requireAdminRole(...CATALOG_ROLES), validateBody(adminUpdateGameSchema)] },
+    async (request) => {
+      const body = request.body as AdminUpdateGameInput;
+      return adminService.updateGameAdmin(ctx, request.currentAdmin!.id, request.params.id, body);
+    },
+  );
+
+  app.get<{ Params: { id: string } }>('/games/:id/servers', async (request) => {
+    const servers = await adminService.listGameServersAdmin(ctx, request.params.id);
+    return { servers };
+  });
+
+  app.post<{ Params: { id: string } }>(
+    '/games/:id/servers',
+    { preHandler: [requireAdminRole(...CATALOG_ROLES), validateBody(adminCreateGameServerSchema)] },
+    async (request, reply) => {
+      const body = request.body as AdminCreateGameServerInput;
+      const created = await adminService.createGameServerAdmin(ctx, request.currentAdmin!.id, request.params.id, body);
+      return reply.status(201).send(created);
+    },
+  );
+
+  app.patch<{ Params: { id: string } }>(
+    '/game-servers/:id',
+    { preHandler: [requireAdminRole(...CATALOG_ROLES), validateBody(adminUpdateGameServerSchema)] },
+    async (request) => {
+      const body = request.body as AdminUpdateGameServerInput;
+      return adminService.updateGameServerAdmin(ctx, request.currentAdmin!.id, request.params.id, body);
+    },
+  );
+
   // --- Products -------------------------------------------------------------
 
   app.get('/products', { preHandler: validateQuery(adminListProductsQuerySchema) }, async (request) => {
@@ -174,14 +240,19 @@ export async function adminBusinessRoutes(app: FastifyInstance) {
     return { products };
   });
 
+  app.post(
+    '/products',
+    { preHandler: [requireAdminRole(...CATALOG_ROLES), validateBody(adminCreateProductSchema)] },
+    async (request, reply) => {
+      const body = request.body as AdminCreateProductInput;
+      const created = await adminService.createProductAdmin(ctx, request.currentAdmin!.id, body);
+      return reply.status(201).send(created);
+    },
+  );
+
   app.patch<{ Params: { id: string } }>(
     '/products/:id',
-    {
-      preHandler: [
-        requireAdminRole('SUPER_ADMIN', 'ADMIN', 'OPERATIONS', 'CONTENT_MANAGER'),
-        validateBody(adminUpdateProductSchema),
-      ],
-    },
+    { preHandler: [requireAdminRole(...CATALOG_ROLES), validateBody(adminUpdateProductSchema)] },
     async (request) => {
       const body = request.body as AdminUpdateProductInput;
       return adminService.updateProductAdmin(ctx, request.currentAdmin!.id, request.params.id, body);
@@ -192,6 +263,15 @@ export async function adminBusinessRoutes(app: FastifyInstance) {
     const providers = await adminService.getProviderStatsAdmin(ctx);
     return { providers };
   });
+
+  app.patch<{ Params: { id: string } }>(
+    '/providers/:id',
+    { preHandler: [requireAdminRole('SUPER_ADMIN', 'ADMIN'), validateBody(adminUpdateProviderSchema)] },
+    async (request) => {
+      const body = request.body as AdminUpdateProviderInput;
+      return adminService.updateProviderAdmin(ctx, request.currentAdmin!.id, request.params.id, body);
+    },
+  );
 
   app.get<{ Params: { id: string } }>('/payments/:id', async (request) => {
     return adminService.getPaymentAdmin(ctx, request.params.id);

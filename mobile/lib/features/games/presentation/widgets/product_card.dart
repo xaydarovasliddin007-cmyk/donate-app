@@ -4,6 +4,10 @@ import '../../../../core/utils/money_formatter.dart';
 import '../../../../core/widgets/pressable_scale.dart';
 import '../../domain/product.dart';
 
+/// A denomination tile — deliberately usable both in a 2-column grid (the
+/// game details screen) and stacked in a plain vertical list (home
+/// screen's "popular top-ups" strip), so it never relies on Expanded/Spacer
+/// and just sizes to its content in either context.
 class ProductCard extends StatelessWidget {
   const ProductCard({super.key, required this.product, required this.onTap});
 
@@ -24,23 +28,55 @@ class ProductCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(AppRadius.md),
           border: Border.all(color: theme.colorScheme.outlineVariant),
         ),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(product.name, style: theme.textTheme.titleSmall),
-                  const SizedBox(height: 2),
-                  Text(
-                    formatMoney(product.amountMinor, product.currency, localeName),
-                    style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.primary),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
                   ),
-                ],
-              ),
+                  child: Icon(Icons.diamond_rounded, size: 16, color: theme.colorScheme.onPrimaryContainer),
+                ),
+                if (product.isTest)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.tertiaryContainer,
+                      borderRadius: BorderRadius.circular(AppRadius.pill),
+                    ),
+                    child: Text(
+                      'TEST',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.onTertiaryContainer,
+                        fontSize: 9,
+                      ),
+                    ),
+                  ),
+              ],
             ),
-            Icon(Icons.chevron_right_rounded, color: theme.colorScheme.onSurfaceVariant),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              product.name,
+              style: theme.textTheme.titleSmall,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              formatMoney(product.amountMinor, product.currency, localeName),
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.primary,
+                fontWeight: FontWeight.w700,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
           ],
         ),
       ),

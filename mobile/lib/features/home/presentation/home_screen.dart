@@ -7,6 +7,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/empty_view.dart';
 import '../../../core/widgets/error_view.dart';
 import '../../../core/widgets/skeletons.dart';
+import '../../../core/widgets/staggered_entrance.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../games/application/games_providers.dart';
@@ -20,7 +21,6 @@ import '../../saved_games/application/saved_games_providers.dart';
 import '../../saved_games/presentation/widgets/saved_game_card.dart';
 import '../../wallet/presentation/widgets/wallet_balance_card.dart';
 import '../application/promotions_provider.dart';
-import 'widgets/hero_banner.dart';
 import 'widgets/promotion_banner.dart';
 import 'widgets/section_header.dart';
 
@@ -91,10 +91,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         child: ListView(
           padding: const EdgeInsets.only(bottom: AppSpacing.xl),
           children: [
+            if (isAuthenticated) ...[
+              const SizedBox(height: AppSpacing.md),
+              const WalletBalanceCard(),
+              const SizedBox(height: AppSpacing.lg),
+            ],
+
             Padding(
-              padding: const EdgeInsets.fromLTRB(
+              padding: EdgeInsets.fromLTRB(
                 AppSpacing.lg,
-                AppSpacing.md,
+                isAuthenticated ? 0 : AppSpacing.md,
                 AppSpacing.lg,
                 AppSpacing.sm,
               ),
@@ -108,19 +114,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
             ),
 
-            if (isAuthenticated) ...[
-              const WalletBalanceCard(),
-              const SizedBox(height: AppSpacing.lg),
-            ],
-
-            const HeroBanner(),
-            const SizedBox(height: AppSpacing.lg),
-
             promotionsAsync.when(
               data: (promotions) => promotions.isEmpty
                   ? const SizedBox.shrink()
                   : SizedBox(
-                      height: 96,
+                      height: 116,
                       child: ListView.separated(
                         scrollDirection: Axis.horizontal,
                         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
@@ -208,53 +206,76 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           crossAxisCount: 2,
                           mainAxisSpacing: AppSpacing.sm,
                           crossAxisSpacing: AppSpacing.sm,
-                          childAspectRatio: 1.3,
+                          childAspectRatio: 0.78,
                         ),
                         itemCount: filtered.length,
                         itemBuilder: (context, index) {
                           final game = filtered[index];
-                          return GameCard(game: game, onTap: () => context.push('/games/${game.id}'));
-                        },
-                      ),
-
-                    if (mlbb != null) ...[
-                      SectionHeader(title: l10n.homePopularTopups),
-                      Consumer(
-                        builder: (context, ref, _) {
-                          final productsAsync = ref.watch(gameProductsProvider(mlbb.id));
-                          return productsAsync.when(
-                            loading: () => const Padding(
-                              padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-                              child: Column(
-                                children: [
-                                  Padding(
-                                    padding: EdgeInsets.only(bottom: AppSpacing.sm),
-                                    child: ListRowSkeleton(),
-                                  ),
-                                  ListRowSkeleton(),
-                                ],
-                              ),
-                            ),
-                            error: (_, _) => const SizedBox.shrink(),
-                            data: (products) => Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-                              child: Column(
-                                children: [
-                                  for (final product in products.take(3))
-                                    Padding(
-                                      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                                      child: ProductCard(
-                                        product: product,
-                                        onTap: () => context.push('/games/${mlbb.id}'),
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ),
+                          return StaggeredEntrance(
+                            index: index,
+                            child: GameCard(game: game, onTap: () => context.push('/games/${game.id}')),
                           );
                         },
                       ),
-                    ],
+
+                    if (mlbb != null)
+                      Consumer(
+                        builder: (context, ref, _) {
+                          // No server context here — for games with a server
+                          // catalog (like MLBB) this deliberately comes back
+                          // empty, and the whole section just hides itself
+                          // rather than showing prices for the wrong server;
+                          // picking a server happens on the game's own page.
+                          final productsAsync = ref.watch(
+                            gameProductsProvider((gameId: mlbb.id, serverCode: null)),
+                          );
+                          return productsAsync.when(
+                            loading: () => Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                SectionHeader(title: l10n.homePopularTopups),
+                                const Padding(
+                                  padding: EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                                  child: Column(
+                                    children: [
+                                      Padding(
+                                        padding: EdgeInsets.only(bottom: AppSpacing.sm),
+                                        child: ListRowSkeleton(),
+                                      ),
+                                      ListRowSkeleton(),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            error: (_, _) => const SizedBox.shrink(),
+                            data: (products) {
+                              if (products.isEmpty) return const SizedBox.shrink();
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  SectionHeader(title: l10n.homePopularTopups),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                                    child: Column(
+                                      children: [
+                                        for (final product in products.take(3))
+                                          Padding(
+                                            padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                                            child: ProductCard(
+                                              product: product,
+                                              onTap: () => context.push('/games/${mlbb.id}'),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              );
+                            },
+                          );
+                        },
+                      ),
                   ],
                 );
               },

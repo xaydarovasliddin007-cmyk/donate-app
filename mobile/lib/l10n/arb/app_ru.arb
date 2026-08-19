@@ -35,6 +35,9 @@
   "settingsThemeSystem": "Как в системе",
 
   "settingsLanguage": "Язык",
+  "settingsReduceMotion": "Меньше анимаций",
+  "settingsReduceMotionDescription": "Отключите часть эффектов, чтобы приложение работало легче",
+  "profileStatOrders": "Заказы",
   "languageUzbek": "O'zbekcha",
   "languageRussian": "Русский",
 
@@ -71,8 +74,6 @@
   "authGoogleSignInFailed": "Не удалось войти через Google. Попробуйте снова.",
 
   "homeSearchHint": "Поиск игры",
-  "homeHeroTitle": "Быстрый донат",
-  "homeHeroSubtitle": "Пополняйте любимую игру в пару нажатий",
   "notificationsComingSoon": "Уведомления скоро",
   "homePopularGames": "Популярные игры",
   "homeCategories": "Категории",
@@ -86,6 +87,7 @@
   "gameDetailsTopupTitle": "Пополнение",
   "gameProductsEmptyTitle": "Пока нет доступных товаров",
   "gameNotAvailableMessage": "Эта игра пока не подключена. Скоро добавим!",
+  "gameServerPickerLabel": "Выберите сервер",
 
   "playerInfoTitle": "Данные игрока",
   "playerInfoPlayerIdLabel": "Player ID",
@@ -139,6 +141,8 @@
   "orderRefreshButton": "Обновить",
   "orderContactSupportButton": "Связаться с поддержкой",
   "supportRequestSubject": "Запрос в поддержку UZDONATE — заказ {orderNumber}",
+  "supportGeneralSubject": "Запрос в поддержку UZDONATE",
+  "supportGeneralBody": "Здравствуйте! Нужна помощь.",
 
   "orderHistoryTitle": "История заказов",
   "orderHistoryEmptyTitle": "Пока нет заказов",
@@ -155,6 +159,8 @@
   "walletTitle": "Кошелёк",
   "walletBalanceLabel": "Баланс",
   "walletTopUpButton": "Пополнить кошелёк",
+  "walletTopUpShortButton": "Пополнить",
+  "walletSupportButton": "Поддержка",
   "walletHistoryButton": "История",
   "walletTransactionHistoryTitle": "История кошелька",
   "walletTransactionHistoryEmpty": "Пока нет транзакций",

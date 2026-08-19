@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/errors/failure.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/utils/money_formatter.dart';
 import '../../../core/widgets/error_view.dart';
@@ -144,18 +145,28 @@ class _TopupScreenState extends ConsumerState<TopupScreen> {
                 const SizedBox(height: AppSpacing.lg),
                 Text(l10n.topupSelectMethodTitle, style: theme.textTheme.titleSmall),
                 const SizedBox(height: AppSpacing.sm),
-                for (final method in methods)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                    child: _ReceivingMethodTile(
+                GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    mainAxisSpacing: AppSpacing.sm,
+                    crossAxisSpacing: AppSpacing.sm,
+                    childAspectRatio: 1.55,
+                  ),
+                  itemCount: methods.length,
+                  itemBuilder: (context, index) {
+                    final method = methods[index];
+                    return _ReceivingMethodTile(
                       method: method,
                       selected: _selectedMethodId == method.id,
                       onTap: () => setState(() {
                         _selectedMethodId = method.id;
                         _errorMessage = null;
                       }),
-                    ),
-                  ),
+                    );
+                  },
+                ),
                 const SizedBox(height: AppSpacing.md),
                 TextField(
                   controller: _referenceController,
@@ -204,6 +215,10 @@ class _TopupScreenState extends ConsumerState<TopupScreen> {
   }
 }
 
+/// A payment method rendered as a miniature bank-card mockup — gradient
+/// face, masked number, cardholder/bank — rather than a plain list row with
+/// a leading radio button. Selection is shown with a bright border ring and
+/// a checkmark badge instead of the radio icon.
 class _ReceivingMethodTile extends StatelessWidget {
   const _ReceivingMethodTile({required this.method, required this.selected, required this.onTap});
 
@@ -214,6 +229,7 @@ class _ReceivingMethodTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final gradient = AppColors.tileGradients[method.id.hashCode.abs() % AppColors.tileGradients.length];
 
     return InkWell(
       onTap: onTap,
@@ -222,33 +238,42 @@ class _ReceivingMethodTile extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.all(AppSpacing.md),
         decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
+          gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: gradient),
           borderRadius: BorderRadius.circular(AppRadius.md),
           border: Border.all(
-            color: selected ? theme.colorScheme.primary : theme.colorScheme.outlineVariant,
-            width: selected ? 1.5 : 1,
+            color: selected ? Colors.white : Colors.transparent,
+            width: selected ? 2 : 0,
           ),
         ),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              selected ? Icons.radio_button_checked_rounded : Icons.radio_button_unchecked_rounded,
-              color: selected ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
-            ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(method.cardNumberMasked, style: theme.textTheme.titleSmall),
-                  const SizedBox(height: 2),
-                  Text(
-                    method.bankName != null ? '${method.cardHolderName} · ${method.bankName}' : method.cardHolderName,
-                    style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+            Row(
+              children: [
+                const Icon(Icons.credit_card_rounded, color: Colors.white70, size: 20),
+                const Spacer(),
+                if (selected)
+                  Container(
+                    padding: const EdgeInsets.all(3),
+                    decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                    child: Icon(Icons.check_rounded, size: 12, color: gradient.first),
                   ),
-                ],
-              ),
+              ],
+            ),
+            const Spacer(),
+            Text(
+              method.cardNumberMasked,
+              style: theme.textTheme.titleSmall?.copyWith(color: Colors.white, letterSpacing: 0.5),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 2),
+            Text(
+              method.bankName != null ? '${method.cardHolderName} · ${method.bankName}' : method.cardHolderName,
+              style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),

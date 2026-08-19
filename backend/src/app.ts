@@ -4,6 +4,7 @@ import helmet from '@fastify/helmet';
 import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
 import jwt from '@fastify/jwt';
+import formbody from '@fastify/formbody';
 import { randomUUID } from 'node:crypto';
 import { env } from './config/env.js';
 import { logger } from './lib/logger.js';
@@ -20,6 +21,8 @@ import { walletRoutes } from './modules/wallet/wallet.routes.js';
 import { topupRoutes } from './modules/topup/topup.routes.js';
 import { notificationsRoutes } from './modules/notifications/notifications.routes.js';
 import { adminRoutes } from './modules/admin/admin.routes.js';
+import { paymeWebhookRoutes } from './providers/payme/payme-webhook.js';
+import { clickWebhookRoutes } from './providers/click/click-webhook.js';
 
 export async function buildApp() {
   const app = Fastify({
@@ -72,6 +75,10 @@ export async function buildApp() {
     secret: env.JWT_ACCESS_SECRET,
     sign: { expiresIn: env.JWT_ACCESS_TTL },
   });
+  // Payme's JSON-RPC body is JSON (parsed by Fastify's built-in parser);
+  // Click's Prepare/Complete calls are application/x-www-form-urlencoded,
+  // which needs this plugin.
+  await app.register(formbody);
   await app.register(prismaPlugin);
 
   // Unversioned operational endpoints — load balancers/orchestrators should
@@ -85,6 +92,13 @@ export async function buildApp() {
       await api.register(promotionsRoutes);
       await api.register(ordersRoutes);
       await api.register(paymentsRoutes);
+      await api.register(
+        async (payments) => {
+          await payments.register(paymeWebhookRoutes);
+          await payments.register(clickWebhookRoutes);
+        },
+        { prefix: '/payments' },
+      );
       await api.register(savedGamesRoutes);
       await api.register(walletRoutes);
       await api.register(topupRoutes);

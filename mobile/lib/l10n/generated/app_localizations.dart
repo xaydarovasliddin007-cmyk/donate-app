@@ -260,6 +260,24 @@ abstract class AppLocalizations {
   /// **'Til'**
   String get settingsLanguage;
 
+  /// No description provided for @settingsReduceMotion.
+  ///
+  /// In uz, this message translates to:
+  /// **'Animatsiyalarni kamaytirish'**
+  String get settingsReduceMotion;
+
+  /// No description provided for @settingsReduceMotionDescription.
+  ///
+  /// In uz, this message translates to:
+  /// **'Ba\'zi effektlarni o\'chirib, ilovani yengilroq qiling'**
+  String get settingsReduceMotionDescription;
+
+  /// No description provided for @profileStatOrders.
+  ///
+  /// In uz, this message translates to:
+  /// **'Buyurtmalar'**
+  String get profileStatOrders;
+
   /// No description provided for @languageUzbek.
   ///
   /// In uz, this message translates to:
@@ -452,18 +470,6 @@ abstract class AppLocalizations {
   /// **'O\'yin qidirish'**
   String get homeSearchHint;
 
-  /// No description provided for @homeHeroTitle.
-  ///
-  /// In uz, this message translates to:
-  /// **'Tezkor donat'**
-  String get homeHeroTitle;
-
-  /// No description provided for @homeHeroSubtitle.
-  ///
-  /// In uz, this message translates to:
-  /// **'Sevimli o\'yiningizni bir necha bosishda to\'ldiring'**
-  String get homeHeroSubtitle;
-
   /// No description provided for @notificationsComingSoon.
   ///
   /// In uz, this message translates to:
@@ -535,6 +541,12 @@ abstract class AppLocalizations {
   /// In uz, this message translates to:
   /// **'Bu o\'yin hali ulanmagan. Tez orada qo\'shamiz!'**
   String get gameNotAvailableMessage;
+
+  /// No description provided for @gameServerPickerLabel.
+  ///
+  /// In uz, this message translates to:
+  /// **'Serverni tanlang'**
+  String get gameServerPickerLabel;
 
   /// No description provided for @playerInfoTitle.
   ///
@@ -812,6 +824,18 @@ abstract class AppLocalizations {
   /// **'UZDONATE yordam so\'rovi — buyurtma {orderNumber}'**
   String supportRequestSubject(String orderNumber);
 
+  /// No description provided for @supportGeneralSubject.
+  ///
+  /// In uz, this message translates to:
+  /// **'UZDONATE yordam so\'rovi'**
+  String get supportGeneralSubject;
+
+  /// No description provided for @supportGeneralBody.
+  ///
+  /// In uz, this message translates to:
+  /// **'Salom! Yordam kerak edi.'**
+  String get supportGeneralBody;
+
   /// No description provided for @orderHistoryTitle.
   ///
   /// In uz, this message translates to:
@@ -889,6 +913,18 @@ abstract class AppLocalizations {
   /// In uz, this message translates to:
   /// **'Hamyonni to\'ldirish'**
   String get walletTopUpButton;
+
+  /// No description provided for @walletTopUpShortButton.
+  ///
+  /// In uz, this message translates to:
+  /// **'To\'ldirish'**
+  String get walletTopUpShortButton;
+
+  /// No description provided for @walletSupportButton.
+  ///
+  /// In uz, this message translates to:
+  /// **'Yordam'**
+  String get walletSupportButton;
 
   /// No description provided for @walletHistoryButton.
   ///

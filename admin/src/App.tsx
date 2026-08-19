@@ -4,6 +4,8 @@ import { Layout } from './components/Layout';
 import { Loading } from './components/Loading';
 import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
+import { GamesPage } from './pages/GamesPage';
+import { GameServersPage } from './pages/GameServersPage';
 import { UsersPage } from './pages/UsersPage';
 import { UserDetailPage } from './pages/UserDetailPage';
 import { OrdersPage } from './pages/OrdersPage';
@@ -35,6 +37,8 @@ function AppRoutes() {
         }
       >
         <Route path="/" element={<DashboardPage />} />
+        <Route path="/games" element={<GamesPage />} />
+        <Route path="/games/:gameId/servers" element={<GameServersPage />} />
         <Route path="/users" element={<UsersPage />} />
         <Route path="/users/:userId" element={<UserDetailPage />} />
         <Route path="/orders" element={<OrdersPage />} />

@@ -6,7 +6,16 @@ import { hashPassword } from '../auth/password.js';
 import { refundOrderToWallet, retryFulfillment as retryFulfillmentOrder } from '../orders/orders.service.js';
 import * as walletService from '../wallet/wallet.service.js';
 import * as topupService from '../topup/topup.service.js';
-import type { AdminCreateAdminInput, AdminUpdateAdminInput } from './admin.schemas.js';
+import type {
+  AdminCreateAdminInput,
+  AdminCreateGameInput,
+  AdminCreateGameServerInput,
+  AdminCreateProductInput,
+  AdminUpdateAdminInput,
+  AdminUpdateGameInput,
+  AdminUpdateGameServerInput,
+  AdminUpdateProviderInput,
+} from './admin.schemas.js';
 
 interface AdminContext {
   prisma: PrismaClient;
@@ -166,14 +175,157 @@ export async function getUserDetailAdmin(ctx: AdminContext, userId: string) {
   return { user, wallet, recentOrders, recentTransactions, activeSessions };
 }
 
+// --- Games & servers --------------------------------------------------------
+//
+// Games/products only ever came from prisma/seed.ts until now — this is the
+// first admin-editable path for the catalog itself, so a real supplier's
+// codes/prices can eventually replace the seed (isTest: true) data without a
+// schema change.
+
+export async function listGamesAdmin(ctx: AdminContext, params: { includeDisabled: boolean }) {
+  return ctx.prisma.game.findMany({
+    where: params.includeDisabled ? undefined : { availability: { not: 'DISABLED' } },
+    include: { _count: { select: { products: true, servers: true } } },
+    orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+  });
+}
+
+export async function createGameAdmin(ctx: AdminContext, adminId: string, input: AdminCreateGameInput) {
+  const existing = await ctx.prisma.game.findUnique({ where: { slug: input.slug } });
+  if (existing) {
+    throw new ConflictError('A game with this slug already exists');
+  }
+
+  const created = await ctx.prisma.game.create({ data: input });
+
+  await writeAuditLog(ctx.prisma, {
+    actorId: adminId,
+    action: 'game.create',
+    entityType: 'Game',
+    entityId: created.id,
+    metadata: { slug: input.slug, name: input.name },
+  });
+
+  return created;
+}
+
+export async function updateGameAdmin(
+  ctx: AdminContext,
+  adminId: string,
+  gameId: string,
+  changes: AdminUpdateGameInput,
+) {
+  const existing = await ctx.prisma.game.findUnique({ where: { id: gameId } });
+  if (!existing) {
+    throw new NotFoundError('Game not found');
+  }
+
+  const updated = await ctx.prisma.game.update({ where: { id: gameId }, data: changes });
+
+  await writeAuditLog(ctx.prisma, {
+    actorId: adminId,
+    action: 'game.update',
+    entityType: 'Game',
+    entityId: gameId,
+    metadata: { before: existing, after: changes },
+  });
+
+  return updated;
+}
+
+export async function listGameServersAdmin(ctx: AdminContext, gameId: string) {
+  const game = await ctx.prisma.game.findUnique({ where: { id: gameId } });
+  if (!game) {
+    throw new NotFoundError('Game not found');
+  }
+  return ctx.prisma.gameServer.findMany({ where: { gameId }, orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }] });
+}
+
+export async function createGameServerAdmin(
+  ctx: AdminContext,
+  adminId: string,
+  gameId: string,
+  input: AdminCreateGameServerInput,
+) {
+  const game = await ctx.prisma.game.findUnique({ where: { id: gameId } });
+  if (!game) {
+    throw new NotFoundError('Game not found');
+  }
+  const existing = await ctx.prisma.gameServer.findUnique({ where: { gameId_code: { gameId, code: input.code } } });
+  if (existing) {
+    throw new ConflictError('A server with this code already exists for this game');
+  }
+
+  const created = await ctx.prisma.gameServer.create({ data: { ...input, gameId } });
+
+  await writeAuditLog(ctx.prisma, {
+    actorId: adminId,
+    action: 'game_server.create',
+    entityType: 'GameServer',
+    entityId: created.id,
+    metadata: { gameId, code: input.code, name: input.name },
+  });
+
+  return created;
+}
+
+export async function updateGameServerAdmin(
+  ctx: AdminContext,
+  adminId: string,
+  serverId: string,
+  changes: AdminUpdateGameServerInput,
+) {
+  const existing = await ctx.prisma.gameServer.findUnique({ where: { id: serverId } });
+  if (!existing) {
+    throw new NotFoundError('Game server not found');
+  }
+
+  const updated = await ctx.prisma.gameServer.update({ where: { id: serverId }, data: changes });
+
+  await writeAuditLog(ctx.prisma, {
+    actorId: adminId,
+    action: 'game_server.update',
+    entityType: 'GameServer',
+    entityId: serverId,
+    metadata: { before: existing, after: changes },
+  });
+
+  return updated;
+}
+
 // --- Products -------------------------------------------------------------
 
 export async function listProductsAdmin(ctx: AdminContext, gameId?: string) {
   return ctx.prisma.product.findMany({
     where: gameId ? { gameId } : undefined,
-    include: { game: { select: { id: true, name: true, slug: true } } },
+    include: { game: { select: { id: true, name: true, slug: true } }, server: { select: { id: true, name: true } } },
     orderBy: [{ gameId: 'asc' }, { sortOrder: 'asc' }],
   });
+}
+
+export async function createProductAdmin(ctx: AdminContext, adminId: string, input: AdminCreateProductInput) {
+  const game = await ctx.prisma.game.findUnique({ where: { id: input.gameId } });
+  if (!game) {
+    throw new NotFoundError('Game not found');
+  }
+  if (input.serverId) {
+    const server = await ctx.prisma.gameServer.findUnique({ where: { id: input.serverId } });
+    if (!server || server.gameId !== input.gameId) {
+      throw new ValidationError('serverId must reference a server belonging to gameId');
+    }
+  }
+
+  const created = await ctx.prisma.product.create({ data: input });
+
+  await writeAuditLog(ctx.prisma, {
+    actorId: adminId,
+    action: 'product.create',
+    entityType: 'Product',
+    entityId: created.id,
+    metadata: { gameId: input.gameId, serverId: input.serverId, name: input.name, amountMinor: input.amountMinor },
+  });
+
+  return created;
 }
 
 export async function updateProductAdmin(
@@ -253,6 +405,30 @@ export async function getProviderStatsAdmin(ctx: AdminContext) {
       successRate: stat.total > 0 ? stat.succeeded / stat.total : null,
     };
   });
+}
+
+export async function updateProviderAdmin(
+  ctx: AdminContext,
+  adminId: string,
+  providerId: string,
+  changes: AdminUpdateProviderInput,
+) {
+  const existing = await ctx.prisma.provider.findUnique({ where: { id: providerId } });
+  if (!existing) {
+    throw new NotFoundError('Provider not found');
+  }
+
+  const updated = await ctx.prisma.provider.update({ where: { id: providerId }, data: changes });
+
+  await writeAuditLog(ctx.prisma, {
+    actorId: adminId,
+    action: 'provider.update',
+    entityType: 'Provider',
+    entityId: providerId,
+    metadata: { before: { isActive: existing.isActive }, after: changes },
+  });
+
+  return updated;
 }
 
 // --- Payments -----------------------------------------------------------------

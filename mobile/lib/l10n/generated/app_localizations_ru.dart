@@ -94,6 +94,16 @@ class AppLocalizationsRu extends AppLocalizations {
   String get settingsLanguage => 'Язык';
 
   @override
+  String get settingsReduceMotion => 'Меньше анимаций';
+
+  @override
+  String get settingsReduceMotionDescription =>
+      'Отключите часть эффектов, чтобы приложение работало легче';
+
+  @override
+  String get profileStatOrders => 'Заказы';
+
+  @override
   String get languageUzbek => 'O\'zbekcha';
 
   @override
@@ -196,12 +206,6 @@ class AppLocalizationsRu extends AppLocalizations {
   String get homeSearchHint => 'Поиск игры';
 
   @override
-  String get homeHeroTitle => 'Быстрый донат';
-
-  @override
-  String get homeHeroSubtitle => 'Пополняйте любимую игру в пару нажатий';
-
-  @override
   String get notificationsComingSoon => 'Уведомления скоро';
 
   @override
@@ -237,6 +241,9 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get gameNotAvailableMessage =>
       'Эта игра пока не подключена. Скоро добавим!';
+
+  @override
+  String get gameServerPickerLabel => 'Выберите сервер';
 
   @override
   String get playerInfoTitle => 'Данные игрока';
@@ -384,6 +391,12 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
+  String get supportGeneralSubject => 'Запрос в поддержку UZDONATE';
+
+  @override
+  String get supportGeneralBody => 'Здравствуйте! Нужна помощь.';
+
+  @override
   String get orderHistoryTitle => 'История заказов';
 
   @override
@@ -422,6 +435,12 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get walletTopUpButton => 'Пополнить кошелёк';
+
+  @override
+  String get walletTopUpShortButton => 'Пополнить';
+
+  @override
+  String get walletSupportButton => 'Поддержка';
 
   @override
   String get walletHistoryButton => 'История';

@@ -2,31 +2,16 @@ import 'package:flutter/material.dart';
 import '../theme/app_spacing.dart';
 import 'skeleton_box.dart';
 
-/// Matches [GameCard]'s shape/padding so the loading state doesn't jump when
-/// real content arrives.
+/// Matches [GameCard]'s full-bleed cover-art shape so the loading state
+/// doesn't jump when real content arrives.
 class GameCardSkeleton extends StatelessWidget {
   const GameCardSkeleton({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
-      ),
-      child: const Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SkeletonBox(width: 32, height: 32, borderRadius: BorderRadius.all(Radius.circular(8))),
-          SizedBox(height: AppSpacing.sm),
-          SkeletonBox(width: 100, height: 14),
-          SizedBox(height: 6),
-          SkeletonBox(width: 60, height: 11),
-        ],
-      ),
+    return const AspectRatio(
+      aspectRatio: 0.78,
+      child: SkeletonBox(borderRadius: BorderRadius.all(Radius.circular(AppRadius.md))),
     );
   }
 }
@@ -47,7 +32,7 @@ class GameGridSkeleton extends StatelessWidget {
         crossAxisCount: 2,
         mainAxisSpacing: AppSpacing.sm,
         crossAxisSpacing: AppSpacing.sm,
-        childAspectRatio: 1.3,
+        childAspectRatio: 0.78,
       ),
       itemCount: count,
       itemBuilder: (_, _) => const GameCardSkeleton(),

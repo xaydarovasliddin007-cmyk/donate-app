@@ -13,6 +13,7 @@ class Game {
     required this.name,
     this.category,
     this.logoEmoji,
+    this.logoUrl,
     required this.availability,
   });
 
@@ -21,6 +22,7 @@ class Game {
   final String name;
   final String? category;
   final String? logoEmoji;
+  final String? logoUrl;
   final GameAvailability availability;
 
   bool get isPurchasable => availability == GameAvailability.active;
@@ -31,6 +33,7 @@ class Game {
     name: json['name'] as String,
     category: json['category'] as String?,
     logoEmoji: json['logoEmoji'] as String?,
+    logoUrl: json['logoUrl'] as String?,
     availability: _parseAvailability(json['availability'] as String),
   );
 }

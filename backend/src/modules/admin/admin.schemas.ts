@@ -44,6 +44,76 @@ export const adminUpdateProductSchema = z
     message: 'At least one of isActive or amountMinor must be provided',
   });
 
+const gameAvailabilityValues = ['ACTIVE', 'COMING_SOON', 'DISABLED'] as const;
+
+export const adminListGamesQuerySchema = z.object({
+  includeDisabled: z.coerce.boolean().default(true),
+});
+
+export const adminCreateGameSchema = z.object({
+  slug: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .min(1)
+    .max(80)
+    .regex(/^[a-z0-9-]+$/, 'slug must be lowercase letters, numbers, and hyphens only'),
+  name: z.string().trim().min(1).max(120),
+  category: z.string().trim().min(1).max(60).optional(),
+  logoEmoji: z.string().trim().min(1).max(8).optional(),
+  logoUrl: z.string().trim().url().max(500).optional(),
+  availability: z.enum(gameAvailabilityValues).default('COMING_SOON'),
+  sortOrder: z.number().int().optional(),
+});
+
+export const adminUpdateGameSchema = z
+  .object({
+    name: z.string().trim().min(1).max(120).optional(),
+    category: z.string().trim().min(1).max(60).optional(),
+    logoEmoji: z.string().trim().min(1).max(8).optional(),
+    logoUrl: z.string().trim().url().max(500).optional(),
+    availability: z.enum(gameAvailabilityValues).optional(),
+    sortOrder: z.number().int().optional(),
+  })
+  .refine((data) => Object.keys(data).length > 0, { message: 'At least one field must be provided' });
+
+export const adminCreateGameServerSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  code: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .min(1)
+    .max(40)
+    .regex(/^[A-Z0-9_-]+$/, 'code must be letters, numbers, underscores, and hyphens only'),
+  isActive: z.boolean().default(true),
+  sortOrder: z.number().int().optional(),
+});
+
+export const adminUpdateGameServerSchema = z
+  .object({
+    name: z.string().trim().min(1).max(120).optional(),
+    isActive: z.boolean().optional(),
+    sortOrder: z.number().int().optional(),
+  })
+  .refine((data) => Object.keys(data).length > 0, { message: 'At least one field must be provided' });
+
+export const adminCreateProductSchema = z.object({
+  gameId: z.string().uuid(),
+  serverId: z.string().uuid().optional(),
+  name: z.string().trim().min(1).max(120),
+  description: z.string().trim().max(500).optional(),
+  amountMinor: z.number().int().positive(),
+  currency: z.string().trim().length(3).default('UZS'),
+  isActive: z.boolean().default(true),
+  isTest: z.boolean().default(true),
+  sortOrder: z.number().int().optional(),
+});
+
+export const adminUpdateProviderSchema = z.object({
+  isActive: z.boolean(),
+});
+
 export const adminListTopUpsQuerySchema = z.object({
   status: z.enum(topUpStatusValues).optional(),
   limit: z.coerce.number().int().positive().max(100).default(50),
@@ -128,3 +198,10 @@ export type AdminStatsQuery = z.infer<typeof adminStatsQuerySchema>;
 export type AdminCreateAdminInput = z.infer<typeof adminCreateAdminSchema>;
 export type AdminUpdateAdminInput = z.infer<typeof adminUpdateAdminSchema>;
 export type AdminListAuditLogsQuery = z.infer<typeof adminListAuditLogsQuerySchema>;
+export type AdminListGamesQuery = z.infer<typeof adminListGamesQuerySchema>;
+export type AdminCreateGameInput = z.infer<typeof adminCreateGameSchema>;
+export type AdminUpdateGameInput = z.infer<typeof adminUpdateGameSchema>;
+export type AdminCreateGameServerInput = z.infer<typeof adminCreateGameServerSchema>;
+export type AdminUpdateGameServerInput = z.infer<typeof adminUpdateGameServerSchema>;
+export type AdminCreateProductInput = z.infer<typeof adminCreateProductSchema>;
+export type AdminUpdateProviderInput = z.infer<typeof adminUpdateProviderSchema>;

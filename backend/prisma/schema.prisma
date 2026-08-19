@@ -167,38 +167,69 @@ model Game {
   // for the home screen's category filter.
   category     String?
   logoEmoji    String?           @map("logo_emoji")
+  // Remote icon URL (e.g. the game's official Play Store listing icon).
+  // Nullable — the mobile app falls back to logoEmoji/a colored initial
+  // avatar when this isn't set.
+  logoUrl      String?           @map("logo_url")
   availability GameAvailability  @default(COMING_SOON)
   sortOrder    Int               @default(0) @map("sort_order")
   createdAt    DateTime          @default(now()) @map("created_at")
   updatedAt    DateTime          @updatedAt @map("updated_at")
 
   products            Product[]
+  servers             GameServer[]
   orders              Order[]
   savedPlayerProfiles SavedPlayerProfile[]
 
   @@map("games")
 }
 
+// A game's regional/version servers (e.g. Mobile Legends' many regional
+// servers), each optionally priced differently via Product.serverId. Games
+// with no rows here behave exactly as before this model existed — the
+// mobile app's server field stays free-text and Product.serverId stays null.
+model GameServer {
+  id        String   @id @default(uuid()) @db.Uuid
+  gameId    String   @map("game_id") @db.Uuid
+  game      Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  name      String
+  code      String
+  isActive  Boolean  @default(true) @map("is_active")
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  products Product[]
+
+  @@unique([gameId, code])
+  @@index([gameId])
+  @@map("game_servers")
+}
+
 model Product {
-  id          String   @id @default(uuid()) @db.Uuid
-  gameId      String   @map("game_id") @db.Uuid
-  game        Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  id          String      @id @default(uuid()) @db.Uuid
+  gameId      String      @map("game_id") @db.Uuid
+  game        Game        @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  // Nullable: only set for games whose products are priced per-server
+  // (see GameServer). Games without a server catalog leave this null.
+  serverId    String?     @map("server_id") @db.Uuid
+  server      GameServer? @relation(fields: [serverId], references: [id], onDelete: Cascade)
   name        String
   description String?
-  amountMinor Int      @map("amount_minor")
-  currency    String   @default("UZS")
-  isActive    Boolean  @default(true) @map("is_active")
+  amountMinor Int         @map("amount_minor")
+  currency    String      @default("UZS")
+  isActive    Boolean     @default(true) @map("is_active")
   // Marks development/seed catalog data so it's never confused with a real,
   // provider-verified product once real catalogs are connected.
-  isTest      Boolean  @default(true) @map("is_test")
-  sortOrder   Int      @default(0) @map("sort_order")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  isTest      Boolean     @default(true) @map("is_test")
+  sortOrder   Int         @default(0) @map("sort_order")
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
 
   providerProducts ProviderProduct[]
   orderItems       OrderItem[]
 
-  @@index([gameId])
+  @@index([gameId, serverId])
   @@map("products")
 }
 

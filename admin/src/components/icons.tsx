@@ -71,6 +71,18 @@ export function CardIcon(props: IconProps) {
   );
 }
 
+export function GamepadIcon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <rect x="2.5" y="7.5" width="19" height="10" rx="5" />
+      <path d="M7 10.5v4" />
+      <path d="M5 12.5h4" />
+      <path d="M16.5 11h.01" />
+      <path d="M19 13h.01" />
+    </svg>
+  );
+}
+
 export function ProductIcon(props: IconProps) {
   return (
     <svg {...base} {...props}>

@@ -7,6 +7,7 @@ function toPublicGame(game: {
   name: string;
   category: string | null;
   logoEmoji: string | null;
+  logoUrl: string | null;
   availability: string;
 }) {
   return {
@@ -15,9 +16,14 @@ function toPublicGame(game: {
     name: game.name,
     category: game.category,
     logoEmoji: game.logoEmoji,
+    logoUrl: game.logoUrl,
     availability: game.availability,
     isPurchasable: game.availability === 'ACTIVE',
   };
+}
+
+function toPublicGameServer(server: { id: string; name: string; code: string }) {
+  return { id: server.id, name: server.name, code: server.code };
 }
 
 function toPublicProduct(product: {
@@ -56,7 +62,26 @@ export async function getGameById(prisma: PrismaClient, gameId: string) {
   return toPublicGame(game);
 }
 
-export async function listGameProducts(prisma: PrismaClient, gameId: string) {
+/** Empty for games with no server catalog — the mobile app skips the server-picker step entirely in that case. */
+export async function listGameServers(prisma: PrismaClient, gameId: string) {
+  const game = await prisma.game.findFirst({ where: { id: gameId, availability: { not: 'DISABLED' } } });
+  if (!game) {
+    throw new NotFoundError('Game not found');
+  }
+  const servers = await prisma.gameServer.findMany({
+    where: { gameId, isActive: true },
+    orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+  });
+  return servers.map(toPublicGameServer);
+}
+
+/**
+ * `serverCode` is required (and validated) for games with a server catalog,
+ * ignored otherwise — mirrors the same resolution orders.service.ts does at
+ * purchase time, so "what's shown" and "what you can actually buy" never
+ * disagree.
+ */
+export async function listGameProducts(prisma: PrismaClient, gameId: string, serverCode?: string) {
   const game = await prisma.game.findFirst({
     where: { id: gameId, availability: { not: 'DISABLED' } },
   });
@@ -64,8 +89,23 @@ export async function listGameProducts(prisma: PrismaClient, gameId: string) {
     throw new NotFoundError('Game not found');
   }
 
+  const serverCount = await prisma.gameServer.count({ where: { gameId } });
+  let resolvedServerId: string | null = null;
+  if (serverCount > 0) {
+    if (!serverCode) {
+      // No server chosen yet — nothing is purchasable until one is, so an
+      // empty list (not an error) lets the UI show "pick a server" instead.
+      return [];
+    }
+    const server = await prisma.gameServer.findUnique({ where: { gameId_code: { gameId, code: serverCode } } });
+    if (!server || !server.isActive) {
+      return [];
+    }
+    resolvedServerId = server.id;
+  }
+
   const products = await prisma.product.findMany({
-    where: { gameId, isActive: true },
+    where: { gameId, isActive: true, serverId: resolvedServerId },
     orderBy: [{ sortOrder: 'asc' }, { amountMinor: 'asc' }],
   });
   return products.map(toPublicProduct);

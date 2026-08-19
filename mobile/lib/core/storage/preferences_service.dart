@@ -10,6 +10,7 @@ class PreferencesService {
   static const _themeModeKey = 'settings.theme_mode';
   static const _localeKey = 'settings.locale';
   static const _onboardingCompleteKey = 'settings.onboarding_complete';
+  static const _reduceMotionKey = 'settings.reduce_motion';
 
   String? get themeMode => _prefs.getString(_themeModeKey);
   Future<void> setThemeMode(String value) => _prefs.setString(_themeModeKey, value);
@@ -19,4 +20,7 @@ class PreferencesService {
 
   bool get hasCompletedOnboarding => _prefs.getBool(_onboardingCompleteKey) ?? false;
   Future<void> setOnboardingComplete() => _prefs.setBool(_onboardingCompleteKey, true);
+
+  bool get reduceMotion => _prefs.getBool(_reduceMotionKey) ?? false;
+  Future<void> setReduceMotion(bool value) => _prefs.setBool(_reduceMotionKey, value);
 }

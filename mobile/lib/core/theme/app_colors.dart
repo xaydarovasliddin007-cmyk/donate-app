@@ -23,6 +23,23 @@ abstract final class AppColors {
   static const Color darkSurface = Color(0xFF171A21);
   static const Color darkOnSurface = Color(0xFFF3F4F6);
 
+  /// A touch lighter than [darkSurface]/[lightSurface] — for a card nested
+  /// on top of another card (stat tiles, payment tiles) without leaning on
+  /// Material's generated tonal surfaces for every layer.
+  static const Color surfaceCardLight = Color(0xFFEFF1F8);
+  static const Color surfaceCardDark = Color(0xFF1E222C);
+
   static const List<Color> heroGradientLight = [brandPrimary, brandAccent];
   static const List<Color> heroGradientDark = [Color(0xFF2F52C4), Color(0xFF5A3FCC)];
+
+  /// A small family of brand-derived gradients (cooler/warmer shifts of the
+  /// same two hues, never gold) — cycled across payment-method / cover-art
+  /// fallback tiles so a grid of them reads as one considered set rather
+  /// than random colors.
+  static const List<List<Color>> tileGradients = [
+    [Color(0xFF3B6FF6), Color(0xFF7C5CFC)], // brand blue -> violet
+    [Color(0xFF2E8FDB), Color(0xFF3B6FF6)], // teal-blue -> brand blue
+    [Color(0xFF7C5CFC), Color(0xFFB25CE0)], // violet -> magenta
+    [Color(0xFF4C63E0), Color(0xFF2E3E9E)], // indigo -> deep indigo
+  ];
 }

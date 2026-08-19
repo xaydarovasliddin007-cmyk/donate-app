@@ -1,5 +1,5 @@
 import type { Order, OrderStatus, Prisma, PrismaClient } from '@prisma/client';
-import { ConflictError, ForbiddenError, NotFoundError } from '../../lib/errors.js';
+import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../../lib/errors.js';
 import { generateOrderNumber } from '../../lib/order-number.js';
 import { notifyAdmins } from '../../lib/telegram.js';
 import { formatMinorAmount } from '../../lib/money.js';
@@ -86,8 +86,27 @@ export async function createOrder(ctx: OrderContext, userId: string, input: Crea
     throw new NotFoundError('Game is not available for purchase');
   }
 
+  // Games with a server catalog (see GameServer) require a valid, active
+  // server code and only accept products priced for that exact server.
+  // Games without one keep working exactly as before this concept existed —
+  // serverId stays free text and products keep matching on serverId: null.
+  const gameServerCount = await ctx.prisma.gameServer.count({ where: { gameId: game.id } });
+  let resolvedGameServerId: string | null = null;
+  if (gameServerCount > 0) {
+    if (!input.serverId) {
+      throw new ValidationError('serverId is required for this game');
+    }
+    const server = await ctx.prisma.gameServer.findUnique({
+      where: { gameId_code: { gameId: game.id, code: input.serverId } },
+    });
+    if (!server || !server.isActive) {
+      throw new ValidationError('Unknown or inactive server for this game');
+    }
+    resolvedGameServerId = server.id;
+  }
+
   const product = await ctx.prisma.product.findFirst({
-    where: { id: input.productId, gameId: input.gameId, isActive: true },
+    where: { id: input.productId, gameId: input.gameId, isActive: true, serverId: resolvedGameServerId },
   });
   if (!product) {
     throw new NotFoundError('Product not found or unavailable');

@@ -22,7 +22,11 @@ class SavedGameCard extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final localeName = Localizations.localeOf(context).toString();
-    final productsAsync = ref.watch(gameProductsProvider(savedGame.game.id));
+    // Reuses the server saved from the last order on this game (if any) so
+    // Quick Buy prices correctly for games where price depends on server.
+    final productsAsync = ref.watch(
+      gameProductsProvider((gameId: savedGame.game.id, serverCode: savedGame.serverId)),
+    );
 
     return Container(
       width: 220,

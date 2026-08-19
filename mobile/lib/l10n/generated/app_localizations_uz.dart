@@ -94,6 +94,16 @@ class AppLocalizationsUz extends AppLocalizations {
   String get settingsLanguage => 'Til';
 
   @override
+  String get settingsReduceMotion => 'Animatsiyalarni kamaytirish';
+
+  @override
+  String get settingsReduceMotionDescription =>
+      'Ba\'zi effektlarni o\'chirib, ilovani yengilroq qiling';
+
+  @override
+  String get profileStatOrders => 'Buyurtmalar';
+
+  @override
   String get languageUzbek => 'O\'zbekcha';
 
   @override
@@ -196,13 +206,6 @@ class AppLocalizationsUz extends AppLocalizations {
   String get homeSearchHint => 'O\'yin qidirish';
 
   @override
-  String get homeHeroTitle => 'Tezkor donat';
-
-  @override
-  String get homeHeroSubtitle =>
-      'Sevimli o\'yiningizni bir necha bosishda to\'ldiring';
-
-  @override
   String get notificationsComingSoon => 'Bildirishnomalar tez kunda';
 
   @override
@@ -238,6 +241,9 @@ class AppLocalizationsUz extends AppLocalizations {
   @override
   String get gameNotAvailableMessage =>
       'Bu o\'yin hali ulanmagan. Tez orada qo\'shamiz!';
+
+  @override
+  String get gameServerPickerLabel => 'Serverni tanlang';
 
   @override
   String get playerInfoTitle => 'O\'yinchi ma\'lumotlari';
@@ -386,6 +392,12 @@ class AppLocalizationsUz extends AppLocalizations {
   }
 
   @override
+  String get supportGeneralSubject => 'UZDONATE yordam so\'rovi';
+
+  @override
+  String get supportGeneralBody => 'Salom! Yordam kerak edi.';
+
+  @override
   String get orderHistoryTitle => 'Buyurtmalar tarixi';
 
   @override
@@ -425,6 +437,12 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get walletTopUpButton => 'Hamyonni to\'ldirish';
+
+  @override
+  String get walletTopUpShortButton => 'To\'ldirish';
+
+  @override
+  String get walletSupportButton => 'Yordam';
 
   @override
   String get walletHistoryButton => 'Tarix';

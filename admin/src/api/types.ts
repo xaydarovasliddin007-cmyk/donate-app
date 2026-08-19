@@ -168,9 +168,35 @@ export interface TopUpRequestAdmin {
   user: { id: string; publicId: string; email: string | null; phone: string | null; displayName: string | null };
 }
 
+export type GameAvailability = 'ACTIVE' | 'COMING_SOON' | 'DISABLED';
+
+export interface Game {
+  id: string;
+  slug: string;
+  name: string;
+  category: string | null;
+  logoEmoji: string | null;
+  logoUrl: string | null;
+  availability: GameAvailability;
+  sortOrder: number;
+  createdAt: string;
+  _count: { products: number; servers: number };
+}
+
+export interface GameServer {
+  id: string;
+  gameId: string;
+  name: string;
+  code: string;
+  isActive: boolean;
+  sortOrder: number;
+  createdAt: string;
+}
+
 export interface Product {
   id: string;
   gameId: string;
+  serverId: string | null;
   name: string;
   description: string | null;
   amountMinor: number;
@@ -179,6 +205,7 @@ export interface Product {
   isTest: boolean;
   sortOrder: number;
   game: { id: string; name: string; slug: string };
+  server: { id: string; name: string } | null;
 }
 
 export interface Provider {

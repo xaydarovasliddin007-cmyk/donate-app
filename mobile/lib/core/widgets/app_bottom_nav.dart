@@ -10,10 +10,10 @@ class AppNavItem {
   final String label;
 }
 
-/// A custom bottom navigation bar with a sliding pill indicator and an
-/// animated icon/label state per tab — deliberately not the stock
-/// [NavigationBar] look, per the product's "must not feel like a generic
-/// Flutter template" requirement.
+/// A custom, floating pill-shaped bottom navigation bar with a sliding
+/// gradient indicator and an animated icon/label state per tab —
+/// deliberately not the stock [NavigationBar] look, per the product's
+/// "must not feel like a generic Flutter template" requirement.
 class AppBottomNav extends StatelessWidget {
   const AppBottomNav({super.key, required this.items, required this.currentIndex, required this.onTap});
 
@@ -25,15 +25,20 @@ class AppBottomNav extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
 
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: scheme.surface,
-        border: Border(top: BorderSide(color: scheme.outlineVariant.withValues(alpha: 0.6))),
-      ),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(AppSpacing.md, 0, AppSpacing.md, AppSpacing.sm),
       child: SafeArea(
         top: false,
-        child: SizedBox(
+        child: Container(
           height: 64,
+          decoration: BoxDecoration(
+            color: scheme.surface,
+            borderRadius: BorderRadius.circular(AppRadius.pill),
+            border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withValues(alpha: 0.16), blurRadius: 20, offset: const Offset(0, 8)),
+            ],
+          ),
           child: Stack(
             children: [
               AnimatedAlign(
@@ -47,10 +52,10 @@ class AppBottomNav extends StatelessWidget {
                   widthFactor: 1 / items.length,
                   heightFactor: 1,
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm, vertical: 10),
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
                     child: DecoratedBox(
                       decoration: BoxDecoration(
-                        color: scheme.primary.withValues(alpha: 0.12),
+                        color: scheme.primary.withValues(alpha: 0.16),
                         borderRadius: BorderRadius.circular(AppRadius.pill),
                       ),
                     ),

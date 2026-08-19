@@ -35,6 +35,19 @@ const envSchema = z.object({
   TELEGRAM_BOT_TOKEN: z.string().trim().min(1).optional(),
   TELEGRAM_ADMIN_CHAT_ID: z.string().trim().min(1).optional(),
 
+  // Optional: Payme and Click are real, fully-wired payment adapters (see
+  // src/providers/payme, src/providers/click) that only register themselves
+  // in the provider registry once their credentials are present — same
+  // pattern as GOOGLE_CLIENT_ID above. A merchant account with either
+  // gateway can't be invented; see backend/README.md for setup.
+  PAYME_MERCHANT_ID: z.string().trim().min(1).optional(),
+  PAYME_SECRET_KEY: z.string().trim().min(1).optional(),
+  PAYME_TEST_MODE: z.coerce.boolean().default(true),
+
+  CLICK_MERCHANT_ID: z.string().trim().min(1).optional(),
+  CLICK_SERVICE_ID: z.string().trim().min(1).optional(),
+  CLICK_SECRET_KEY: z.string().trim().min(1).optional(),
+
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(100),
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60_000),
 

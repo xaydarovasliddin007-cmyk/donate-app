@@ -12,7 +12,7 @@ class PromotionBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: 260,
-      padding: const EdgeInsets.all(AppSpacing.md),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [AppColors.brandPrimary, AppColors.brandPrimaryDark],
