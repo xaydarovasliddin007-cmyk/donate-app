@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/errors/failure.dart';
@@ -42,6 +43,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   bool _insufficientBalance = false;
 
   Future<void> _buyNow() async {
+    HapticFeedback.mediumImpact();
     final l10n = AppLocalizations.of(context);
     setState(() {
       _submitting = true;
@@ -63,11 +65,17 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       if (_method == _PaymentMethod.wallet) {
         await ref
             .read(paymentsApiProvider)
-            .payWithWallet(orderId: order.id, idempotencyKey: '$_idempotencyKey-pay');
+            .payWithWallet(
+              orderId: order.id,
+              idempotencyKey: '$_idempotencyKey-pay',
+            );
       } else {
         await ref
             .read(paymentsApiProvider)
-            .createPayment(orderId: order.id, idempotencyKey: '$_idempotencyKey-pay');
+            .createPayment(
+              orderId: order.id,
+              idempotencyKey: '$_idempotencyKey-pay',
+            );
       }
 
       if (mounted) context.go('/orders/${order.id}');
@@ -77,7 +85,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         _insufficientBalance = failure.code == 'INSUFFICIENT_BALANCE';
         _errorMessage = failure.isNetworkError
             ? l10n.errorNoConnectionMessage
-            : (_insufficientBalance ? l10n.checkoutInsufficientBalanceMessage : failure.message);
+            : (_insufficientBalance
+                  ? l10n.checkoutInsufficientBalanceMessage
+                  : failure.message);
       });
     } finally {
       if (mounted) setState(() => _submitting = false);
@@ -102,19 +112,39 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                 padding: const EdgeInsets.all(AppSpacing.md),
                 child: Column(
                   children: [
-                    _SummaryRow(label: l10n.checkoutGameLabel, value: widget.game.name),
-                    _SummaryRow(label: l10n.checkoutProductLabel, value: widget.product.name),
-                    _SummaryRow(label: l10n.checkoutPlayerIdLabel, value: widget.playerId),
+                    _SummaryRow(
+                      label: l10n.checkoutGameLabel,
+                      value: widget.game.name,
+                    ),
+                    _SummaryRow(
+                      label: l10n.checkoutProductLabel,
+                      value: widget.product.name,
+                    ),
+                    _SummaryRow(
+                      label: l10n.checkoutPlayerIdLabel,
+                      value: widget.playerId,
+                    ),
                     if (widget.serverId.isNotEmpty)
-                      _SummaryRow(label: l10n.checkoutServerIdLabel, value: widget.serverId),
+                      _SummaryRow(
+                        label: l10n.checkoutServerIdLabel,
+                        value: widget.serverId,
+                      ),
                     _SummaryRow(
                       label: l10n.checkoutPriceLabel,
-                      value: formatMoney(widget.product.amountMinor, widget.product.currency, localeName),
+                      value: formatMoney(
+                        widget.product.amountMinor,
+                        widget.product.currency,
+                        localeName,
+                      ),
                     ),
                     const Divider(height: AppSpacing.lg),
                     _SummaryRow(
                       label: l10n.checkoutTotalLabel,
-                      value: formatMoney(widget.product.amountMinor, widget.product.currency, localeName),
+                      value: formatMoney(
+                        widget.product.amountMinor,
+                        widget.product.currency,
+                        localeName,
+                      ),
                       emphasize: true,
                     ),
                   ],
@@ -122,7 +152,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
               ),
             ),
             const SizedBox(height: AppSpacing.lg),
-            Text(l10n.checkoutPaymentMethodLabel, style: theme.textTheme.titleSmall),
+            Text(
+              l10n.checkoutPaymentMethodLabel,
+              style: theme.textTheme.titleSmall,
+            ),
             const SizedBox(height: AppSpacing.sm),
             _PaymentMethodTile(
               icon: Icons.account_balance_wallet_outlined,
@@ -130,8 +163,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
               subtitle: walletAsync.when(
                 loading: () => null,
                 error: (_, _) => null,
-                data: (wallet) =>
-                    l10n.checkoutPayWithWalletBalance(formatMoney(wallet.balanceMinor, wallet.currency, localeName)),
+                data: (wallet) => l10n.checkoutPayWithWalletBalance(
+                  formatMoney(wallet.balanceMinor, wallet.currency, localeName),
+                ),
               ),
               selected: _method == _PaymentMethod.wallet,
               onTap: () => setState(() {
@@ -154,7 +188,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
             ),
             if (_errorMessage != null) ...[
               const SizedBox(height: AppSpacing.md),
-              Text(_errorMessage!, style: TextStyle(color: theme.colorScheme.error)),
+              Text(
+                _errorMessage!,
+                style: TextStyle(color: theme.colorScheme.error),
+              ),
               if (_insufficientBalance) ...[
                 const SizedBox(height: AppSpacing.sm),
                 OutlinedButton(
@@ -173,7 +210,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                         const SizedBox(
                           height: 18,
                           width: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
                         ),
                         const SizedBox(width: AppSpacing.sm),
                         Text(l10n.checkoutCreatingOrder),
@@ -217,15 +257,21 @@ class _PaymentMethodTile extends StatelessWidget {
           color: theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(AppRadius.md),
           border: Border.all(
-            color: selected ? theme.colorScheme.primary : theme.colorScheme.outlineVariant,
+            color: selected
+                ? theme.colorScheme.primary
+                : theme.colorScheme.outlineVariant,
             width: selected ? 1.5 : 1,
           ),
         ),
         child: Row(
           children: [
             Icon(
-              selected ? Icons.radio_button_checked_rounded : Icons.radio_button_unchecked_rounded,
-              color: selected ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
+              selected
+                  ? Icons.radio_button_checked_rounded
+                  : Icons.radio_button_unchecked_rounded,
+              color: selected
+                  ? theme.colorScheme.primary
+                  : theme.colorScheme.onSurfaceVariant,
             ),
             const SizedBox(width: AppSpacing.md),
             Icon(icon, size: 20, color: theme.colorScheme.onSurfaceVariant),
@@ -240,7 +286,9 @@ class _PaymentMethodTile extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       subtitle!,
-                      style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ],
                 ],
@@ -254,7 +302,11 @@ class _PaymentMethodTile extends StatelessWidget {
 }
 
 class _SummaryRow extends StatelessWidget {
-  const _SummaryRow({required this.label, required this.value, this.emphasize = false});
+  const _SummaryRow({
+    required this.label,
+    required this.value,
+    this.emphasize = false,
+  });
 
   final String label;
   final String value;
@@ -265,7 +317,9 @@ class _SummaryRow extends StatelessWidget {
     final theme = Theme.of(context);
     final style = emphasize
         ? theme.textTheme.titleMedium
-        : theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant);
+        : theme.textTheme.bodyMedium?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          );
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -276,7 +330,9 @@ class _SummaryRow extends StatelessWidget {
           Flexible(
             child: Text(
               value,
-              style: emphasize ? theme.textTheme.titleMedium : theme.textTheme.bodyMedium,
+              style: emphasize
+                  ? theme.textTheme.titleMedium
+                  : theme.textTheme.bodyMedium,
               textAlign: TextAlign.end,
             ),
           ),

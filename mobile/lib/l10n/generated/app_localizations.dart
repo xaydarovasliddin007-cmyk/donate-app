@@ -272,6 +272,24 @@ abstract class AppLocalizations {
   /// **'Ba\'zi effektlarni o\'chirib, ilovani yengilroq qiling'**
   String get settingsReduceMotionDescription;
 
+  /// No description provided for @settingsNotifications.
+  ///
+  /// In uz, this message translates to:
+  /// **'Bildirishnomalar'**
+  String get settingsNotifications;
+
+  /// No description provided for @settingsNotificationsDescription.
+  ///
+  /// In uz, this message translates to:
+  /// **'Buyurtma va to\'lov holati o\'zgarganda darhol xabar oling'**
+  String get settingsNotificationsDescription;
+
+  /// No description provided for @settingsNotificationsOpenSettings.
+  ///
+  /// In uz, this message translates to:
+  /// **'Bu qurilmada bildirishnomalar bloklangan — yoqish uchun tizim sozlamalarini oching'**
+  String get settingsNotificationsOpenSettings;
+
   /// No description provided for @profileStatOrders.
   ///
   /// In uz, this message translates to:

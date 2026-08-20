@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/localization/locale_controller.dart';
+import '../../../core/notifications/notification_permission_controller.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/reduce_motion_controller.dart';
 import '../../../core/theme/theme_controller.dart';
@@ -98,38 +99,76 @@ class ProfileScreen extends ConsumerWidget {
           ],
 
           const SizedBox(height: AppSpacing.xl),
-          Text(l10n.settingsLanguage, style: Theme.of(context).textTheme.labelLarge),
+          Text(
+            l10n.settingsLanguage,
+            style: Theme.of(context).textTheme.labelLarge,
+          ),
           const SizedBox(height: AppSpacing.sm),
           SegmentedButton<Locale>(
             segments: [
-              ButtonSegment(value: const Locale('uz'), label: Text(l10n.languageUzbek)),
-              ButtonSegment(value: const Locale('ru'), label: Text(l10n.languageRussian)),
+              ButtonSegment(
+                value: const Locale('uz'),
+                label: Text(l10n.languageUzbek),
+              ),
+              ButtonSegment(
+                value: const Locale('ru'),
+                label: Text(l10n.languageRussian),
+              ),
             ],
             selected: {locale},
             onSelectionChanged: (selection) {
-              ref.read(localeControllerProvider.notifier).setLocale(selection.first);
+              ref
+                  .read(localeControllerProvider.notifier)
+                  .setLocale(selection.first);
             },
           ),
 
           const SizedBox(height: AppSpacing.lg),
-          Text(l10n.settingsTheme, style: Theme.of(context).textTheme.labelLarge),
+          Text(
+            l10n.settingsTheme,
+            style: Theme.of(context).textTheme.labelLarge,
+          ),
           const SizedBox(height: AppSpacing.sm),
           SegmentedButton<ThemeMode>(
             segments: [
-              ButtonSegment(value: ThemeMode.light, label: Text(l10n.settingsThemeLight)),
-              ButtonSegment(value: ThemeMode.dark, label: Text(l10n.settingsThemeDark)),
-              ButtonSegment(value: ThemeMode.system, label: Text(l10n.settingsThemeSystem)),
+              ButtonSegment(
+                value: ThemeMode.light,
+                label: Text(l10n.settingsThemeLight),
+              ),
+              ButtonSegment(
+                value: ThemeMode.dark,
+                label: Text(l10n.settingsThemeDark),
+              ),
+              ButtonSegment(
+                value: ThemeMode.system,
+                label: Text(l10n.settingsThemeSystem),
+              ),
             ],
             selected: {themeMode},
             onSelectionChanged: (selection) {
-              ref.read(themeModeControllerProvider.notifier).setThemeMode(selection.first);
+              ref
+                  .read(themeModeControllerProvider.notifier)
+                  .setThemeMode(selection.first);
             },
           ),
 
           const SizedBox(height: AppSpacing.lg),
-          _ReduceMotionRow(
+          _SwitchSettingRow(
+            title: l10n.settingsNotifications,
+            description: l10n.settingsNotificationsDescription,
+            value: ref.watch(notificationPermissionProvider).value ?? false,
+            onChanged: (wantEnabled) => ref
+                .read(notificationPermissionProvider.notifier)
+                .setEnabled(wantEnabled),
+          ),
+
+          const SizedBox(height: AppSpacing.sm),
+          _SwitchSettingRow(
+            title: l10n.settingsReduceMotion,
+            description: l10n.settingsReduceMotionDescription,
             value: reduceMotion,
-            onChanged: (value) => ref.read(reduceMotionProvider.notifier).setReduceMotion(value),
+            onChanged: (value) =>
+                ref.read(reduceMotionProvider.notifier).setReduceMotion(value),
           ),
 
           if (isAuthenticated) ...[
@@ -181,7 +220,9 @@ class _HeaderCard extends StatelessWidget {
                     ),
                     Text(
                       user.email ?? user.phone ?? '',
-                      style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -218,7 +259,9 @@ class _StatsRow extends ConsumerWidget {
                 amountMinor: wallet.balanceMinor,
                 currency: wallet.currency,
                 localeName: localeName,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
               ),
             ),
           ),
@@ -232,7 +275,9 @@ class _StatsRow extends ConsumerWidget {
               error: (_, _) => const Text('—'),
               data: (orders) => Text(
                 '${orders.length}',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
               ),
             ),
           ),
@@ -261,7 +306,12 @@ class _StatTile extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(label, style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+          Text(
+            label,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
           const SizedBox(height: 2),
           value,
         ],
@@ -279,14 +329,21 @@ class _MenuSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        for (final child in children) ...[child, const SizedBox(height: AppSpacing.sm)],
+        for (final child in children) ...[
+          child,
+          const SizedBox(height: AppSpacing.sm),
+        ],
       ],
     );
   }
 }
 
 class _MenuRow extends StatelessWidget {
-  const _MenuRow({required this.icon, required this.label, required this.onTap});
+  const _MenuRow({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
 
   final IconData icon;
   final String label;
@@ -302,7 +359,10 @@ class _MenuRow extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppRadius.md),
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.md),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: AppSpacing.md,
+          ),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(AppRadius.md),
             border: Border.all(color: theme.colorScheme.outlineVariant),
@@ -312,7 +372,10 @@ class _MenuRow extends StatelessWidget {
               Icon(icon, color: theme.colorScheme.onSurfaceVariant, size: 20),
               const SizedBox(width: AppSpacing.md),
               Expanded(child: Text(label, style: theme.textTheme.bodyMedium)),
-              Icon(Icons.chevron_right_rounded, color: theme.colorScheme.onSurfaceVariant),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ],
           ),
         ),
@@ -321,18 +384,27 @@ class _MenuRow extends StatelessWidget {
   }
 }
 
-class _ReduceMotionRow extends StatelessWidget {
-  const _ReduceMotionRow({required this.value, required this.onChanged});
+class _SwitchSettingRow extends StatelessWidget {
+  const _SwitchSettingRow({
+    required this.title,
+    required this.description,
+    required this.value,
+    required this.onChanged,
+  });
 
+  final String title;
+  final String description;
   final bool value;
   final ValueChanged<bool> onChanged;
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
+      ),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(AppRadius.md),
@@ -344,10 +416,12 @@ class _ReduceMotionRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(l10n.settingsReduceMotion, style: theme.textTheme.bodyMedium),
+                Text(title, style: theme.textTheme.bodyMedium),
                 Text(
-                  l10n.settingsReduceMotionDescription,
-                  style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                  description,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ],
             ),
@@ -375,7 +449,11 @@ class _GuestCard extends StatelessWidget {
         children: [
           Text(l10n.profileGuestTitle, style: theme.textTheme.titleMedium),
           const SizedBox(height: AppSpacing.sm),
-          Text(l10n.profileGuestMessage, textAlign: TextAlign.center, style: theme.textTheme.bodyMedium),
+          Text(
+            l10n.profileGuestMessage,
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium,
+          ),
           const SizedBox(height: AppSpacing.lg),
           Row(
             children: [

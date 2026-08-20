@@ -12,13 +12,11 @@ abstract final class AppConfig {
 
   /// The OAuth 2.0 Web client ID from Google Cloud Console (used as
   /// `serverClientId` so the backend receives a token it can verify).
-  /// Empty by default: Google sign-in is real, fully-wired code, but a GCP
-  /// project's credentials can't be invented — see mobile/README.md for
-  /// setup. When empty, the UI disables the button instead of crashing.
   ///
   /// Example: flutter run --dart-define=GOOGLE_SERVER_CLIENT_ID=xxx.apps.googleusercontent.com
   static const String googleServerClientId = String.fromEnvironment(
     'GOOGLE_SERVER_CLIENT_ID',
+    defaultValue: '223785346997-vphv1k7i131r72orkhj05dnvvhocd9br.apps.googleusercontent.com',
   );
 
   static bool get isGoogleSignInConfigured => googleServerClientId.isNotEmpty;

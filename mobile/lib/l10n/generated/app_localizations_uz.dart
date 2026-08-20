@@ -101,6 +101,17 @@ class AppLocalizationsUz extends AppLocalizations {
       'Ba\'zi effektlarni o\'chirib, ilovani yengilroq qiling';
 
   @override
+  String get settingsNotifications => 'Bildirishnomalar';
+
+  @override
+  String get settingsNotificationsDescription =>
+      'Buyurtma va to\'lov holati o\'zgarganda darhol xabar oling';
+
+  @override
+  String get settingsNotificationsOpenSettings =>
+      'Bu qurilmada bildirishnomalar bloklangan — yoqish uchun tizim sozlamalarini oching';
+
+  @override
   String get profileStatOrders => 'Buyurtmalar';
 
   @override

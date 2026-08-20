@@ -101,6 +101,17 @@ class AppLocalizationsRu extends AppLocalizations {
       'Отключите часть эффектов, чтобы приложение работало легче';
 
   @override
+  String get settingsNotifications => 'Уведомления';
+
+  @override
+  String get settingsNotificationsDescription =>
+      'Узнавайте сразу, когда статус заказа или оплаты изменится';
+
+  @override
+  String get settingsNotificationsOpenSettings =>
+      'Уведомления заблокированы на этом устройстве — откройте системные настройки, чтобы включить';
+
+  @override
   String get profileStatOrders => 'Заказы';
 
   @override

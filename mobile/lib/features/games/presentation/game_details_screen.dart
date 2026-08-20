@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -24,98 +25,167 @@ class GameDetailsScreen extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final gameAsync = ref.watch(gameByIdProvider(gameId));
 
-    return Scaffold(
-      appBar: AppBar(title: Text(gameAsync.value?.name ?? l10n.gameDetailsTopupTitle)),
-      body: gameAsync.when(
-        loading: () => const LoadingView(),
-        error: (error, _) {
-          final failure = Failure.from(error);
-          return ErrorView(
-            title: failure.isNetworkError ? l10n.errorNoConnectionTitle : l10n.errorGenericTitle,
-            message: failure.isNetworkError ? l10n.errorNoConnectionMessage : l10n.errorGenericMessage,
+    return gameAsync.when(
+      loading: () => const Scaffold(body: LoadingView()),
+      error: (error, _) {
+        final failure = Failure.from(error);
+        return Scaffold(
+          appBar: AppBar(),
+          body: ErrorView(
+            title: failure.isNetworkError
+                ? l10n.errorNoConnectionTitle
+                : l10n.errorGenericTitle,
+            message: failure.isNetworkError
+                ? l10n.errorNoConnectionMessage
+                : l10n.errorGenericMessage,
             retryLabel: l10n.commonRetry,
             onRetry: () => ref.invalidate(gameByIdProvider(gameId)),
-          );
-        },
-        data: (game) {
-          if (!game.isPurchasable) {
-            return EmptyView(
+          ),
+        );
+      },
+      data: (game) {
+        if (!game.isPurchasable) {
+          return Scaffold(
+            appBar: AppBar(title: Text(game.name)),
+            body: EmptyView(
               icon: Icons.hourglass_top_rounded,
               title: l10n.commonComingSoon,
               message: l10n.gameNotAvailableMessage,
-            );
-          }
-          return _ProductsList(game: game);
-        },
-      ),
+            ),
+          );
+        }
+        return _GameDetailsBody(game: game);
+      },
     );
   }
 }
 
-class _ProductsList extends ConsumerStatefulWidget {
-  const _ProductsList({required this.game});
+/// A big cover-art hero header (collapsing on scroll) above the server
+/// picker and product grid — the game's own page should feel at least as
+/// premium as its card did in the catalog grid, not drop back to a plain
+/// text app bar.
+class _GameDetailsBody extends ConsumerStatefulWidget {
+  const _GameDetailsBody({required this.game});
 
   final Game game;
 
   @override
-  ConsumerState<_ProductsList> createState() => _ProductsListState();
+  ConsumerState<_GameDetailsBody> createState() => _GameDetailsBodyState();
 }
 
-class _ProductsListState extends ConsumerState<_ProductsList> {
+class _GameDetailsBodyState extends ConsumerState<_GameDetailsBody> {
   String? _selectedServerCode;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
     final serversAsync = ref.watch(gameServersProvider(widget.game.id));
 
-    return serversAsync.when(
-      loading: () => const LoadingView(),
-      error: (error, _) {
-        final failure = Failure.from(error);
-        return ErrorView(
-          title: failure.isNetworkError ? l10n.errorNoConnectionTitle : l10n.errorGenericTitle,
-          message: failure.isNetworkError ? l10n.errorNoConnectionMessage : l10n.errorGenericMessage,
-          retryLabel: l10n.commonRetry,
-          onRetry: () => ref.invalidate(gameServersProvider(widget.game.id)),
-        );
-      },
-      data: (servers) {
-        // Default to the first server the first time servers load — after
-        // that this field is the single source of truth for the selection.
-        if (servers.isNotEmpty && _selectedServerCode == null) {
-          _selectedServerCode = servers.first.code;
-        }
-        final selectedServer = servers.isEmpty
-            ? null
-            : servers.firstWhere(
-                (s) => s.code == _selectedServerCode,
-                orElse: () => servers.first,
-              );
-
-        return Column(
-          children: [
-            if (servers.length > 1)
-              _ServerPicker(
-                servers: servers,
-                selectedCode: selectedServer!.code,
-                onSelect: (code) => setState(() => _selectedServerCode = code),
+    return Scaffold(
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            pinned: true,
+            expandedHeight: 200,
+            surfaceTintColor: Colors.transparent,
+            flexibleSpace: FlexibleSpaceBar(
+              titlePadding: const EdgeInsetsDirectional.only(
+                start: 56,
+                bottom: 14,
+                end: 16,
               ),
-            Expanded(
-              child: _ProductGrid(
-                game: widget.game,
-                server: selectedServer,
+              title: Text(
+                widget.game.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: Colors.white,
+                ),
+              ),
+              background: Stack(
+                fit: StackFit.expand,
+                children: [
+                  if (widget.game.logoUrl != null)
+                    CachedNetworkImage(
+                      imageUrl: widget.game.logoUrl!,
+                      fit: BoxFit.cover,
+                    )
+                  else
+                    ColoredBox(color: theme.colorScheme.primaryContainer),
+                  const DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        stops: [0.35, 1.0],
+                        colors: [Colors.transparent, Color(0xE6000000)],
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
-        );
-      },
+          ),
+          serversAsync.when(
+            loading: () => const SliverFillRemaining(child: LoadingView()),
+            error: (error, _) {
+              final failure = Failure.from(error);
+              return SliverFillRemaining(
+                child: ErrorView(
+                  title: failure.isNetworkError
+                      ? l10n.errorNoConnectionTitle
+                      : l10n.errorGenericTitle,
+                  message: failure.isNetworkError
+                      ? l10n.errorNoConnectionMessage
+                      : l10n.errorGenericMessage,
+                  retryLabel: l10n.commonRetry,
+                  onRetry: () =>
+                      ref.invalidate(gameServersProvider(widget.game.id)),
+                ),
+              );
+            },
+            data: (servers) {
+              // Default to the first server the first time servers load —
+              // after that this field is the single source of truth.
+              if (servers.isNotEmpty && _selectedServerCode == null) {
+                _selectedServerCode = servers.first.code;
+              }
+              final selectedServer = servers.isEmpty
+                  ? null
+                  : servers.firstWhere(
+                      (s) => s.code == _selectedServerCode,
+                      orElse: () => servers.first,
+                    );
+
+              return SliverMainAxisGroup(
+                slivers: [
+                  if (servers.length > 1)
+                    SliverToBoxAdapter(
+                      child: _ServerPicker(
+                        servers: servers,
+                        selectedCode: selectedServer!.code,
+                        onSelect: (code) =>
+                            setState(() => _selectedServerCode = code),
+                      ),
+                    ),
+                  _ProductGrid(game: widget.game, server: selectedServer),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 }
 
 class _ServerPicker extends StatelessWidget {
-  const _ServerPicker({required this.servers, required this.selectedCode, required this.onSelect});
+  const _ServerPicker({
+    required this.servers,
+    required this.selectedCode,
+    required this.onSelect,
+  });
 
   final List<GameServer> servers;
   final String selectedCode;
@@ -125,11 +195,19 @@ class _ServerPicker extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.md, AppSpacing.lg, 0),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        AppSpacing.md,
+        AppSpacing.lg,
+        0,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(l10n.gameServerPickerLabel, style: Theme.of(context).textTheme.labelLarge),
+          Text(
+            l10n.gameServerPickerLabel,
+            style: Theme.of(context).textTheme.labelLarge,
+          ),
           const SizedBox(height: AppSpacing.sm),
           SizedBox(
             height: 40,
@@ -167,43 +245,63 @@ class _ProductGrid extends ConsumerWidget {
     );
 
     return productsAsync.when(
-      loading: () => const LoadingView(),
+      loading: () => const SliverFillRemaining(child: LoadingView()),
       error: (error, _) {
         final failure = Failure.from(error);
-        return ErrorView(
-          title: failure.isNetworkError ? l10n.errorNoConnectionTitle : l10n.errorGenericTitle,
-          message: failure.isNetworkError ? l10n.errorNoConnectionMessage : l10n.errorGenericMessage,
-          retryLabel: l10n.commonRetry,
-          onRetry: () => ref.invalidate(gameProductsProvider((gameId: game.id, serverCode: server?.code))),
+        return SliverFillRemaining(
+          child: ErrorView(
+            title: failure.isNetworkError
+                ? l10n.errorNoConnectionTitle
+                : l10n.errorGenericTitle,
+            message: failure.isNetworkError
+                ? l10n.errorNoConnectionMessage
+                : l10n.errorGenericMessage,
+            retryLabel: l10n.commonRetry,
+            onRetry: () => ref.invalidate(
+              gameProductsProvider((gameId: game.id, serverCode: server?.code)),
+            ),
+          ),
         );
       },
       data: (products) {
         if (products.isEmpty) {
-          return EmptyView(title: l10n.gameProductsEmptyTitle);
+          return SliverFillRemaining(
+            child: EmptyView(title: l10n.gameProductsEmptyTitle),
+          );
         }
-        return GridView.builder(
+        return SliverPadding(
           padding: const EdgeInsets.all(AppSpacing.lg),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            mainAxisSpacing: AppSpacing.sm,
-            crossAxisSpacing: AppSpacing.sm,
-            childAspectRatio: 0.92,
+          sliver: SliverGrid(
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              mainAxisSpacing: AppSpacing.sm,
+              crossAxisSpacing: AppSpacing.sm,
+              childAspectRatio: 0.92,
+            ),
+            delegate: SliverChildBuilderDelegate((context, i) {
+              final product = products[i];
+              return ProductCard(
+                product: product,
+                onTap: () => _onProductTap(context, ref, product),
+              );
+            }, childCount: products.length),
           ),
-          itemCount: products.length,
-          itemBuilder: (context, i) {
-            final product = products[i];
-            return ProductCard(product: product, onTap: () => _onProductTap(context, ref, product));
-          },
         );
       },
     );
   }
 
-  Future<void> _onProductTap(BuildContext context, WidgetRef ref, Product product) async {
-    final isAuthenticated = ref.read(authControllerProvider).value?.isAuthenticated ?? false;
+  Future<void> _onProductTap(
+    BuildContext context,
+    WidgetRef ref,
+    Product product,
+  ) async {
+    final isAuthenticated =
+        ref.read(authControllerProvider).value?.isAuthenticated ?? false;
     if (!isAuthenticated) {
       await context.push('/login');
-      final stillGuest = !(ref.read(authControllerProvider).value?.isAuthenticated ?? false);
+      final stillGuest =
+          !(ref.read(authControllerProvider).value?.isAuthenticated ?? false);
       if (stillGuest || !context.mounted) return;
     }
     if (context.mounted) {

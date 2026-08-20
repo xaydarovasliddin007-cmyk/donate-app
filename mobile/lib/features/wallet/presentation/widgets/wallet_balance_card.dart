@@ -7,6 +7,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/reduce_motion_controller.dart';
 import '../../../../core/utils/support_launcher.dart';
 import '../../../../core/widgets/animated_balance.dart';
+import '../../../../core/widgets/card_sheen.dart';
 import '../../../../core/widgets/skeleton_box.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 import '../../../auth/application/auth_controller.dart';
@@ -31,7 +32,9 @@ class _WalletBalanceCardState extends ConsumerState<WalletBalanceCard> {
 
   String _maskedId(String publicId) {
     final digits = publicId.replaceAll(RegExp(r'[^0-9A-Za-z]'), '');
-    final tail = digits.length > 4 ? digits.substring(digits.length - 4) : digits;
+    final tail = digits.length > 4
+        ? digits.substring(digits.length - 4)
+        : digits;
     return '•••• $tail';
   }
 
@@ -43,7 +46,9 @@ class _WalletBalanceCardState extends ConsumerState<WalletBalanceCard> {
     final localeName = Localizations.localeOf(context).toString();
     final walletAsync = ref.watch(walletProvider);
     final user = ref.watch(authControllerProvider).value?.user;
-    final gradient = isDark ? AppColors.heroGradientDark : AppColors.heroGradientLight;
+    final gradient = isDark
+        ? AppColors.heroGradientDark
+        : AppColors.heroGradientLight;
     final reduceMotion = ref.watch(reduceMotionProvider);
 
     return TweenAnimationBuilder<double>(
@@ -53,7 +58,10 @@ class _WalletBalanceCardState extends ConsumerState<WalletBalanceCard> {
       builder: (context, t, child) {
         return Opacity(
           opacity: t,
-          child: Transform.translate(offset: Offset(0, (1 - t) * 4), child: child),
+          child: Transform.translate(
+            offset: Offset(0, (1 - t) * 4),
+            child: child,
+          ),
         );
       },
       child: Padding(
@@ -63,10 +71,8 @@ class _WalletBalanceCardState extends ConsumerState<WalletBalanceCard> {
           children: [
             AspectRatio(
               aspectRatio: 1.7,
-              child: Container(
-                padding: const EdgeInsets.all(AppSpacing.lg),
+              child: DecoratedBox(
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: gradient),
                   borderRadius: BorderRadius.circular(AppRadius.xl),
                   boxShadow: [
                     BoxShadow(
@@ -76,95 +82,129 @@ class _WalletBalanceCardState extends ConsumerState<WalletBalanceCard> {
                     ),
                   ],
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+                child: CardSheen(
+                  borderRadius: BorderRadius.circular(AppRadius.xl),
+                  enabled: !reduceMotion,
+                  child: Container(
+                    padding: const EdgeInsets.all(AppSpacing.lg),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: gradient,
+                      ),
+                      borderRadius: BorderRadius.circular(AppRadius.xl),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.16),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'UZDONATE',
-                          style: theme.textTheme.labelLarge?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 1,
-                          ),
-                        ),
-                        const Spacer(),
-                        InkWell(
-                          borderRadius: BorderRadius.circular(AppRadius.pill),
-                          onTap: () => setState(() => _hidden = !_hidden),
-                          child: Padding(
-                            padding: const EdgeInsets.all(4),
-                            child: Icon(
-                              _hidden ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                              size: 18,
-                              color: Colors.white70,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const Spacer(),
-                    Text(
-                      l10n.walletBalanceLabel,
-                      style: theme.textTheme.labelSmall?.copyWith(color: Colors.white70),
-                    ),
-                    const SizedBox(height: 2),
-                    AnimatedSwitcher(
-                      duration: AppMotion.fast,
-                      child: _hidden
-                          ? Text(
-                              '••••••',
-                              key: const ValueKey('hidden'),
-                              style: theme.textTheme.headlineSmall?.copyWith(
-                                fontWeight: FontWeight.w800,
+                        Row(
+                          children: [
+                            Text(
+                              'UZDONATE',
+                              style: theme.textTheme.labelLarge?.copyWith(
                                 color: Colors.white,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 1,
                               ),
-                            )
-                          : walletAsync.when(
-                              loading: () => SkeletonBox(
-                                key: const ValueKey('loading'),
-                                width: 140,
-                                height: 26,
-                                borderRadius: BorderRadius.circular(AppRadius.sm),
+                            ),
+                            const Spacer(),
+                            InkWell(
+                              borderRadius: BorderRadius.circular(
+                                AppRadius.pill,
                               ),
-                              error: (_, _) => Text(
-                                '—',
-                                key: const ValueKey('error'),
-                                style: theme.textTheme.headlineSmall?.copyWith(color: Colors.white),
-                              ),
-                              data: (wallet) => AnimatedBalance(
-                                key: const ValueKey('visible'),
-                                amountMinor: wallet.balanceMinor,
-                                currency: wallet.currency,
-                                localeName: localeName,
-                                style: theme.textTheme.headlineSmall?.copyWith(
-                                  fontWeight: FontWeight.w800,
-                                  color: Colors.white,
+                              onTap: () => setState(() => _hidden = !_hidden),
+                              child: Padding(
+                                padding: const EdgeInsets.all(4),
+                                child: Icon(
+                                  _hidden
+                                      ? Icons.visibility_off_outlined
+                                      : Icons.visibility_outlined,
+                                  size: 18,
+                                  color: Colors.white70,
                                 ),
                               ),
                             ),
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    Row(
-                      children: [
-                        Text(
-                          _maskedId(user?.publicId ?? ''),
-                          style: theme.textTheme.titleSmall?.copyWith(color: Colors.white, letterSpacing: 1.5),
+                          ],
                         ),
                         const Spacer(),
-                        if (user?.displayName != null)
-                          Flexible(
-                            child: Text(
-                              user!.displayName!,
-                              style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
+                        Text(
+                          l10n.walletBalanceLabel,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: Colors.white70,
                           ),
+                        ),
+                        const SizedBox(height: 2),
+                        AnimatedSwitcher(
+                          duration: AppMotion.fast,
+                          child: _hidden
+                              ? Text(
+                                  '••••••',
+                                  key: const ValueKey('hidden'),
+                                  style: theme.textTheme.headlineSmall
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.w800,
+                                        color: Colors.white,
+                                      ),
+                                )
+                              : walletAsync.when(
+                                  loading: () => SkeletonBox(
+                                    key: const ValueKey('loading'),
+                                    width: 140,
+                                    height: 26,
+                                    borderRadius: BorderRadius.circular(
+                                      AppRadius.sm,
+                                    ),
+                                  ),
+                                  error: (_, _) => Text(
+                                    '—',
+                                    key: const ValueKey('error'),
+                                    style: theme.textTheme.headlineSmall
+                                        ?.copyWith(color: Colors.white),
+                                  ),
+                                  data: (wallet) => AnimatedBalance(
+                                    key: const ValueKey('visible'),
+                                    amountMinor: wallet.balanceMinor,
+                                    currency: wallet.currency,
+                                    localeName: localeName,
+                                    style: theme.textTheme.headlineSmall
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.w800,
+                                          color: Colors.white,
+                                        ),
+                                  ),
+                                ),
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                        Row(
+                          children: [
+                            Text(
+                              _maskedId(user?.publicId ?? ''),
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                color: Colors.white,
+                                letterSpacing: 1.5,
+                              ),
+                            ),
+                            const Spacer(),
+                            if (user?.displayName != null)
+                              Flexible(
+                                child: Text(
+                                  user!.displayName!,
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: Colors.white70,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                          ],
+                        ),
                       ],
                     ),
-                  ],
+                  ),
                 ),
               ),
             ),
@@ -199,7 +239,11 @@ class _WalletBalanceCardState extends ConsumerState<WalletBalanceCard> {
 }
 
 class _QuickActionPill extends StatelessWidget {
-  const _QuickActionPill({required this.icon, required this.label, required this.onTap});
+  const _QuickActionPill({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
 
   final IconData icon;
   final String label;

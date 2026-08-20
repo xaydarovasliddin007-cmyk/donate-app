@@ -3,6 +3,10 @@
          manifests already declare this for the Flutter tool's own needs, but
          release builds need it declared here explicitly too. -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Android 13+ requires this to show any notification, including the
+         locally-triggered ones this app posts (order updates, promotions)
+         while running — see core/notifications/local_notifications_service.dart. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <application
         android:label="UZDONATE"
         android:name="${applicationName}"
