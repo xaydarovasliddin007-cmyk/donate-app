@@ -24,19 +24,26 @@ class GamesApi {
   Future<List<GameServer>> listGameServers(String gameId) async {
     final json = await _client.get('/games/$gameId/servers');
     final servers = json['servers'] as List<dynamic>;
-    return servers.map((s) => GameServer.fromJson(s as Map<String, dynamic>)).toList();
+    return servers
+        .map((s) => GameServer.fromJson(s as Map<String, dynamic>))
+        .toList();
   }
 
   /// [serverCode] is required (and validated server-side) for games with a
   /// server catalog — omitting it there returns an empty list rather than an
   /// error, matching /orders' own resolution so what's shown and what's
   /// buyable never disagree.
-  Future<List<Product>> listGameProducts(String gameId, {String? serverCode}) async {
+  Future<List<Product>> listGameProducts(
+    String gameId, {
+    String? serverCode,
+  }) async {
     final json = await _client.get(
       '/games/$gameId/products',
       query: serverCode != null ? {'serverId': serverCode} : null,
     );
     final products = json['products'] as List<dynamic>;
-    return products.map((p) => Product.fromJson(p as Map<String, dynamic>)).toList();
+    return products
+        .map((p) => Product.fromJson(p as Map<String, dynamic>))
+        .toList();
   }
 }

@@ -5,7 +5,12 @@ import '../../../../core/theme/app_spacing.dart';
 /// glyph (no image asset, no icon-font dependency) so it never depends on a
 /// network fetch or a missing asset.
 class GoogleAuthButton extends StatelessWidget {
-  const GoogleAuthButton({super.key, required this.label, this.onPressed, this.loading = false});
+  const GoogleAuthButton({
+    super.key,
+    required this.label,
+    this.onPressed,
+    this.loading = false,
+  });
 
   final String label;
   final VoidCallback? onPressed;
@@ -20,7 +25,9 @@ class GoogleAuthButton extends StatelessWidget {
         onPressed: loading ? null : onPressed,
         style: OutlinedButton.styleFrom(
           side: BorderSide(color: theme.colorScheme.outlineVariant),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.md)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.md),
+          ),
         ),
         child: loading
             ? const SizedBox(
@@ -52,7 +59,11 @@ class _GoogleGlyph extends StatelessWidget {
       child: Center(
         child: Text(
           'G',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF4285F4)),
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
+            color: Color(0xFF4285F4),
+          ),
         ),
       ),
     );

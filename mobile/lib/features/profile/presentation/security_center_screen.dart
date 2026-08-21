@@ -22,8 +22,14 @@ class SecurityCenterScreen extends ConsumerWidget {
         title: Text(l10n.securityLogoutAllConfirmTitle),
         content: Text(l10n.securityLogoutAllConfirmMessage),
         actions: [
-          TextButton(onPressed: () => Navigator.of(dialogContext).pop(false), child: Text(l10n.commonCancel)),
-          FilledButton(onPressed: () => Navigator.of(dialogContext).pop(true), child: Text(l10n.securityLogoutAllButton)),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(l10n.commonCancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(l10n.securityLogoutAllButton),
+          ),
         ],
       ),
     );
@@ -33,7 +39,10 @@ class SecurityCenterScreen extends ConsumerWidget {
     }
   }
 
-  Future<void> _confirmDeleteAccount(BuildContext context, WidgetRef ref) async {
+  Future<void> _confirmDeleteAccount(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
     final l10n = AppLocalizations.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
@@ -41,9 +50,14 @@ class SecurityCenterScreen extends ConsumerWidget {
         title: Text(l10n.securityDeleteAccountConfirmTitle),
         content: Text(l10n.securityDeleteAccountConfirmMessage),
         actions: [
-          TextButton(onPressed: () => Navigator.of(dialogContext).pop(false), child: Text(l10n.commonCancel)),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(l10n.commonCancel),
+          ),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Theme.of(dialogContext).colorScheme.error),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(dialogContext).colorScheme.error,
+            ),
             onPressed: () => Navigator.of(dialogContext).pop(true),
             child: Text(l10n.securityDeleteAccountButton),
           ),
@@ -55,7 +69,9 @@ class SecurityCenterScreen extends ConsumerWidget {
     final messenger = ScaffoldMessenger.of(context);
     try {
       await ref.read(authApiProvider).requestAccountDeletion();
-      messenger.showSnackBar(SnackBar(content: Text(l10n.securityDeleteAccountSuccessMessage)));
+      messenger.showSnackBar(
+        SnackBar(content: Text(l10n.securityDeleteAccountSuccessMessage)),
+      );
       await ref.read(authControllerProvider.notifier).logout();
     } catch (error) {
       final message = error is ApiException && error.code == 'WALLET_NOT_EMPTY'
@@ -78,7 +94,10 @@ class SecurityCenterScreen extends ConsumerWidget {
         child: ListView(
           padding: const EdgeInsets.all(AppSpacing.lg),
           children: [
-            Text(l10n.securityAccountSection, style: theme.textTheme.titleSmall),
+            Text(
+              l10n.securityAccountSection,
+              style: theme.textTheme.titleSmall,
+            ),
             const SizedBox(height: AppSpacing.sm),
             Card(
               child: Column(
@@ -92,7 +111,9 @@ class SecurityCenterScreen extends ConsumerWidget {
                   ListTile(
                     leading: Icon(
                       Icons.g_mobiledata_rounded,
-                      color: user?.hasGoogleAccount == true ? theme.colorScheme.primary : null,
+                      color: user?.hasGoogleAccount == true
+                          ? theme.colorScheme.primary
+                          : null,
                     ),
                     title: Text(
                       user?.hasGoogleAccount == true
@@ -100,19 +121,29 @@ class SecurityCenterScreen extends ConsumerWidget {
                           : l10n.securityGoogleNotLinkedLabel,
                     ),
                     trailing: user?.hasGoogleAccount == true
-                        ? Icon(Icons.check_circle_rounded, color: theme.colorScheme.primary, size: 20)
+                        ? Icon(
+                            Icons.check_circle_rounded,
+                            color: theme.colorScheme.primary,
+                            size: 20,
+                          )
                         : null,
                   ),
                 ],
               ),
             ),
             const SizedBox(height: AppSpacing.xl),
-            Text(l10n.securitySessionsSection, style: theme.textTheme.titleSmall),
+            Text(
+              l10n.securitySessionsSection,
+              style: theme.textTheme.titleSmall,
+            ),
             const SizedBox(height: AppSpacing.sm),
             sessionsAsync.when(
               loading: () => const Column(
                 children: [
-                  Padding(padding: EdgeInsets.only(bottom: AppSpacing.sm), child: ListRowSkeleton()),
+                  Padding(
+                    padding: EdgeInsets.only(bottom: AppSpacing.sm),
+                    child: ListRowSkeleton(),
+                  ),
                   ListRowSkeleton(),
                 ],
               ),
@@ -144,16 +175,30 @@ class SecurityCenterScreen extends ConsumerWidget {
             OutlinedButton.icon(
               onPressed: () => _confirmLogoutAll(context, ref),
               icon: Icon(Icons.logout_rounded, color: theme.colorScheme.error),
-              label: Text(l10n.securityLogoutAllButton, style: TextStyle(color: theme.colorScheme.error)),
+              label: Text(
+                l10n.securityLogoutAllButton,
+                style: TextStyle(color: theme.colorScheme.error),
+              ),
             ),
             const SizedBox(height: AppSpacing.xl),
-            Text(l10n.securityDeleteAccountSection, style: theme.textTheme.titleSmall),
+            Text(
+              l10n.securityDeleteAccountSection,
+              style: theme.textTheme.titleSmall,
+            ),
             const SizedBox(height: AppSpacing.sm),
             OutlinedButton.icon(
               onPressed: () => _confirmDeleteAccount(context, ref),
-              style: OutlinedButton.styleFrom(side: BorderSide(color: theme.colorScheme.error)),
-              icon: Icon(Icons.delete_forever_outlined, color: theme.colorScheme.error),
-              label: Text(l10n.securityDeleteAccountButton, style: TextStyle(color: theme.colorScheme.error)),
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(color: theme.colorScheme.error),
+              ),
+              icon: Icon(
+                Icons.delete_forever_outlined,
+                color: theme.colorScheme.error,
+              ),
+              label: Text(
+                l10n.securityDeleteAccountButton,
+                style: TextStyle(color: theme.colorScheme.error),
+              ),
             ),
           ],
         ),
@@ -170,7 +215,8 @@ class _SessionTile extends ConsumerWidget {
   String _deviceLabel(String? userAgent) {
     if (userAgent == null || userAgent.isEmpty) return 'Unknown device';
     if (userAgent.contains('Android')) return 'Android device';
-    if (userAgent.contains('iPhone') || userAgent.contains('iOS')) return 'iPhone';
+    if (userAgent.contains('iPhone') || userAgent.contains('iOS'))
+      return 'iPhone';
     if (userAgent.contains('Windows')) return 'Windows';
     if (userAgent.contains('Macintosh')) return 'Mac';
     return userAgent.length > 40 ? '${userAgent.substring(0, 40)}…' : userAgent;
@@ -190,18 +236,26 @@ class _SessionTile extends ConsumerWidget {
       ),
       child: Row(
         children: [
-          Icon(Icons.devices_rounded, color: theme.colorScheme.onSurfaceVariant),
+          Icon(
+            Icons.devices_rounded,
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
           const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(_deviceLabel(session.userAgent), style: theme.textTheme.titleSmall),
+                Text(
+                  _deviceLabel(session.userAgent),
+                  style: theme.textTheme.titleSmall,
+                ),
                 const SizedBox(height: 2),
                 Text(
                   session.ipAddress ?? '',
-                  style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ],
             ),

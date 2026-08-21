@@ -26,7 +26,9 @@ class ApiClient {
       InterceptorsWrapper(onRequest: _onRequest, onError: _onError),
     );
     if (kDebugMode) {
-      _dio.interceptors.add(LogInterceptor(requestBody: true, responseBody: true));
+      _dio.interceptors.add(
+        LogInterceptor(requestBody: true, responseBody: true),
+      );
     }
   }
 
@@ -49,7 +51,10 @@ class ApiClient {
     handler.next(options);
   }
 
-  Future<void> _onError(DioException error, ErrorInterceptorHandler handler) async {
+  Future<void> _onError(
+    DioException error,
+    ErrorInterceptorHandler handler,
+  ) async {
     final isUnauthorized = error.response?.statusCode == 401;
     final isRefreshCall = error.requestOptions.path.contains('/auth/refresh');
     final alreadyRetried = error.requestOptions.extra['retried'] == true;
@@ -93,15 +98,22 @@ class ApiClient {
       final newAccessToken = data['accessToken'] as String;
       final newRefreshToken = data['refreshToken'] as String;
       _accessToken = newAccessToken;
-      await tokenStorage.saveTokens(accessToken: newAccessToken, refreshToken: newRefreshToken);
+      await tokenStorage.saveTokens(
+        accessToken: newAccessToken,
+        refreshToken: newRefreshToken,
+      );
       return true;
     } catch (_) {
       return false;
     }
   }
 
-  Future<Map<String, dynamic>> get(String path, {Map<String, dynamic>? query}) =>
-      _request(() => _dio.get<Map<String, dynamic>>(path, queryParameters: query));
+  Future<Map<String, dynamic>> get(
+    String path, {
+    Map<String, dynamic>? query,
+  }) => _request(
+    () => _dio.get<Map<String, dynamic>>(path, queryParameters: query),
+  );
 
   Future<Map<String, dynamic>> post(String path, {Object? body}) =>
       _request(() => _dio.post<Map<String, dynamic>>(path, data: body));

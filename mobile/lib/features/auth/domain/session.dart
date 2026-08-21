@@ -1,5 +1,10 @@
 class Session {
-  const Session({required this.id, required this.userAgent, required this.ipAddress, required this.createdAt});
+  const Session({
+    required this.id,
+    required this.userAgent,
+    required this.ipAddress,
+    required this.createdAt,
+  });
 
   final String id;
   final String? userAgent;

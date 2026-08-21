@@ -9,7 +9,11 @@ import '../theme/reduce_motion_controller.dart';
 /// The delay is capped so a long grid never feels slow to finish appearing,
 /// and skipped entirely when the user has "reduce animations" on.
 class StaggeredEntrance extends ConsumerStatefulWidget {
-  const StaggeredEntrance({super.key, required this.index, required this.child});
+  const StaggeredEntrance({
+    super.key,
+    required this.index,
+    required this.child,
+  });
 
   final int index;
   final Widget child;
@@ -29,7 +33,7 @@ class _StaggeredEntranceState extends ConsumerState<StaggeredEntrance> {
       _visible = true;
       return;
     }
-    final delayMs = (widget.index * 10).clamp(0, 80);
+    final delayMs = (widget.index * 18).clamp(0, 140);
     Future.delayed(Duration(milliseconds: delayMs), () {
       if (mounted) setState(() => _visible = true);
     });
@@ -44,7 +48,7 @@ class _StaggeredEntranceState extends ConsumerState<StaggeredEntrance> {
       duration: duration,
       curve: AppMotion.standard,
       child: AnimatedSlide(
-        offset: _visible ? Offset.zero : const Offset(0, 0.03),
+        offset: _visible ? Offset.zero : const Offset(0, 0.05),
         duration: duration,
         curve: AppMotion.standard,
         child: widget.child,

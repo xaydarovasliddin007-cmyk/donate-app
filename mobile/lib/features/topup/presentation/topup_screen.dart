@@ -6,6 +6,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/utils/money_formatter.dart';
 import '../../../core/widgets/error_view.dart';
 import '../../../core/widgets/loading_view.dart';
+import '../../../core/widgets/pressable_scale.dart';
 import '../../../core/widgets/success_checkmark.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../wallet/application/wallet_providers.dart';
@@ -69,7 +70,9 @@ class _TopupScreenState extends ConsumerState<TopupScreen> {
           .createTopUpRequest(
             receivingMethodId: _selectedMethodId!,
             amountMinor: (amountMajor * 100).round(),
-            userReference: _referenceController.text.trim().isEmpty ? null : _referenceController.text.trim(),
+            userReference: _referenceController.text.trim().isEmpty
+                ? null
+                : _referenceController.text.trim(),
           );
       ref.invalidate(walletProvider);
 
@@ -81,7 +84,10 @@ class _TopupScreenState extends ConsumerState<TopupScreen> {
           title: Text(l10n.topupSuccessTitle),
           content: Text(l10n.topupSuccessMessage),
           actions: [
-            TextButton(onPressed: () => Navigator.of(context).pop(), child: Text(l10n.commonClose)),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(l10n.commonClose),
+            ),
           ],
         ),
       );
@@ -89,7 +95,9 @@ class _TopupScreenState extends ConsumerState<TopupScreen> {
     } catch (error) {
       final failure = Failure.from(error);
       setState(() {
-        _errorMessage = failure.isNetworkError ? l10n.errorNoConnectionMessage : failure.message;
+        _errorMessage = failure.isNetworkError
+            ? l10n.errorNoConnectionMessage
+            : failure.message;
       });
     } finally {
       if (mounted) setState(() => _submitting = false);
@@ -110,8 +118,12 @@ class _TopupScreenState extends ConsumerState<TopupScreen> {
           error: (error, _) {
             final failure = Failure.from(error);
             return ErrorView(
-              title: failure.isNetworkError ? l10n.errorNoConnectionTitle : l10n.errorGenericTitle,
-              message: failure.isNetworkError ? l10n.errorNoConnectionMessage : l10n.errorGenericMessage,
+              title: failure.isNetworkError
+                  ? l10n.errorNoConnectionTitle
+                  : l10n.errorGenericTitle,
+              message: failure.isNetworkError
+                  ? l10n.errorNoConnectionMessage
+                  : l10n.errorGenericMessage,
               retryLabel: l10n.commonRetry,
               onRetry: () => ref.invalidate(receivingMethodsProvider),
             );
@@ -124,9 +136,16 @@ class _TopupScreenState extends ConsumerState<TopupScreen> {
                 const SizedBox(height: AppSpacing.sm),
                 TextField(
                   controller: _amountController,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: false),
-                  style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
-                  decoration: InputDecoration(hintText: l10n.topupAmountHint, suffixText: 'UZS'),
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: false,
+                  ),
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: l10n.topupAmountHint,
+                    suffixText: 'UZS',
+                  ),
                   onChanged: (_) => setState(() => _selectedPreset = null),
                 ),
                 const SizedBox(height: AppSpacing.sm),
@@ -136,14 +155,23 @@ class _TopupScreenState extends ConsumerState<TopupScreen> {
                   children: [
                     for (final preset in _presetAmounts)
                       ChoiceChip(
-                        label: Text(formatMoney(preset * 100, 'UZS', Localizations.localeOf(context).toString())),
+                        label: Text(
+                          formatMoney(
+                            preset * 100,
+                            'UZS',
+                            Localizations.localeOf(context).toString(),
+                          ),
+                        ),
                         selected: _selectedPreset == preset,
                         onSelected: (_) => _pickPreset(preset),
                       ),
                   ],
                 ),
                 const SizedBox(height: AppSpacing.lg),
-                Text(l10n.topupSelectMethodTitle, style: theme.textTheme.titleSmall),
+                Text(
+                  l10n.topupSelectMethodTitle,
+                  style: theme.textTheme.titleSmall,
+                ),
                 const SizedBox(height: AppSpacing.sm),
                 GridView.builder(
                   shrinkWrap: true,
@@ -179,21 +207,32 @@ class _TopupScreenState extends ConsumerState<TopupScreen> {
                 Container(
                   padding: const EdgeInsets.all(AppSpacing.md),
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                    color: theme.colorScheme.surfaceContainerHighest.withValues(
+                      alpha: 0.5,
+                    ),
                     borderRadius: BorderRadius.circular(AppRadius.md),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(l10n.topupInstructionsTitle, style: theme.textTheme.titleSmall),
+                      Text(
+                        l10n.topupInstructionsTitle,
+                        style: theme.textTheme.titleSmall,
+                      ),
                       const SizedBox(height: 6),
-                      Text(l10n.topupInstructions, style: theme.textTheme.bodySmall),
+                      Text(
+                        l10n.topupInstructions,
+                        style: theme.textTheme.bodySmall,
+                      ),
                     ],
                   ),
                 ),
                 if (_errorMessage != null) ...[
                   const SizedBox(height: AppSpacing.md),
-                  Text(_errorMessage!, style: TextStyle(color: theme.colorScheme.error)),
+                  Text(
+                    _errorMessage!,
+                    style: TextStyle(color: theme.colorScheme.error),
+                  ),
                 ],
                 const SizedBox(height: AppSpacing.lg),
                 FilledButton(
@@ -220,7 +259,11 @@ class _TopupScreenState extends ConsumerState<TopupScreen> {
 /// a leading radio button. Selection is shown with a bright border ring and
 /// a checkmark badge instead of the radio icon.
 class _ReceivingMethodTile extends StatelessWidget {
-  const _ReceivingMethodTile({required this.method, required this.selected, required this.onTap});
+  const _ReceivingMethodTile({
+    required this.method,
+    required this.selected,
+    required this.onTap,
+  });
 
   final ReceivingMethod method;
   final bool selected;
@@ -229,16 +272,22 @@ class _ReceivingMethodTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final gradient = AppColors.tileGradients[method.id.hashCode.abs() % AppColors.tileGradients.length];
+    final gradient =
+        AppColors.tileGradients[method.id.hashCode.abs() %
+            AppColors.tileGradients.length];
 
-    return InkWell(
+    return PressableScale(
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppRadius.md),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.all(AppSpacing.md),
         decoration: BoxDecoration(
-          gradient: LinearGradient(begin: Alignment.topLeft, end: Alignment.bottomRight, colors: gradient),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: gradient,
+          ),
           borderRadius: BorderRadius.circular(AppRadius.md),
           border: Border.all(
             color: selected ? Colors.white : Colors.transparent,
@@ -251,26 +300,42 @@ class _ReceivingMethodTile extends StatelessWidget {
           children: [
             Row(
               children: [
-                const Icon(Icons.credit_card_rounded, color: Colors.white70, size: 20),
+                const Icon(
+                  Icons.credit_card_rounded,
+                  color: Colors.white70,
+                  size: 20,
+                ),
                 const Spacer(),
                 if (selected)
                   Container(
                     padding: const EdgeInsets.all(3),
-                    decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                    child: Icon(Icons.check_rounded, size: 12, color: gradient.first),
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.check_rounded,
+                      size: 12,
+                      color: gradient.first,
+                    ),
                   ),
               ],
             ),
             const Spacer(),
             Text(
               method.cardNumberMasked,
-              style: theme.textTheme.titleSmall?.copyWith(color: Colors.white, letterSpacing: 0.5),
+              style: theme.textTheme.titleSmall?.copyWith(
+                color: Colors.white,
+                letterSpacing: 0.5,
+              ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(height: 2),
             Text(
-              method.bankName != null ? '${method.cardHolderName} · ${method.bankName}' : method.cardHolderName,
+              method.bankName != null
+                  ? '${method.cardHolderName} · ${method.bankName}'
+                  : method.cardHolderName,
               style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,

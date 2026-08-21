@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { Prisma, type PrismaClient } from '@prisma/client';
 import { hashPassword, verifyPassword } from './password.js';
 import { generateRefreshToken, hashRefreshToken } from './refresh-token.js';
+import { generateVerificationCode, hashVerificationCode } from './email-verification.js';
 import { verifyGoogleIdToken } from './google-token.js';
 import { env } from '../../config/env.js';
 import { parseDurationMs } from '../../lib/duration.js';
@@ -9,8 +10,24 @@ import { AppError, ConflictError, ForbiddenError, NotFoundError, UnauthorizedErr
 import { generateUniquePublicId } from '../../lib/public-id.js';
 import { formatMinorAmount } from '../../lib/money.js';
 import { notifyAdmins } from '../../lib/telegram.js';
+import { sendEmail } from '../../lib/mailer.js';
+import { verificationCodeEmail } from '../../lib/email-templates.js';
 import { getWalletSummary } from '../wallet/wallet.service.js';
 import type { GoogleAuthInput, LoginInput, RegisterInput } from './auth.schemas.js';
+
+const VERIFICATION_CODE_TTL_MS = 15 * 60 * 1000;
+
+async function issueVerificationCode(ctx: AuthContext, userId: string, email: string): Promise<void> {
+  const { code, codeHash } = generateVerificationCode();
+  await ctx.prisma.emailVerificationToken.create({
+    data: { userId, tokenHash: codeHash, expiresAt: new Date(Date.now() + VERIFICATION_CODE_TTL_MS) },
+  });
+
+  // Fire-and-forget, matching notifyAdmins()/other external-service calls in
+  // this codebase — an SMTP outage or missing config must never break
+  // registration/resend itself.
+  void sendEmail({ to: email, ...verificationCodeEmail(code) });
+}
 
 /** Distinct code so the client can show "spend down your balance or contact support" instead of a generic error. */
 export class WalletNotEmptyError extends AppError {
@@ -40,6 +57,7 @@ export function toPublicUser(user: {
   locale: string;
   role: string;
   googleId?: string | null;
+  emailVerifiedAt?: Date | null;
 }) {
   return {
     id: user.id,
@@ -53,6 +71,10 @@ export function toPublicUser(user: {
     // Never the raw googleId — just whether an account is linked, for the
     // security center's "Google account connected" indicator.
     hasGoogleAccount: Boolean(user.googleId),
+    // A Google-linked account's email was already verified by Google before
+    // we ever saw it, so it counts as verified even though emailVerifiedAt
+    // is never set for it.
+    isEmailVerified: Boolean(user.emailVerifiedAt) || Boolean(user.googleId),
   };
 }
 
@@ -83,19 +105,9 @@ export async function register(
   input: RegisterInput,
   meta: { userAgent?: string; ipAddress?: string },
 ) {
-  if (!input.email && !input.phone) {
-    throw new ConflictError('Either email or phone is required');
-  }
-
-  const existing = await ctx.prisma.user.findFirst({
-    where: {
-      OR: [input.email ? { email: input.email } : undefined, input.phone ? { phone: input.phone } : undefined].filter(
-        (clause): clause is NonNullable<typeof clause> => Boolean(clause),
-      ),
-    },
-  });
+  const existing = await ctx.prisma.user.findUnique({ where: { email: input.email } });
   if (existing) {
-    throw new ConflictError('An account with this email or phone already exists');
+    throw new ConflictError('An account with this email already exists');
   }
 
   const [passwordHash, publicId] = await Promise.all([
@@ -106,7 +118,6 @@ export async function register(
     data: {
       publicId,
       email: input.email,
-      phone: input.phone,
       passwordHash,
       displayName: input.displayName,
       locale: input.locale,
@@ -117,6 +128,8 @@ export async function register(
     },
   });
 
+  await issueVerificationCode(ctx, user.id, user.email!);
+
   const tokens = await issueTokenPair(ctx, user, meta);
   return { user: toPublicUser(user), ...tokens };
 }
@@ -126,17 +139,7 @@ export async function login(
   input: LoginInput,
   meta: { userAgent?: string; ipAddress?: string },
 ) {
-  if (!input.email && !input.phone) {
-    throw new UnauthorizedError('Invalid credentials');
-  }
-
-  const user = await ctx.prisma.user.findFirst({
-    where: {
-      OR: [input.email ? { email: input.email } : undefined, input.phone ? { phone: input.phone } : undefined].filter(
-        (clause): clause is NonNullable<typeof clause> => Boolean(clause),
-      ),
-    },
-  });
+  const user = await ctx.prisma.user.findUnique({ where: { email: input.email } });
 
   // Constant-shape response for unknown user / Google-only account (no
   // password set) / wrong password: avoids leaking which accounts exist or
@@ -153,6 +156,35 @@ export async function login(
 
   const tokens = await issueTokenPair(ctx, user, meta);
   return { user: toPublicUser(user), ...tokens };
+}
+
+/**
+ * Never blocks login/registration — an unverified account can still use the
+ * app. Verification just flips `emailVerifiedAt`, which the client can use
+ * to nudge the user (e.g. a "verify your email" banner) without anything
+ * else in the system depending on it.
+ */
+export async function verifyEmail(ctx: AuthContext, userId: string, code: string) {
+  const codeHash = hashVerificationCode(code);
+  const token = await ctx.prisma.emailVerificationToken.findFirst({
+    where: { userId, tokenHash: codeHash, usedAt: null, expiresAt: { gt: new Date() } },
+  });
+  if (!token) {
+    throw new UnauthorizedError('Invalid or expired verification code');
+  }
+
+  await ctx.prisma.$transaction([
+    ctx.prisma.emailVerificationToken.update({ where: { id: token.id }, data: { usedAt: new Date() } }),
+    ctx.prisma.user.update({ where: { id: userId }, data: { emailVerifiedAt: new Date() } }),
+  ]);
+}
+
+export async function resendVerificationEmail(ctx: AuthContext, userId: string) {
+  const user = await ctx.prisma.user.findUniqueOrThrow({ where: { id: userId } });
+  if (user.emailVerifiedAt || !user.email) {
+    return;
+  }
+  await issueVerificationCode(ctx, user.id, user.email);
 }
 
 export async function googleAuth(

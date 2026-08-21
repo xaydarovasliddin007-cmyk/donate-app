@@ -5,5 +5,7 @@ import 'preferences_service.dart';
 /// loaded, before the first frame — see [main.dart]. Reading it before that
 /// override is applied is a programming error.
 final preferencesServiceProvider = Provider<PreferencesService>((ref) {
-  throw UnimplementedError('preferencesServiceProvider was not overridden before runApp()');
+  throw UnimplementedError(
+    'preferencesServiceProvider was not overridden before runApp()',
+  );
 });

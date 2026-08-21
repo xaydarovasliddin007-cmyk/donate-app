@@ -2,16 +2,38 @@ import 'package:flutter/material.dart';
 import '../theme/app_spacing.dart';
 import 'skeleton_box.dart';
 
-/// Matches [GameCard]'s full-bleed cover-art shape so the loading state
-/// doesn't jump when real content arrives.
+/// Matches [GameCard]'s icon-tile shape (square cover + two text lines
+/// below) so the loading state doesn't jump when real content arrives.
 class GameCardSkeleton extends StatelessWidget {
   const GameCardSkeleton({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const AspectRatio(
-      aspectRatio: 0.78,
-      child: SkeletonBox(borderRadius: BorderRadius.all(Radius.circular(AppRadius.md))),
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(
+          color: Theme.of(
+            context,
+          ).colorScheme.outlineVariant.withValues(alpha: 0.5),
+        ),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+      ),
+      padding: const EdgeInsets.all(AppSpacing.sm),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const AspectRatio(
+            aspectRatio: 1,
+            child: SkeletonBox(
+              borderRadius: BorderRadius.all(Radius.circular(AppRadius.md)),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xs + 2),
+          const SkeletonBox(width: 80, height: 14),
+          const SizedBox(height: 6),
+          const SkeletonBox(width: 50, height: 11),
+        ],
+      ),
     );
   }
 }
@@ -32,7 +54,7 @@ class GameGridSkeleton extends StatelessWidget {
         crossAxisCount: 2,
         mainAxisSpacing: AppSpacing.sm,
         crossAxisSpacing: AppSpacing.sm,
-        childAspectRatio: 0.78,
+        childAspectRatio: 0.68,
       ),
       itemCount: count,
       itemBuilder: (_, _) => const GameCardSkeleton(),
@@ -55,7 +77,11 @@ class ListRowSkeleton extends StatelessWidget {
       ),
       child: const Row(
         children: [
-          SkeletonBox(width: 40, height: 40, borderRadius: BorderRadius.all(Radius.circular(10))),
+          SkeletonBox(
+            width: 40,
+            height: 40,
+            borderRadius: BorderRadius.all(Radius.circular(10)),
+          ),
           SizedBox(width: AppSpacing.md),
           Expanded(
             child: Column(

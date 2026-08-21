@@ -29,7 +29,9 @@ class OrdersApi {
   Future<List<Order>> listOrders({int limit = 20}) async {
     final json = await _client.get('/orders', query: {'limit': limit});
     final orders = json['orders'] as List<dynamic>;
-    return orders.map((o) => Order.fromJson(o as Map<String, dynamic>)).toList();
+    return orders
+        .map((o) => Order.fromJson(o as Map<String, dynamic>))
+        .toList();
   }
 
   Future<Order> getOrder(String id) async {

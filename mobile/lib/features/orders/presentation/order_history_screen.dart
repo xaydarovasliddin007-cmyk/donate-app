@@ -19,7 +19,8 @@ class OrderHistoryScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final isAuthenticated = ref.watch(authControllerProvider).value?.isAuthenticated ?? false;
+    final isAuthenticated =
+        ref.watch(authControllerProvider).value?.isAuthenticated ?? false;
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.orderHistoryTitle)),
@@ -75,12 +76,15 @@ class OrderHistoryScreen extends ConsumerWidget {
                       child: ListView.separated(
                         padding: const EdgeInsets.all(AppSpacing.lg),
                         itemCount: orders.length,
-                        separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
+                        separatorBuilder: (_, _) =>
+                            const SizedBox(height: AppSpacing.sm),
                         itemBuilder: (context, index) {
                           final order = orders[index];
                           return Card(
                             child: ListTile(
-                              title: Text('${order.game.name} · ${order.items.first.productName}'),
+                              title: Text(
+                                '${order.game.name} · ${order.items.first.productName}',
+                              ),
                               subtitle: Text(
                                 '${order.orderNumber}\n${DateFormat.yMd().add_Hm().format(order.createdAt.toLocal())}',
                               ),
@@ -95,9 +99,13 @@ class OrderHistoryScreen extends ConsumerWidget {
                                     formatMoney(
                                       order.amountMinor,
                                       order.currency,
-                                      Localizations.localeOf(context).toString(),
+                                      Localizations.localeOf(
+                                        context,
+                                      ).toString(),
                                     ),
-                                    style: Theme.of(context).textTheme.bodySmall,
+                                    style: Theme.of(
+                                      context,
+                                    ).textTheme.bodySmall,
                                   ),
                                 ],
                               ),

@@ -34,7 +34,10 @@ class OnboardingScreen extends ConsumerWidget {
                   curve: AppMotion.standard,
                   builder: (context, t, child) => Opacity(
                     opacity: t,
-                    child: Transform.scale(scale: 0.92 + (0.08 * t), child: child),
+                    child: Transform.scale(
+                      scale: 0.92 + (0.08 * t),
+                      child: child,
+                    ),
                   ),
                   child: const BrandMark(size: 96),
                 ),
@@ -42,19 +45,25 @@ class OnboardingScreen extends ConsumerWidget {
               const SizedBox(height: AppSpacing.xl),
               Text(
                 l10n.onboardingWelcomeTitle,
-                style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: AppSpacing.sm),
               Text(
                 l10n.onboardingWelcomeSubtitle,
-                style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
                 textAlign: TextAlign.center,
               ),
               const Spacer(flex: 4),
               FilledButton(
                 onPressed: () async {
-                  await ref.read(preferencesServiceProvider).setOnboardingComplete();
+                  await ref
+                      .read(preferencesServiceProvider)
+                      .setOnboardingComplete();
                   if (context.mounted) context.go('/home');
                 },
                 child: Text(l10n.onboardingGetStarted),

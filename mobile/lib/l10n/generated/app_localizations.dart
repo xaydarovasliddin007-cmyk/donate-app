@@ -314,6 +314,12 @@ abstract class AppLocalizations {
   /// **'Bosh sahifa'**
   String get navHome;
 
+  /// No description provided for @navGames.
+  ///
+  /// In uz, this message translates to:
+  /// **'O\'yinlar'**
+  String get navGames;
+
   /// No description provided for @navOrders.
   ///
   /// In uz, this message translates to:
@@ -325,6 +331,18 @@ abstract class AppLocalizations {
   /// In uz, this message translates to:
   /// **'Profil'**
   String get navProfile;
+
+  /// No description provided for @allGamesTitle.
+  ///
+  /// In uz, this message translates to:
+  /// **'Barcha o\'yinlar'**
+  String get allGamesTitle;
+
+  /// No description provided for @homeGreeting.
+  ///
+  /// In uz, this message translates to:
+  /// **'Salom'**
+  String get homeGreeting;
 
   /// No description provided for @onboardingWelcomeTitle.
   ///
@@ -359,13 +377,13 @@ abstract class AppLocalizations {
   /// No description provided for @authIdentifierLabel.
   ///
   /// In uz, this message translates to:
-  /// **'Email yoki telefon'**
+  /// **'Email'**
   String get authIdentifierLabel;
 
   /// No description provided for @authIdentifierHint.
   ///
   /// In uz, this message translates to:
-  /// **'email@example.com yoki +998901234567'**
+  /// **'email@example.com'**
   String get authIdentifierHint;
 
   /// No description provided for @authPasswordLabel.
@@ -419,8 +437,14 @@ abstract class AppLocalizations {
   /// No description provided for @authIdentifierRequired.
   ///
   /// In uz, this message translates to:
-  /// **'Email yoki telefon raqamini kiriting'**
+  /// **'Email manzilingizni kiriting'**
   String get authIdentifierRequired;
+
+  /// No description provided for @authIdentifierInvalid.
+  ///
+  /// In uz, this message translates to:
+  /// **'Email manzili noto\'g\'ri'**
+  String get authIdentifierInvalid;
 
   /// No description provided for @authPasswordTooShort.
   ///
@@ -449,7 +473,7 @@ abstract class AppLocalizations {
   /// No description provided for @authLogoutConfirmMessage.
   ///
   /// In uz, this message translates to:
-  /// **'Qaytadan kirish uchun email/telefon va parolingiz kerak bo\'ladi'**
+  /// **'Qaytadan kirish uchun email va parolingiz kerak bo\'ladi'**
   String get authLogoutConfirmMessage;
 
   /// No description provided for @authLogoutButton.
@@ -482,6 +506,48 @@ abstract class AppLocalizations {
   /// **'Google orqali kirib bo\'lmadi. Qayta urinib ko\'ring.'**
   String get authGoogleSignInFailed;
 
+  /// No description provided for @authVerifyEmailTitle.
+  ///
+  /// In uz, this message translates to:
+  /// **'Emailni tasdiqlang'**
+  String get authVerifyEmailTitle;
+
+  /// No description provided for @authVerifyEmailMessage.
+  ///
+  /// In uz, this message translates to:
+  /// **'{email} manziliga 6 xonali kod yubordik. Kodni quyida kiriting.'**
+  String authVerifyEmailMessage(String email);
+
+  /// No description provided for @authVerifyEmailCodeInvalid.
+  ///
+  /// In uz, this message translates to:
+  /// **'Kod 6 xonadan iborat bo\'lishi kerak'**
+  String get authVerifyEmailCodeInvalid;
+
+  /// No description provided for @authVerifyEmailResendButton.
+  ///
+  /// In uz, this message translates to:
+  /// **'Kodni qayta yuborish'**
+  String get authVerifyEmailResendButton;
+
+  /// No description provided for @authVerifyEmailResendSuccess.
+  ///
+  /// In uz, this message translates to:
+  /// **'Kod qayta yuborildi'**
+  String get authVerifyEmailResendSuccess;
+
+  /// No description provided for @authVerifyEmailSkipButton.
+  ///
+  /// In uz, this message translates to:
+  /// **'Keyinroq'**
+  String get authVerifyEmailSkipButton;
+
+  /// No description provided for @authVerifyEmailFailed.
+  ///
+  /// In uz, this message translates to:
+  /// **'Kod noto\'g\'ri yoki eskirgan'**
+  String get authVerifyEmailFailed;
+
   /// No description provided for @homeSearchHint.
   ///
   /// In uz, this message translates to:
@@ -499,12 +565,6 @@ abstract class AppLocalizations {
   /// In uz, this message translates to:
   /// **'Mashhur o\'yinlar'**
   String get homePopularGames;
-
-  /// No description provided for @homeCategories.
-  ///
-  /// In uz, this message translates to:
-  /// **'Kategoriyalar'**
-  String get homeCategories;
 
   /// No description provided for @homePopularTopups.
   ///
@@ -583,6 +643,30 @@ abstract class AppLocalizations {
   /// In uz, this message translates to:
   /// **'Masalan: 123456789'**
   String get playerInfoPlayerIdHint;
+
+  /// No description provided for @playerInfoPlayerTagLabel.
+  ///
+  /// In uz, this message translates to:
+  /// **'Player Tag'**
+  String get playerInfoPlayerTagLabel;
+
+  /// No description provided for @playerInfoPlayerTagHint.
+  ///
+  /// In uz, this message translates to:
+  /// **'Masalan: #2PP0LQU8'**
+  String get playerInfoPlayerTagHint;
+
+  /// No description provided for @playerInfoUsernameLabel.
+  ///
+  /// In uz, this message translates to:
+  /// **'Foydalanuvchi nomi'**
+  String get playerInfoUsernameLabel;
+
+  /// No description provided for @playerInfoUsernameHint.
+  ///
+  /// In uz, this message translates to:
+  /// **'Masalan: SizningNomingiz'**
+  String get playerInfoUsernameHint;
 
   /// No description provided for @playerInfoServerIdLabel.
   ///
@@ -991,6 +1075,54 @@ abstract class AppLocalizations {
   /// In uz, this message translates to:
   /// **'Bonus'**
   String get walletTypeBonus;
+
+  /// No description provided for @promoCodeButton.
+  ///
+  /// In uz, this message translates to:
+  /// **'Promokod'**
+  String get promoCodeButton;
+
+  /// No description provided for @promoCodeSheetTitle.
+  ///
+  /// In uz, this message translates to:
+  /// **'Promokodni faollashtiring'**
+  String get promoCodeSheetTitle;
+
+  /// No description provided for @promoCodeInputLabel.
+  ///
+  /// In uz, this message translates to:
+  /// **'Promokod'**
+  String get promoCodeInputLabel;
+
+  /// No description provided for @promoCodeInputHint.
+  ///
+  /// In uz, this message translates to:
+  /// **'Kodni kiriting'**
+  String get promoCodeInputHint;
+
+  /// No description provided for @promoCodeActivateButton.
+  ///
+  /// In uz, this message translates to:
+  /// **'Faollashtirish'**
+  String get promoCodeActivateButton;
+
+  /// No description provided for @promoCodeSuccessMessage.
+  ///
+  /// In uz, this message translates to:
+  /// **'{amount} hisobingizga qo\'shildi!'**
+  String promoCodeSuccessMessage(String amount);
+
+  /// No description provided for @promoCodeInvalid.
+  ///
+  /// In uz, this message translates to:
+  /// **'Bunday promokod topilmadi yoki muddati o\'tgan'**
+  String get promoCodeInvalid;
+
+  /// No description provided for @promoCodeAlreadyRedeemed.
+  ///
+  /// In uz, this message translates to:
+  /// **'Bu promokodni allaqachon ishlatgansiz'**
+  String get promoCodeAlreadyRedeemed;
 
   /// No description provided for @checkoutPayWithWallet.
   ///

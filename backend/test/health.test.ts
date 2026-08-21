@@ -1,4 +1,4 @@
-import { describe, expect, it, afterAll } from 'vitest';
+import { describe, expect, it, afterAll, vi } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../src/app.js';
 
@@ -16,9 +16,18 @@ describe('health & readiness', () => {
     expect(response.json()).toMatchObject({ status: 'ok' });
   });
 
+  // Forces the failure via a spy rather than actually severing the DB
+  // connection — this suite runs against a real, normally-reachable
+  // Postgres instance, so the only reliable way to exercise the "DB down"
+  // branch is to make the query itself reject.
   it('GET /ready returns 503 when the database is unreachable', async () => {
-    const response = await app.inject({ method: 'GET', url: '/ready' });
-    expect(response.statusCode).toBe(503);
+    const spy = vi.spyOn(app.prisma, '$queryRaw').mockRejectedValueOnce(new Error('connection refused'));
+    try {
+      const response = await app.inject({ method: 'GET', url: '/ready' });
+      expect(response.statusCode).toBe(503);
+    } finally {
+      spy.mockRestore();
+    }
   });
 
   it('GET /unknown-route returns a structured 404', async () => {

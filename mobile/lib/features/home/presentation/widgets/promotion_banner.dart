@@ -12,7 +12,10 @@ class PromotionBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: 260,
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
+      ),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [AppColors.brandPrimary, AppColors.brandPrimaryDark],
@@ -27,7 +30,11 @@ class PromotionBanner extends StatelessWidget {
         children: [
           Text(
             promotion.title,
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 16),
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+              fontSize: 16,
+            ),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),

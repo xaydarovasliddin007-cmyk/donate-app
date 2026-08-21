@@ -124,10 +124,19 @@ class AppLocalizationsRu extends AppLocalizations {
   String get navHome => 'Главная';
 
   @override
+  String get navGames => 'Игры';
+
+  @override
   String get navOrders => 'Заказы';
 
   @override
   String get navProfile => 'Профиль';
+
+  @override
+  String get allGamesTitle => 'Все игры';
+
+  @override
+  String get homeGreeting => 'Привет';
 
   @override
   String get onboardingWelcomeTitle => 'Добро пожаловать в UZDONATE';
@@ -146,10 +155,10 @@ class AppLocalizationsRu extends AppLocalizations {
   String get authRegisterTitle => 'Регистрация';
 
   @override
-  String get authIdentifierLabel => 'Email или телефон';
+  String get authIdentifierLabel => 'Email';
 
   @override
-  String get authIdentifierHint => 'email@example.com или +998901234567';
+  String get authIdentifierHint => 'email@example.com';
 
   @override
   String get authPasswordLabel => 'Пароль';
@@ -176,7 +185,10 @@ class AppLocalizationsRu extends AppLocalizations {
   String get authSwitchToLogin => 'Войти';
 
   @override
-  String get authIdentifierRequired => 'Введите email или номер телефона';
+  String get authIdentifierRequired => 'Введите email';
+
+  @override
+  String get authIdentifierInvalid => 'Неверный формат email';
 
   @override
   String get authPasswordTooShort =>
@@ -194,7 +206,7 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get authLogoutConfirmMessage =>
-      'Для повторного входа понадобятся email/телефон и пароль';
+      'Для повторного входа понадобятся email и пароль';
 
   @override
   String get authLogoutButton => 'Выйти';
@@ -214,6 +226,29 @@ class AppLocalizationsRu extends AppLocalizations {
       'Не удалось войти через Google. Попробуйте снова.';
 
   @override
+  String get authVerifyEmailTitle => 'Подтвердите email';
+
+  @override
+  String authVerifyEmailMessage(String email) {
+    return 'Мы отправили 6-значный код на $email. Введите его ниже.';
+  }
+
+  @override
+  String get authVerifyEmailCodeInvalid => 'Код должен состоять из 6 цифр';
+
+  @override
+  String get authVerifyEmailResendButton => 'Отправить код повторно';
+
+  @override
+  String get authVerifyEmailResendSuccess => 'Код отправлен повторно';
+
+  @override
+  String get authVerifyEmailSkipButton => 'Позже';
+
+  @override
+  String get authVerifyEmailFailed => 'Код неверен или истёк';
+
+  @override
   String get homeSearchHint => 'Поиск игры';
 
   @override
@@ -221,9 +256,6 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get homePopularGames => 'Популярные игры';
-
-  @override
-  String get homeCategories => 'Категории';
 
   @override
   String get homePopularTopups => 'Популярные пополнения';
@@ -264,6 +296,18 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get playerInfoPlayerIdHint => 'Например: 123456789';
+
+  @override
+  String get playerInfoPlayerTagLabel => 'Player Tag';
+
+  @override
+  String get playerInfoPlayerTagHint => 'Например: #2PP0LQU8';
+
+  @override
+  String get playerInfoUsernameLabel => 'Имя пользователя';
+
+  @override
+  String get playerInfoUsernameHint => 'Например: ВашеИмя';
 
   @override
   String get playerInfoServerIdLabel => 'Server ID';
@@ -476,6 +520,32 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get walletTypeBonus => 'Бонус';
+
+  @override
+  String get promoCodeButton => 'Промокод';
+
+  @override
+  String get promoCodeSheetTitle => 'Активировать промокод';
+
+  @override
+  String get promoCodeInputLabel => 'Промокод';
+
+  @override
+  String get promoCodeInputHint => 'Введите код';
+
+  @override
+  String get promoCodeActivateButton => 'Активировать';
+
+  @override
+  String promoCodeSuccessMessage(String amount) {
+    return '$amount зачислено на ваш баланс!';
+  }
+
+  @override
+  String get promoCodeInvalid => 'Такой промокод не найден или истёк';
+
+  @override
+  String get promoCodeAlreadyRedeemed => 'Вы уже использовали этот промокод';
 
   @override
   String get checkoutPayWithWallet => 'Оплатить с кошелька';

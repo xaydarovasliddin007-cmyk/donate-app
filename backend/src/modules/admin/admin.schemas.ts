@@ -123,6 +123,22 @@ export const adminRejectTopUpSchema = z.object({
   rejectionReason: z.string().trim().min(1).max(500),
 });
 
+export const adminCreatePromoCodeSchema = z.object({
+  code: z
+    .string()
+    .trim()
+    .min(3)
+    .max(40)
+    .regex(/^[A-Za-z0-9_-]+$/, 'Code may only contain letters, numbers, hyphens, and underscores'),
+  bonusAmountMinor: z.number().int().positive(),
+  maxRedemptions: z.number().int().positive().optional(),
+  expiresAt: z.string().datetime().optional(),
+});
+
+export const adminUpdatePromoCodeSchema = z.object({
+  isActive: z.boolean().optional(),
+});
+
 export const adminCreateReceivingMethodSchema = z.object({
   cardNumberMasked: z.string().trim().min(4).max(40),
   cardHolderName: z.string().trim().min(1).max(120),
@@ -190,6 +206,8 @@ export type AdminListProductsQuery = z.infer<typeof adminListProductsQuerySchema
 export type AdminUpdateProductInput = z.infer<typeof adminUpdateProductSchema>;
 export type AdminListTopUpsQuery = z.infer<typeof adminListTopUpsQuerySchema>;
 export type AdminRejectTopUpInput = z.infer<typeof adminRejectTopUpSchema>;
+export type AdminCreatePromoCodeInput = z.infer<typeof adminCreatePromoCodeSchema>;
+export type AdminUpdatePromoCodeInput = z.infer<typeof adminUpdatePromoCodeSchema>;
 export type AdminCreateReceivingMethodInput = z.infer<typeof adminCreateReceivingMethodSchema>;
 export type AdminUpdateReceivingMethodInput = z.infer<typeof adminUpdateReceivingMethodSchema>;
 export type AdminWalletAdjustInput = z.infer<typeof adminWalletAdjustSchema>;

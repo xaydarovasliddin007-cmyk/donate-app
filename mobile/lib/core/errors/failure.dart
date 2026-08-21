@@ -13,7 +13,10 @@ class Failure {
     if (error is ApiException) {
       return Failure(code: error.code, message: error.message);
     }
-    return const Failure(code: 'UNKNOWN_ERROR', message: 'Something went wrong');
+    return const Failure(
+      code: 'UNKNOWN_ERROR',
+      message: 'Something went wrong',
+    );
   }
 
   bool get isNetworkError => code == 'NETWORK_ERROR';

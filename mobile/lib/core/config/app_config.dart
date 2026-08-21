@@ -16,7 +16,8 @@ abstract final class AppConfig {
   /// Example: flutter run --dart-define=GOOGLE_SERVER_CLIENT_ID=xxx.apps.googleusercontent.com
   static const String googleServerClientId = String.fromEnvironment(
     'GOOGLE_SERVER_CLIENT_ID',
-    defaultValue: '223785346997-vphv1k7i131r72orkhj05dnvvhocd9br.apps.googleusercontent.com',
+    defaultValue:
+        '223785346997-vphv1k7i131r72orkhj05dnvvhocd9br.apps.googleusercontent.com',
   );
 
   static bool get isGoogleSignInConfigured => googleServerClientId.isNotEmpty;
@@ -35,5 +36,6 @@ abstract final class AppConfig {
     defaultValue: 'support@uzdonate.dev',
   );
 
-  static bool get isSupportTelegramConfigured => supportTelegramUsername.isNotEmpty;
+  static bool get isSupportTelegramConfigured =>
+      supportTelegramUsername.isNotEmpty;
 }

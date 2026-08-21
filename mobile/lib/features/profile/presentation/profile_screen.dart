@@ -3,12 +3,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/localization/locale_controller.dart';
 import '../../../core/notifications/notification_permission_controller.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/reduce_motion_controller.dart';
 import '../../../core/theme/theme_controller.dart';
 import '../../../core/utils/support_launcher.dart';
 import '../../../core/widgets/animated_balance.dart';
+import '../../../core/widgets/pressable_scale.dart';
 import '../../../core/widgets/skeleton_box.dart';
+import '../../../core/widgets/user_avatar.dart';
+import '../../../core/widgets/staggered_entrance.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../auth/domain/app_user.dart';
@@ -205,7 +209,7 @@ class _HeaderCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              _ProfileAvatar(avatarUrl: user.avatarUrl),
+              UserAvatar(avatarUrl: user.avatarUrl),
               const SizedBox(width: AppSpacing.md),
               Expanded(
                 child: Column(
@@ -329,8 +333,8 @@ class _MenuSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        for (final child in children) ...[
-          child,
+        for (final (index, child) in children.indexed) ...[
+          StaggeredEntrance(index: index, child: child),
           const SizedBox(height: AppSpacing.sm),
         ],
       ],
@@ -352,32 +356,48 @@ class _MenuRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Material(
-      color: theme.colorScheme.surface,
+    // Each row's icon gets its own tinted badge, cycling through the same
+    // brand-derived gradient family used for game-cover fallback tiles — a
+    // row of identical grey outline icons read as flat; a row of distinct
+    // (but still on-brand) colors reads as considered, not random.
+    final gradient = AppColors
+        .tileGradients[icon.hashCode.abs() % AppColors.tileGradients.length];
+
+    return PressableScale(
+      onTap: onTap,
       borderRadius: BorderRadius.circular(AppRadius.md),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.md,
-            vertical: AppSpacing.md,
-          ),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppRadius.md),
-            border: Border.all(color: theme.colorScheme.outlineVariant),
-          ),
-          child: Row(
-            children: [
-              Icon(icon, color: theme.colorScheme.onSurfaceVariant, size: 20),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(child: Text(label, style: theme.textTheme.bodyMedium)),
-              Icon(
-                Icons.chevron_right_rounded,
-                color: theme.colorScheme.onSurfaceVariant,
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.md,
+        ),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          border: Border.all(color: theme.colorScheme.outlineVariant),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: gradient,
+                ),
+                borderRadius: BorderRadius.circular(AppRadius.sm),
               ),
-            ],
-          ),
+              child: Icon(icon, color: Colors.white, size: 19),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(child: Text(label, style: theme.textTheme.bodyMedium)),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ],
         ),
       ),
     );
@@ -474,30 +494,6 @@ class _GuestCard extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-/// Shows the Google account picture when available (only source of avatars
-/// today — email/password accounts have none), falling back to a plain icon.
-/// Network image failures (offline, revoked URL) fall back silently rather
-/// than showing a broken-image glyph.
-class _ProfileAvatar extends StatelessWidget {
-  const _ProfileAvatar({required this.avatarUrl});
-
-  final String? avatarUrl;
-
-  @override
-  Widget build(BuildContext context) {
-    final url = avatarUrl;
-    if (url == null || url.isEmpty) {
-      return const CircleAvatar(radius: 24, child: Icon(Icons.person_rounded));
-    }
-    return CircleAvatar(
-      radius: 24,
-      backgroundImage: NetworkImage(url),
-      onBackgroundImageError: (_, _) {},
-      child: null,
     );
   }
 }

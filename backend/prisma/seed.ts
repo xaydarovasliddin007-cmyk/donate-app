@@ -47,6 +47,16 @@ async function main() {
     update: {},
     create: { code: 'CLICK', name: 'Click', type: 'PAYMENT', isActive: false, healthStatus: 'UNKNOWN' },
   });
+  await prisma.provider.upsert({
+    where: { code: 'DIGIFLAZZ' },
+    update: {},
+    create: { code: 'DIGIFLAZZ', name: 'Digiflazz', type: 'TOPUP', isActive: false, healthStatus: 'UNKNOWN' },
+  });
+  await prisma.provider.upsert({
+    where: { code: 'APIGAMES' },
+    update: {},
+    create: { code: 'APIGAMES', name: 'Apigames.id', type: 'TOPUP', isActive: false, healthStatus: 'UNKNOWN' },
+  });
 
   // --- Games & catalog ---------------------------------------------------------
   //

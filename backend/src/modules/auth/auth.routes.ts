@@ -1,9 +1,9 @@
 import type { FastifyInstance } from 'fastify';
 import { validateBody } from '../../lib/validate.js';
 import { authenticate } from '../../middleware/authenticate.js';
-import { googleAuthSchema, loginSchema, refreshSchema, registerSchema } from './auth.schemas.js';
+import { googleAuthSchema, loginSchema, refreshSchema, registerSchema, verifyEmailSchema } from './auth.schemas.js';
 import * as authService from './auth.service.js';
-import type { GoogleAuthInput, LoginInput, RefreshInput, RegisterInput } from './auth.schemas.js';
+import type { GoogleAuthInput, LoginInput, RefreshInput, RegisterInput, VerifyEmailInput } from './auth.schemas.js';
 
 export async function authRoutes(app: FastifyInstance) {
   const ctx = { prisma: app.prisma, signAccessToken: app.jwt.sign.bind(app.jwt) };
@@ -44,6 +44,21 @@ export async function authRoutes(app: FastifyInstance) {
   app.post('/auth/logout', { preHandler: validateBody(refreshSchema) }, async (request, reply) => {
     const body = request.body as RefreshInput;
     await authService.logout(ctx, body.refreshToken);
+    return reply.status(204).send();
+  });
+
+  app.post(
+    '/auth/verify-email',
+    { preHandler: [authenticate, validateBody(verifyEmailSchema)] },
+    async (request, reply) => {
+      const body = request.body as VerifyEmailInput;
+      await authService.verifyEmail(ctx, request.currentUser!.id, body.code);
+      return reply.status(204).send();
+    },
+  );
+
+  app.post('/auth/resend-verification', { preHandler: authenticate }, async (request, reply) => {
+    await authService.resendVerificationEmail(ctx, request.currentUser!.id);
     return reply.status(204).send();
   });
 

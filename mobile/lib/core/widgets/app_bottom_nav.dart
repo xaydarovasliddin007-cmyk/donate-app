@@ -3,7 +3,11 @@ import '../theme/app_motion.dart';
 import '../theme/app_spacing.dart';
 
 class AppNavItem {
-  const AppNavItem({required this.icon, required this.selectedIcon, required this.label});
+  const AppNavItem({
+    required this.icon,
+    required this.selectedIcon,
+    required this.label,
+  });
 
   final IconData icon;
   final IconData selectedIcon;
@@ -15,7 +19,12 @@ class AppNavItem {
 /// deliberately not the stock [NavigationBar] look, per the product's
 /// "must not feel like a generic Flutter template" requirement.
 class AppBottomNav extends StatelessWidget {
-  const AppBottomNav({super.key, required this.items, required this.currentIndex, required this.onTap});
+  const AppBottomNav({
+    super.key,
+    required this.items,
+    required this.currentIndex,
+    required this.onTap,
+  });
 
   final List<AppNavItem> items;
   final int currentIndex;
@@ -26,7 +35,12 @@ class AppBottomNav extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(AppSpacing.md, 0, AppSpacing.md, AppSpacing.sm),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.md,
+        0,
+        AppSpacing.md,
+        AppSpacing.sm,
+      ),
       child: SafeArea(
         top: false,
         child: Container(
@@ -34,9 +48,15 @@ class AppBottomNav extends StatelessWidget {
           decoration: BoxDecoration(
             color: scheme.surface,
             borderRadius: BorderRadius.circular(AppRadius.pill),
-            border: Border.all(color: scheme.outlineVariant.withValues(alpha: 0.5)),
+            border: Border.all(
+              color: scheme.outlineVariant.withValues(alpha: 0.5),
+            ),
             boxShadow: [
-              BoxShadow(color: Colors.black.withValues(alpha: 0.16), blurRadius: 20, offset: const Offset(0, 8)),
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.16),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+              ),
             ],
           ),
           child: Stack(
@@ -45,14 +65,19 @@ class AppBottomNav extends StatelessWidget {
                 duration: AppMotion.medium,
                 curve: AppMotion.emphasized,
                 alignment: Alignment(
-                  items.length == 1 ? 0 : -1 + (2 * currentIndex / (items.length - 1)),
+                  items.length == 1
+                      ? 0
+                      : -1 + (2 * currentIndex / (items.length - 1)),
                   0,
                 ),
                 child: FractionallySizedBox(
                   widthFactor: 1 / items.length,
                   heightFactor: 1,
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 8,
+                    ),
                     child: DecoratedBox(
                       decoration: BoxDecoration(
                         color: scheme.primary.withValues(alpha: 0.16),
@@ -83,7 +108,11 @@ class AppBottomNav extends StatelessWidget {
 }
 
 class _NavItemButton extends StatelessWidget {
-  const _NavItemButton({required this.item, required this.selected, required this.onTap});
+  const _NavItemButton({
+    required this.item,
+    required this.selected,
+    required this.onTap,
+  });
 
   final AppNavItem item;
   final bool selected;
@@ -108,7 +137,11 @@ class _NavItemButton extends StatelessWidget {
               scale: selected ? 1.08 : 1.0,
               duration: AppMotion.micro,
               curve: Curves.easeOut,
-              child: Icon(selected ? item.selectedIcon : item.icon, color: color, size: 24),
+              child: Icon(
+                selected ? item.selectedIcon : item.icon,
+                color: color,
+                size: 24,
+              ),
             ),
             const SizedBox(height: 3),
             AnimatedDefaultTextStyle(

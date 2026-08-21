@@ -3,12 +3,17 @@ import '../../../core/network/api_client_provider.dart';
 import '../data/orders_api.dart';
 import '../domain/order.dart';
 
-final ordersApiProvider = Provider<OrdersApi>((ref) => OrdersApi(ref.watch(apiClientProvider)));
+final ordersApiProvider = Provider<OrdersApi>(
+  (ref) => OrdersApi(ref.watch(apiClientProvider)),
+);
 
 final myOrdersProvider = FutureProvider.autoDispose<List<Order>>((ref) {
   return ref.watch(ordersApiProvider).listOrders();
 });
 
-final orderByIdProvider = FutureProvider.autoDispose.family<Order, String>((ref, orderId) {
+final orderByIdProvider = FutureProvider.autoDispose.family<Order, String>((
+  ref,
+  orderId,
+) {
   return ref.watch(ordersApiProvider).getOrder(orderId);
 });

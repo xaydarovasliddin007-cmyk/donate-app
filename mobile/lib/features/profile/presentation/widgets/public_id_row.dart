@@ -34,7 +34,10 @@ class _PublicIdRowState extends State<PublicIdRow> {
     final theme = Theme.of(context);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
+      ),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(AppRadius.md),
@@ -48,11 +51,16 @@ class _PublicIdRowState extends State<PublicIdRow> {
               children: [
                 Text(
                   l10n.profileUzdonateIdLabel,
-                  style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
                 ),
                 Text(
                   widget.publicId,
-                  style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700, letterSpacing: 0.5),
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.5,
+                  ),
                 ),
               ],
             ),
@@ -64,11 +72,17 @@ class _PublicIdRowState extends State<PublicIdRow> {
                     key: const ValueKey('copied'),
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.check_rounded, size: 16, color: theme.colorScheme.primary),
+                      Icon(
+                        Icons.check_rounded,
+                        size: 16,
+                        color: theme.colorScheme.primary,
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         l10n.profileCopiedMessage,
-                        style: theme.textTheme.labelMedium?.copyWith(color: theme.colorScheme.primary),
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          color: theme.colorScheme.primary,
+                        ),
                       ),
                     ],
                   )

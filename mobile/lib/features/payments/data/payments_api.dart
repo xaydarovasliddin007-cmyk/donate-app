@@ -13,12 +13,19 @@ class PaymentsApi {
   }) async {
     final json = await _client.post(
       '/payments',
-      body: {'orderId': orderId, 'providerCode': providerCode, 'idempotencyKey': idempotencyKey},
+      body: {
+        'orderId': orderId,
+        'providerCode': providerCode,
+        'idempotencyKey': idempotencyKey,
+      },
     );
     return Payment.fromJson(json);
   }
 
-  Future<Payment> payWithWallet({required String orderId, required String idempotencyKey}) async {
+  Future<Payment> payWithWallet({
+    required String orderId,
+    required String idempotencyKey,
+  }) async {
     final json = await _client.post(
       '/payments/wallet',
       body: {'orderId': orderId, 'idempotencyKey': idempotencyKey},
@@ -26,7 +33,10 @@ class PaymentsApi {
     return Payment.fromJson(json);
   }
 
-  Future<Payment> simulateWebhook(String paymentId, {required bool succeed}) async {
+  Future<Payment> simulateWebhook(
+    String paymentId, {
+    required bool succeed,
+  }) async {
     final json = await _client.post(
       '/payments/$paymentId/dev-simulate',
       body: {'outcome': succeed ? 'SUCCEEDED' : 'FAILED'},

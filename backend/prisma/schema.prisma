@@ -40,6 +40,9 @@ model User {
   // search contexts instead of the internal UUID.
   publicId     String     @unique @map("public_id")
   email        String?    @unique
+  // Kept for existing accounts/admin lookups, but no longer collected at
+  // register/login time — the identifier field is email-only now (see
+  // modules/auth). Never populated by new signups.
   phone        String?    @unique
   // Nullable: a Google-only account never sets a password. Every write path
   // that creates a user must set at least one of passwordHash/googleId.
@@ -50,17 +53,43 @@ model User {
   locale       String     @default("uz")
   role         UserRole   @default(CUSTOMER)
   status       UserStatus @default(ACTIVE)
+  // Set once the user enters a valid code sent to their email
+  // (EmailVerificationToken below). Null forever for Google-only accounts'
+  // email, since Google already verified it before we ever saw it.
+  emailVerifiedAt DateTime? @map("email_verified_at")
   createdAt    DateTime   @default(now()) @map("created_at")
   updatedAt    DateTime   @updatedAt @map("updated_at")
 
-  refreshTokens       RefreshToken[]
-  orders              Order[]
-  savedPlayerProfiles SavedPlayerProfile[]
-  wallet              Wallet?
-  topUpRequests       TopUpRequest[]
-  notifications       Notification[]
+  refreshTokens           RefreshToken[]
+  orders                  Order[]
+  savedPlayerProfiles     SavedPlayerProfile[]
+  wallet                  Wallet?
+  topUpRequests           TopUpRequest[]
+  notifications           Notification[]
+  emailVerificationTokens EmailVerificationToken[]
+  promoCodeRedemptions    PromoCodeRedemption[]
 
   @@map("users")
+}
+
+// ---------------------------------------------------------------------------
+// Email verification — a short numeric code (not a link) so there's no
+// mobile deep-linking to wire up: the user just types the 6 digits from
+// their inbox into the app. Only the hash is stored, same reasoning as
+// RefreshToken. Never blocks login/registration — see auth.service.ts.
+// ---------------------------------------------------------------------------
+
+model EmailVerificationToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@map("email_verification_tokens")
 }
 
 // One saved player identity per (user, game) — "My Games" on the home
@@ -129,8 +158,51 @@ model AdminUser {
   auditLogs            AuditLog[]
   walletTransactions   WalletTransaction[]
   reviewedTopUps       TopUpRequest[]
+  createdPromoCodes    PromoCode[]
 
   @@map("admin_users")
+}
+
+// ---------------------------------------------------------------------------
+// Promo codes — a fixed-bonus code a customer redeems once for a wallet
+// credit. Deliberately simple (flat bonus, not percentage-off-purchase):
+// this is a marketing/growth lever, not a discount-at-checkout system, so it
+// reuses the exact same ledger path (wallet.service.ts's creditWallet) as
+// every other balance change — no parallel "promo balance" to reconcile.
+// ---------------------------------------------------------------------------
+
+model PromoCode {
+  id               String    @id @default(uuid()) @db.Uuid
+  // Stored uppercase; redemption lookups normalize the input the same way.
+  code             String    @unique
+  bonusAmountMinor Int       @map("bonus_amount_minor")
+  currency         String    @default("UZS")
+  // Null = unlimited redemptions (until expiresAt/isActive says otherwise).
+  maxRedemptions   Int?      @map("max_redemptions")
+  redemptionCount  Int       @default(0) @map("redemption_count")
+  expiresAt        DateTime? @map("expires_at")
+  isActive         Boolean   @default(true) @map("is_active")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  createdByAdminId String?   @map("created_by_admin_id") @db.Uuid
+  createdByAdmin   AdminUser? @relation(fields: [createdByAdminId], references: [id])
+
+  redemptions PromoCodeRedemption[]
+
+  @@map("promo_codes")
+}
+
+model PromoCodeRedemption {
+  id          String    @id @default(uuid()) @db.Uuid
+  promoCodeId String    @map("promo_code_id") @db.Uuid
+  promoCode   PromoCode @relation(fields: [promoCodeId], references: [id], onDelete: Cascade)
+  userId      String    @map("user_id") @db.Uuid
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  redeemedAt  DateTime  @default(now()) @map("redeemed_at")
+
+  // The actual one-redemption-per-user-per-code guard — DB-enforced, not
+  // just checked-then-written in application code.
+  @@unique([promoCodeId, userId])
+  @@map("promo_code_redemptions")
 }
 
 model AdminRefreshToken {

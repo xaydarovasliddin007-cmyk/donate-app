@@ -1,28 +1,40 @@
 import 'order_status.dart';
 
 class OrderGameRef {
-  const OrderGameRef({required this.id, required this.name, required this.slug});
+  const OrderGameRef({
+    required this.id,
+    required this.name,
+    required this.slug,
+  });
 
   final String id;
   final String name;
   final String slug;
 
-  factory OrderGameRef.fromJson(Map<String, dynamic> json) =>
-      OrderGameRef(id: json['id'] as String, name: json['name'] as String, slug: json['slug'] as String);
+  factory OrderGameRef.fromJson(Map<String, dynamic> json) => OrderGameRef(
+    id: json['id'] as String,
+    name: json['name'] as String,
+    slug: json['slug'] as String,
+  );
 }
 
 class OrderItemSummary {
-  const OrderItemSummary({required this.productName, required this.quantity, required this.totalAmountMinor});
+  const OrderItemSummary({
+    required this.productName,
+    required this.quantity,
+    required this.totalAmountMinor,
+  });
 
   final String productName;
   final int quantity;
   final int totalAmountMinor;
 
-  factory OrderItemSummary.fromJson(Map<String, dynamic> json) => OrderItemSummary(
-    productName: json['productName'] as String,
-    quantity: json['quantity'] as int,
-    totalAmountMinor: json['totalAmountMinor'] as int,
-  );
+  factory OrderItemSummary.fromJson(Map<String, dynamic> json) =>
+      OrderItemSummary(
+        productName: json['productName'] as String,
+        quantity: json['quantity'] as int,
+        totalAmountMinor: json['totalAmountMinor'] as int,
+      );
 }
 
 class Order {

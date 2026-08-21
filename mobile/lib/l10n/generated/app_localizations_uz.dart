@@ -124,10 +124,19 @@ class AppLocalizationsUz extends AppLocalizations {
   String get navHome => 'Bosh sahifa';
 
   @override
+  String get navGames => 'O\'yinlar';
+
+  @override
   String get navOrders => 'Buyurtmalar';
 
   @override
   String get navProfile => 'Profil';
+
+  @override
+  String get allGamesTitle => 'Barcha o\'yinlar';
+
+  @override
+  String get homeGreeting => 'Salom';
 
   @override
   String get onboardingWelcomeTitle => 'UZDONATE-ga xush kelibsiz';
@@ -146,10 +155,10 @@ class AppLocalizationsUz extends AppLocalizations {
   String get authRegisterTitle => 'Ro\'yxatdan o\'tish';
 
   @override
-  String get authIdentifierLabel => 'Email yoki telefon';
+  String get authIdentifierLabel => 'Email';
 
   @override
-  String get authIdentifierHint => 'email@example.com yoki +998901234567';
+  String get authIdentifierHint => 'email@example.com';
 
   @override
   String get authPasswordLabel => 'Parol';
@@ -176,7 +185,10 @@ class AppLocalizationsUz extends AppLocalizations {
   String get authSwitchToLogin => 'Kirish';
 
   @override
-  String get authIdentifierRequired => 'Email yoki telefon raqamini kiriting';
+  String get authIdentifierRequired => 'Email manzilingizni kiriting';
+
+  @override
+  String get authIdentifierInvalid => 'Email manzili noto\'g\'ri';
 
   @override
   String get authPasswordTooShort =>
@@ -194,7 +206,7 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get authLogoutConfirmMessage =>
-      'Qaytadan kirish uchun email/telefon va parolingiz kerak bo\'ladi';
+      'Qaytadan kirish uchun email va parolingiz kerak bo\'ladi';
 
   @override
   String get authLogoutButton => 'Chiqish';
@@ -214,6 +226,30 @@ class AppLocalizationsUz extends AppLocalizations {
       'Google orqali kirib bo\'lmadi. Qayta urinib ko\'ring.';
 
   @override
+  String get authVerifyEmailTitle => 'Emailni tasdiqlang';
+
+  @override
+  String authVerifyEmailMessage(String email) {
+    return '$email manziliga 6 xonali kod yubordik. Kodni quyida kiriting.';
+  }
+
+  @override
+  String get authVerifyEmailCodeInvalid =>
+      'Kod 6 xonadan iborat bo\'lishi kerak';
+
+  @override
+  String get authVerifyEmailResendButton => 'Kodni qayta yuborish';
+
+  @override
+  String get authVerifyEmailResendSuccess => 'Kod qayta yuborildi';
+
+  @override
+  String get authVerifyEmailSkipButton => 'Keyinroq';
+
+  @override
+  String get authVerifyEmailFailed => 'Kod noto\'g\'ri yoki eskirgan';
+
+  @override
   String get homeSearchHint => 'O\'yin qidirish';
 
   @override
@@ -221,9 +257,6 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get homePopularGames => 'Mashhur o\'yinlar';
-
-  @override
-  String get homeCategories => 'Kategoriyalar';
 
   @override
   String get homePopularTopups => 'Ommabop to\'ldirishlar';
@@ -264,6 +297,18 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get playerInfoPlayerIdHint => 'Masalan: 123456789';
+
+  @override
+  String get playerInfoPlayerTagLabel => 'Player Tag';
+
+  @override
+  String get playerInfoPlayerTagHint => 'Masalan: #2PP0LQU8';
+
+  @override
+  String get playerInfoUsernameLabel => 'Foydalanuvchi nomi';
+
+  @override
+  String get playerInfoUsernameHint => 'Masalan: SizningNomingiz';
 
   @override
   String get playerInfoServerIdLabel => 'Server ID';
@@ -478,6 +523,34 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get walletTypeBonus => 'Bonus';
+
+  @override
+  String get promoCodeButton => 'Promokod';
+
+  @override
+  String get promoCodeSheetTitle => 'Promokodni faollashtiring';
+
+  @override
+  String get promoCodeInputLabel => 'Promokod';
+
+  @override
+  String get promoCodeInputHint => 'Kodni kiriting';
+
+  @override
+  String get promoCodeActivateButton => 'Faollashtirish';
+
+  @override
+  String promoCodeSuccessMessage(String amount) {
+    return '$amount hisobingizga qo\'shildi!';
+  }
+
+  @override
+  String get promoCodeInvalid =>
+      'Bunday promokod topilmadi yoki muddati o\'tgan';
+
+  @override
+  String get promoCodeAlreadyRedeemed =>
+      'Bu promokodni allaqachon ishlatgansiz';
 
   @override
   String get checkoutPayWithWallet => 'Hamyondan to\'lash';

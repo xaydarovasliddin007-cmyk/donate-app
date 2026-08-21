@@ -1,4 +1,12 @@
-enum NotificationKind { orderSuccess, orderFailed, paymentSuccess, topupSuccess, refund, security, promotion }
+enum NotificationKind {
+  orderSuccess,
+  orderFailed,
+  paymentSuccess,
+  topupSuccess,
+  refund,
+  security,
+  promotion,
+}
 
 NotificationKind _kindFromJson(String value) => switch (value) {
   'ORDER_SUCCESS' => NotificationKind.orderSuccess,
@@ -31,13 +39,16 @@ class AppNotification {
 
   bool get isUnread => readAt == null;
 
-  factory AppNotification.fromJson(Map<String, dynamic> json) => AppNotification(
-    id: json['id'] as String,
-    type: _kindFromJson(json['type'] as String),
-    title: json['title'] as String,
-    body: json['body'] as String,
-    deepLink: json['deepLink'] as String?,
-    readAt: json['readAt'] == null ? null : DateTime.parse(json['readAt'] as String),
-    createdAt: DateTime.parse(json['createdAt'] as String),
-  );
+  factory AppNotification.fromJson(Map<String, dynamic> json) =>
+      AppNotification(
+        id: json['id'] as String,
+        type: _kindFromJson(json['type'] as String),
+        title: json['title'] as String,
+        body: json['body'] as String,
+        deepLink: json['deepLink'] as String?,
+        readAt: json['readAt'] == null
+            ? null
+            : DateTime.parse(json['readAt'] as String),
+        createdAt: DateTime.parse(json['createdAt'] as String),
+      );
 }

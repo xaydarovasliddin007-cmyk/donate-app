@@ -19,18 +19,25 @@ abstract final class AppColors {
   static const Color lightSurface = Color(0xFFFFFFFF);
   static const Color lightOnSurface = Color(0xFF14161A);
 
-  static const Color darkBackground = Color(0xFF0B0D12);
-  static const Color darkSurface = Color(0xFF171A21);
+  // A deep navy, not near-black — pure black behind brand-blue content reads
+  // as "empty app", not "premium dark theme". Keeping a visible (if subtle)
+  // blue undertone here is what makes the whole dark theme feel considered
+  // rather than just "the default with the lights off".
+  static const Color darkBackground = Color(0xFF0C1122);
+  static const Color darkSurface = Color(0xFF181F35);
   static const Color darkOnSurface = Color(0xFFF3F4F6);
 
   /// A touch lighter than [darkSurface]/[lightSurface] — for a card nested
   /// on top of another card (stat tiles, payment tiles) without leaning on
   /// Material's generated tonal surfaces for every layer.
   static const Color surfaceCardLight = Color(0xFFEFF1F8);
-  static const Color surfaceCardDark = Color(0xFF1E222C);
+  static const Color surfaceCardDark = Color(0xFF1F2740);
 
   static const List<Color> heroGradientLight = [brandPrimary, brandAccent];
-  static const List<Color> heroGradientDark = [Color(0xFF2F52C4), Color(0xFF5A3FCC)];
+  static const List<Color> heroGradientDark = [
+    Color(0xFF2F52C4),
+    Color(0xFF5A3FCC),
+  ];
 
   /// A small family of brand-derived gradients (cooler/warmer shifts of the
   /// same two hues, never gold) — cycled across payment-method / cover-art

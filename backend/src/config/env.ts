@@ -48,6 +48,37 @@ const envSchema = z.object({
   CLICK_SERVICE_ID: z.string().trim().min(1).optional(),
   CLICK_SECRET_KEY: z.string().trim().min(1).optional(),
 
+  // Optional: Digiflazz — a real multi-seller game top-up marketplace
+  // (buyer price = cheapest of several competing sellers per their own
+  // docs), the primary top-up provider. Same "wired but inert without
+  // credentials" pattern as above. See
+  // src/providers/digiflazz/digiflazz-topup-provider.ts — its endpoints
+  // and signature formula are taken from Digiflazz's public API docs, not
+  // guessed. Requires whitelisting this server's IP in the Digiflazz
+  // dashboard — see backend/README.md "Digiflazz top-up setup".
+  DIGIFLAZZ_USERNAME: z.string().trim().min(1).optional(),
+  DIGIFLAZZ_API_KEY: z.string().trim().min(1).optional(),
+
+  // Optional: Apigames.id — a secondary/fallback wholesale H2H top-up
+  // aggregator (routes orders across Smile.one/UniPin/Kiosgamer/etc.).
+  // See src/providers/apigames/apigames-topup-provider.ts — unlike
+  // Digiflazz's, its request/response field mapping is a placeholder
+  // pending the real docs.apigames.id reference (a JS-rendered page that
+  // couldn't be read programmatically), since that account can't be
+  // created on the operator's behalf.
+  APIGAMES_USERNAME: z.string().trim().min(1).optional(),
+  APIGAMES_API_KEY: z.string().trim().min(1).optional(),
+
+  // Optional: outgoing email (registration verification codes) via SMTP —
+  // same "wired but needs credentials" pattern as the above. Without these,
+  // src/lib/mailer.ts logs the email content instead of sending it, so the
+  // verification flow stays fully testable in dev.
+  SMTP_HOST: z.string().trim().min(1).optional(),
+  SMTP_PORT: z.coerce.number().int().positive().default(587),
+  SMTP_USER: z.string().trim().min(1).optional(),
+  SMTP_PASSWORD: z.string().trim().min(1).optional(),
+  SMTP_FROM: z.string().trim().min(1).default('UZDONATE <no-reply@uzdonate.dev>'),
+
   RATE_LIMIT_MAX: z.coerce.number().int().positive().default(100),
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60_000),
 

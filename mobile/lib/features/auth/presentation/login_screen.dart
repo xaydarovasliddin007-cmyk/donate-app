@@ -43,21 +43,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       _errorMessage = null;
     });
 
-    final identifier = _identifierController.text.trim();
-    final isEmail = identifier.contains('@');
+    final email = _identifierController.text.trim();
 
     try {
       await ref
           .read(authControllerProvider.notifier)
-          .login(
-            email: isEmail ? identifier : null,
-            phone: isEmail ? null : identifier,
-            password: _passwordController.text,
-          );
+          .login(email: email, password: _passwordController.text);
       if (mounted) context.pop();
     } catch (error) {
       final failure = Failure.from(error);
-      setState(() => _errorMessage = failure.isUnauthorized ? l10n.errorUnauthorized : failure.message);
+      setState(
+        () => _errorMessage = failure.isUnauthorized
+            ? l10n.errorUnauthorized
+            : failure.message,
+      );
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
@@ -71,7 +70,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     });
 
     try {
-      final success = await ref.read(authControllerProvider.notifier).signInWithGoogle();
+      final success = await ref
+          .read(authControllerProvider.notifier)
+          .signInWithGoogle();
       if (success && mounted) context.pop();
     } catch (error) {
       final failure = Failure.from(error);
@@ -117,12 +118,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               const SizedBox(height: AppSpacing.lg),
               Row(
                 children: [
-                  Expanded(child: Divider(color: theme.colorScheme.outlineVariant)),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-                    child: Text(l10n.authOrDivider, style: theme.textTheme.bodySmall),
+                  Expanded(
+                    child: Divider(color: theme.colorScheme.outlineVariant),
                   ),
-                  Expanded(child: Divider(color: theme.colorScheme.outlineVariant)),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.sm,
+                    ),
+                    child: Text(
+                      l10n.authOrDivider,
+                      style: theme.textTheme.bodySmall,
+                    ),
+                  ),
+                  Expanded(
+                    child: Divider(color: theme.colorScheme.outlineVariant),
+                  ),
                 ],
               ),
               const SizedBox(height: AppSpacing.lg),
@@ -138,13 +148,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       obscureText: true,
                       textInputAction: TextInputAction.done,
                       onFieldSubmitted: (_) => _submit(),
-                      decoration: InputDecoration(labelText: l10n.authPasswordLabel),
-                      validator: (value) =>
-                          (value == null || value.length < 8) ? l10n.authPasswordTooShort : null,
+                      decoration: InputDecoration(
+                        labelText: l10n.authPasswordLabel,
+                      ),
+                      validator: (value) => (value == null || value.length < 8)
+                          ? l10n.authPasswordTooShort
+                          : null,
                     ),
                     if (_errorMessage != null) ...[
                       const SizedBox(height: AppSpacing.md),
-                      Text(_errorMessage!, style: TextStyle(color: theme.colorScheme.error)),
+                      Text(
+                        _errorMessage!,
+                        style: TextStyle(color: theme.colorScheme.error),
+                      ),
                     ],
                     const SizedBox(height: AppSpacing.lg),
                     FilledButton(
@@ -164,7 +180,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               Center(
                 child: TextButton(
                   onPressed: _busy ? null : () => context.push('/register'),
-                  child: Text('${l10n.authNoAccountPrompt} ${l10n.authSwitchToRegister}'),
+                  child: Text(
+                    '${l10n.authNoAccountPrompt} ${l10n.authSwitchToRegister}',
+                  ),
                 ),
               ),
             ],

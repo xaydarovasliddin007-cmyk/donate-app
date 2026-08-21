@@ -8,7 +8,9 @@ import '../data/auth_api.dart';
 import '../data/google_sign_in_service.dart';
 import '../domain/app_user.dart';
 
-final googleSignInServiceProvider = Provider<GoogleSignInService>((ref) => GoogleSignInService());
+final googleSignInServiceProvider = Provider<GoogleSignInService>(
+  (ref) => GoogleSignInService(),
+);
 
 enum AuthStatus { guest, authenticated }
 
@@ -23,7 +25,9 @@ class AuthState {
   static const guest = AuthState(status: AuthStatus.guest);
 }
 
-final authApiProvider = Provider<AuthApi>((ref) => AuthApi(ref.watch(apiClientProvider)));
+final authApiProvider = Provider<AuthApi>(
+  (ref) => AuthApi(ref.watch(apiClientProvider)),
+);
 
 class AuthController extends AsyncNotifier<AuthState> {
   @override
@@ -53,30 +57,56 @@ class AuthController extends AsyncNotifier<AuthState> {
   Future<void> _applyAuthResult(AuthResult result) async {
     await ref
         .read(secureStorageServiceProvider)
-        .saveTokens(accessToken: result.accessToken, refreshToken: result.refreshToken);
+        .saveTokens(
+          accessToken: result.accessToken,
+          refreshToken: result.refreshToken,
+        );
     ref.read(apiClientProvider).setAccessToken(result.accessToken);
-    state = AsyncData(AuthState(status: AuthStatus.authenticated, user: result.user));
+    state = AsyncData(
+      AuthState(status: AuthStatus.authenticated, user: result.user),
+    );
   }
 
-  Future<void> login({String? email, String? phone, required String password}) async {
+  Future<void> login({required String email, required String password}) async {
     final result = await ref
         .read(authApiProvider)
-        .login(email: email, phone: phone, password: password);
+        .login(email: email, password: password);
     await _applyAuthResult(result);
   }
 
   Future<void> register({
-    String? email,
-    String? phone,
+    required String email,
     required String password,
     String? displayName,
     required String locale,
   }) async {
     final result = await ref
         .read(authApiProvider)
-        .register(email: email, phone: phone, password: password, displayName: displayName, locale: locale);
+        .register(
+          email: email,
+          password: password,
+          displayName: displayName,
+          locale: locale,
+        );
     await _applyAuthResult(result);
   }
+
+  /// Refreshes the cached user after a successful email verification, so
+  /// [AuthState.user.isEmailVerified] flips without a full re-login.
+  Future<void> refreshUser() async {
+    final user = await ref.read(authApiProvider).me();
+    final current = state.value;
+    if (current == null) return;
+    state = AsyncData(AuthState(status: current.status, user: user));
+  }
+
+  Future<void> verifyEmail(String code) async {
+    await ref.read(authApiProvider).verifyEmail(code);
+    await refreshUser();
+  }
+
+  Future<void> resendVerification() =>
+      ref.read(authApiProvider).resendVerification();
 
   /// Returns true on success, false if the user cancelled the Google
   /// account picker (not an error — callers should just stay put silently).
@@ -91,7 +121,9 @@ class AuthController extends AsyncNotifier<AuthState> {
     }
 
     final locale = ref.read(localeControllerProvider).languageCode;
-    final result = await ref.read(authApiProvider).googleAuth(idToken: idToken, locale: locale);
+    final result = await ref
+        .read(authApiProvider)
+        .googleAuth(idToken: idToken, locale: locale);
     await _applyAuthResult(result);
     return true;
   }
@@ -112,4 +144,6 @@ class AuthController extends AsyncNotifier<AuthState> {
   }
 }
 
-final authControllerProvider = AsyncNotifierProvider<AuthController, AuthState>(AuthController.new);
+final authControllerProvider = AsyncNotifierProvider<AuthController, AuthState>(
+  AuthController.new,
+);

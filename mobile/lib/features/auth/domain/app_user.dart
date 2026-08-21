@@ -9,9 +9,11 @@ class AppUser {
     required this.locale,
     required this.role,
     required this.hasGoogleAccount,
+    required this.isEmailVerified,
   });
 
   final String id;
+
   /// Permanent, user-facing "UZD-XXXXXXXX" identity — safe to show/copy, never the internal [id].
   final String publicId;
   final String? email;
@@ -21,6 +23,7 @@ class AppUser {
   final String locale;
   final String role;
   final bool hasGoogleAccount;
+  final bool isEmailVerified;
 
   factory AppUser.fromJson(Map<String, dynamic> json) => AppUser(
     id: json['id'] as String,
@@ -32,5 +35,6 @@ class AppUser {
     locale: json['locale'] as String,
     role: json['role'] as String,
     hasGoogleAccount: json['hasGoogleAccount'] as bool? ?? false,
+    isEmailVerified: json['isEmailVerified'] as bool? ?? false,
   );
 }

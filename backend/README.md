@@ -243,8 +243,15 @@ npm run prisma:seed        # (re-)run dev seed data — safe to re-run, upserts
 
 ## Google Sign-In setup
 
-Not configured yet on this machine — `GOOGLE_CLIENT_ID` is unset, so `/auth/google` responds
-`503` (this is by design, not a bug; see `test/auth-google-route.test.ts`). To enable it:
+Configured for this project (`uzdonate` GCP project). `GOOGLE_CLIENT_ID` in `backend/.env` holds
+the **Web application** OAuth client ID (`223785346997-vphv...`), which doubles as the Flutter
+side's `GOOGLE_SERVER_CLIENT_ID`. A second, **Android**-type client (`com.donateapp.donate_app`,
+debug SHA-1 `3B:8B:0E:8B:FE:0B:CA:DB:8E:9B:1C:A9:B4:82:12:09:2B:B8:FC:0E`) exists in the same
+project so the native Android sign-in flow can hand back a verifiable token. The project's OAuth
+consent screen is still in **Testing** publishing status, so only accounts added under Audience →
+Test users can complete sign-in — add any new tester's Google account there before they try it.
+
+To set this up from scratch on a new machine/project:
 
 1. In [Google Cloud Console](https://console.cloud.google.com/apis/credentials), create an
    OAuth 2.0 Client ID of type **Web application** (used as the `serverClientId` on the Flutter
@@ -255,17 +262,90 @@ Not configured yet on this machine — `GOOGLE_CLIENT_ID` is unset, so `/auth/go
    testing: `cd mobile/android && ./gradlew signingReport`, use the `debug` variant's SHA1).
 3. Set `GOOGLE_CLIENT_ID` in `backend/.env` to the **Web** client ID from step 1.
 4. Run the Flutter app with `--dart-define=GOOGLE_SERVER_CLIENT_ID=<same Web client ID>`.
+5. Under Audience → Test users, add every Google account that needs to sign in while the app
+   is unverified/in Testing status — sign-in fails silently past the account picker otherwise.
 
 Both the Web and Android client IDs must exist in the same GCP project for Android's native
 Google Sign-In flow to hand back a token this backend can verify.
+
+## Email setup
+
+Configured on this machine via Gmail SMTP (an app password, not the account password — see
+[Google's app passwords page](https://myaccount.google.com/apppasswords), requires 2-Step
+Verification enabled first). `sendEmail()` in `src/lib/mailer.ts` sends the verification-code
+email built by `src/lib/email-templates.ts` (branded HTML + plain-text fallback).
+
+Without `SMTP_HOST`/`SMTP_USER`/`SMTP_PASSWORD` set, `sendEmail()` logs the email content at info
+level instead of sending — the registration/verify-email flow still works end-to-end in dev,
+you just read the 6-digit code out of the backend console rather than an inbox.
+
+To use a different provider (Brevo, Resend's SMTP relay, your own mail server, ...), just point
+`SMTP_HOST`/`SMTP_PORT`/`SMTP_USER`/`SMTP_PASSWORD` at it — no code changes needed, any standard
+SMTP account works. Gmail's free tier caps around ~500 sends/day, fine for dev and small-scale
+production but worth moving off before real growth.
+
+## Digiflazz top-up setup (primary provider)
+
+Not configured yet — `src/providers/digiflazz/digiflazz-topup-provider.ts` implements the
+`TopupProviderAdapter` interface (same contract `MockTopupProvider` uses). Unlike the Apigames
+adapter below, its endpoints, request/response fields, and signature formula
+(`md5(username + apiKey + suffix)`) are taken directly from Digiflazz's public technical
+documentation (developer.digiflazz.com/api/buyer/...) — real, not guessed — though still
+unverified against an actual account/live order, since that requires credentials that can't be
+created on the operator's behalf.
+
+Why Digiflazz over Apigames/UniPin Direct/Codashop Distribution: it's a genuine multi-seller
+marketplace — several sellers compete on the same product, and Digiflazz's own price-list API
+returns "the cheapest price or best commission from registered sellers" — rather than one
+aggregator's fixed margin. Onboarding is self-service (no business-development approval
+process), a better fit before real order volume justifies a direct publisher contract.
+
+To finish this:
+
+1. Register a buyer account at [digiflazz.com](https://digiflazz.com) and top up the deposit
+   balance that funds transactions.
+2. **Whitelist this server's outbound IP** in the Digiflazz buyer dashboard — every API call is
+   rejected until this is done (their docs: "Silahkan whitelist IP ... di sistem Anda").
+3. Set `DIGIFLAZZ_USERNAME` and `DIGIFLAZZ_API_KEY` (their "Production Key") in `backend/.env` —
+   the provider registers itself in `src/providers/registry.ts` once both are present, same
+   "wired but inert without credentials" pattern as Payme/Click.
+4. Call the price-list endpoint (`POST /v1/price-list`, `cmd: "prepaid"`) to get real
+   `buyer_sku_code`s for the games in this catalog, then in the admin panel map each `Product`
+   to its code via `ProviderProduct` (mirrors how `DEV_MOCK_TOPUP` products are already mapped)
+   and flip the `DIGIFLAZZ` provider row's `isActive` to `true`.
+
+## Apigames top-up setup (secondary/fallback)
+
+Not configured yet — `src/providers/apigames/apigames-topup-provider.ts` implements the same
+`TopupProviderAdapter` interface, kept as a second option (e.g. for games Digiflazz doesn't
+carry). Its request/response field mapping is a **placeholder**, not a verified integration:
+their public API reference (docs.apigames.id) is a JS-rendered Postman page that couldn't be
+fetched and read programmatically, so the endpoint paths and signature construction follow the
+common convention for this class of Indonesian H2H top-up API, unconfirmed against the real
+docs.
+
+To finish this:
+
+1. Register at [member.apigames.id](https://member.apigames.id/register) (self-service, no
+   business-verification step) and top up the wallet balance that funds transactions.
+2. Open the account's own API documentation from the member area (or share it with the AI
+   assistant) to confirm/correct the endpoint paths, auth signature formula, and field names in
+   `apigames-topup-provider.ts` against what's actually there — right now those are educated
+   guesses, not verified.
+3. Set `APIGAMES_USERNAME` and `APIGAMES_API_KEY` in `backend/.env`.
+4. In the admin panel, map each `Product` to its real Apigames SKU code via `ProviderProduct`
+   and flip the `APIGAMES` provider row's `isActive` to `true`.
 
 ## Environment
 
 See `.env.example` for the full list. Required: `DATABASE_URL`, `JWT_ACCESS_SECRET`,
 `JWT_REFRESH_SECRET`, `ADMIN_JWT_ACCESS_SECRET` (all three secrets must be ≥32 chars — the
 app refuses to boot otherwise — and must all be *different* from each other). Optional:
-`TELEGRAM_BOT_TOKEN`/`TELEGRAM_ADMIN_CHAT_ID` (admin alerts silently no-op without them) and
-`GOOGLE_CLIENT_ID` (Google Sign-In responds `503` without it).
+`TELEGRAM_BOT_TOKEN`/`TELEGRAM_ADMIN_CHAT_ID` (admin alerts silently no-op without them),
+`GOOGLE_CLIENT_ID` (Google Sign-In responds `503` without it), `SMTP_HOST`/`SMTP_USER`/
+`SMTP_PASSWORD` (verification emails log to console instead of sending without them), and
+`DIGIFLAZZ_USERNAME`/`DIGIFLAZZ_API_KEY` and/or `APIGAMES_USERNAME`/`APIGAMES_API_KEY` (top-up
+orders have no real provider to route to without at least one — see "Digiflazz top-up setup").
 
 ## Telegram admin notifications
 

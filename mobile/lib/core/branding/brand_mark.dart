@@ -26,7 +26,10 @@ class BrandMark extends StatelessWidget {
         ),
       ),
       alignment: Alignment.center,
-      child: CustomPaint(size: Size(size * 0.46, size * 0.46), painter: _BoltPainter()),
+      child: CustomPaint(
+        size: Size(size * 0.46, size * 0.46),
+        painter: _BoltPainter(),
+      ),
     );
 
     if (!showWordmark) return mark;

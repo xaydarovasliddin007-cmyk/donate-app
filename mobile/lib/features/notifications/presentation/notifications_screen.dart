@@ -36,15 +36,22 @@ class NotificationsScreen extends ConsumerWidget {
           loading: () => ListView(
             padding: const EdgeInsets.all(AppSpacing.lg),
             children: const [
-              Padding(padding: EdgeInsets.only(bottom: AppSpacing.sm), child: ListRowSkeleton()),
+              Padding(
+                padding: EdgeInsets.only(bottom: AppSpacing.sm),
+                child: ListRowSkeleton(),
+              ),
               ListRowSkeleton(),
             ],
           ),
           error: (error, _) {
             final failure = Failure.from(error);
             return ErrorView(
-              title: failure.isNetworkError ? l10n.errorNoConnectionTitle : l10n.errorGenericTitle,
-              message: failure.isNetworkError ? l10n.errorNoConnectionMessage : l10n.errorGenericMessage,
+              title: failure.isNetworkError
+                  ? l10n.errorNoConnectionTitle
+                  : l10n.errorGenericTitle,
+              message: failure.isNetworkError
+                  ? l10n.errorNoConnectionMessage
+                  : l10n.errorGenericMessage,
               retryLabel: l10n.commonRetry,
               onRetry: () => ref.invalidate(notificationsProvider),
             );
@@ -57,7 +64,8 @@ class NotificationsScreen extends ConsumerWidget {
               padding: const EdgeInsets.all(AppSpacing.lg),
               itemCount: result.notifications.length,
               separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
-              itemBuilder: (context, index) => _NotificationTile(notification: result.notifications[index]),
+              itemBuilder: (context, index) =>
+                  _NotificationTile(notification: result.notifications[index]),
             );
           },
         ),
@@ -125,7 +133,10 @@ class _NotificationTile extends ConsumerWidget {
                 width: 8,
                 height: 8,
                 margin: const EdgeInsets.only(top: 4),
-                decoration: BoxDecoration(color: theme.colorScheme.primary, shape: BoxShape.circle),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary,
+                  shape: BoxShape.circle,
+                ),
               ),
           ],
         ),

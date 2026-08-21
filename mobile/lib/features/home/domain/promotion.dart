@@ -1,5 +1,10 @@
 class Promotion {
-  const Promotion({required this.id, required this.code, required this.title, this.description});
+  const Promotion({
+    required this.id,
+    required this.code,
+    required this.title,
+    this.description,
+  });
 
   final String id;
   final String code;

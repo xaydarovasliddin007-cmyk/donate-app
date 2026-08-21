@@ -33,7 +33,9 @@ class TopUpRequest {
     amountMinor: json['amountMinor'] as int,
     currency: json['currency'] as String,
     status: _statusFromJson(json['status'] as String),
-    receivingMethod: ReceivingMethod.fromJson(json['receivingMethod'] as Map<String, dynamic>),
+    receivingMethod: ReceivingMethod.fromJson(
+      json['receivingMethod'] as Map<String, dynamic>,
+    ),
     createdAt: DateTime.parse(json['createdAt'] as String),
     rejectionReason: json['rejectionReason'] as String?,
   );

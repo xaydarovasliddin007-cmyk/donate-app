@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/errors/failure.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/empty_view.dart';
 import '../../../core/widgets/error_view.dart';
@@ -103,22 +104,65 @@ class _GameDetailsBodyState extends ConsumerState<_GameDetailsBody> {
                   color: Colors.white,
                 ),
               ),
+              // A brand-gradient backdrop with the (square, Play Store-sized)
+              // icon centered in its own card — rather than force-cropping
+              // that square icon across a wide banner via BoxFit.cover,
+              // which cut off most of every icon's artwork.
               background: Stack(
                 fit: StackFit.expand,
                 children: [
-                  if (widget.game.logoUrl != null)
-                    CachedNetworkImage(
-                      imageUrl: widget.game.logoUrl!,
-                      fit: BoxFit.cover,
-                    )
-                  else
-                    ColoredBox(color: theme.colorScheme.primaryContainer),
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors:
+                            AppColors.tileGradients[widget.game.name.hashCode
+                                    .abs() %
+                                AppColors.tileGradients.length],
+                      ),
+                    ),
+                  ),
+                  Align(
+                    alignment: const Alignment(0, -0.15),
+                    child: Container(
+                      width: 88,
+                      height: 88,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(AppRadius.lg),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.35),
+                            blurRadius: 18,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(AppRadius.lg),
+                        child: widget.game.logoUrl != null
+                            ? CachedNetworkImage(
+                                imageUrl: widget.game.logoUrl!,
+                                fit: BoxFit.cover,
+                              )
+                            : ColoredBox(
+                                color: Colors.white.withValues(alpha: 0.18),
+                                child: Center(
+                                  child: Text(
+                                    widget.game.logoEmoji ?? '🎮',
+                                    style: const TextStyle(fontSize: 36),
+                                  ),
+                                ),
+                              ),
+                      ),
+                    ),
+                  ),
                   const DecoratedBox(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
-                        stops: [0.35, 1.0],
+                        stops: [0.45, 1.0],
                         colors: [Colors.transparent, Color(0xE6000000)],
                       ),
                     ),

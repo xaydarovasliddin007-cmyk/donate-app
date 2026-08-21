@@ -23,6 +23,5 @@ class ThemeModeController extends Notifier<ThemeMode> {
   static String _encode(ThemeMode mode) => mode.name;
 }
 
-final themeModeControllerProvider = NotifierProvider<ThemeModeController, ThemeMode>(
-  ThemeModeController.new,
-);
+final themeModeControllerProvider =
+    NotifierProvider<ThemeModeController, ThemeMode>(ThemeModeController.new);

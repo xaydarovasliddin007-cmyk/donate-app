@@ -11,9 +11,11 @@ import type {
   AdminCreateGameInput,
   AdminCreateGameServerInput,
   AdminCreateProductInput,
+  AdminCreatePromoCodeInput,
   AdminUpdateAdminInput,
   AdminUpdateGameInput,
   AdminUpdateGameServerInput,
+  AdminUpdatePromoCodeInput,
   AdminUpdateProviderInput,
 } from './admin.schemas.js';
 
@@ -658,6 +660,59 @@ export async function updateReceivingMethodAdmin(
     actorId: adminId,
     action: 'receiving_method.update',
     entityType: 'ReceivingMethod',
+    entityId: id,
+    metadata: changes,
+  });
+  return updated;
+}
+
+// --- Promo codes ----------------------------------------------------------
+
+export async function listPromoCodesAdmin(ctx: AdminContext) {
+  return ctx.prisma.promoCode.findMany({ orderBy: { createdAt: 'desc' } });
+}
+
+export async function createPromoCodeAdmin(ctx: AdminContext, adminId: string, input: AdminCreatePromoCodeInput) {
+  const code = input.code.trim().toUpperCase();
+  const existing = await ctx.prisma.promoCode.findUnique({ where: { code } });
+  if (existing) {
+    throw new ConflictError('A promo code with this code already exists');
+  }
+
+  const created = await ctx.prisma.promoCode.create({
+    data: {
+      code,
+      bonusAmountMinor: input.bonusAmountMinor,
+      maxRedemptions: input.maxRedemptions,
+      expiresAt: input.expiresAt ? new Date(input.expiresAt) : undefined,
+      createdByAdminId: adminId,
+    },
+  });
+  await writeAuditLog(ctx.prisma, {
+    actorId: adminId,
+    action: 'promo_code.create',
+    entityType: 'PromoCode',
+    entityId: created.id,
+    metadata: { code: created.code, bonusAmountMinor: created.bonusAmountMinor },
+  });
+  return created;
+}
+
+export async function updatePromoCodeAdmin(
+  ctx: AdminContext,
+  adminId: string,
+  id: string,
+  changes: AdminUpdatePromoCodeInput,
+) {
+  const existing = await ctx.prisma.promoCode.findUnique({ where: { id } });
+  if (!existing) {
+    throw new NotFoundError('Promo code not found');
+  }
+  const updated = await ctx.prisma.promoCode.update({ where: { id }, data: changes });
+  await writeAuditLog(ctx.prisma, {
+    actorId: adminId,
+    action: 'promo_code.update',
+    entityType: 'PromoCode',
     entityId: id,
     metadata: changes,
   });

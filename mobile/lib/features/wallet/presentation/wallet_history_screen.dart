@@ -25,16 +25,26 @@ class WalletHistoryScreen extends ConsumerWidget {
           loading: () => ListView(
             padding: const EdgeInsets.all(AppSpacing.lg),
             children: const [
-              Padding(padding: EdgeInsets.only(bottom: AppSpacing.sm), child: ListRowSkeleton()),
-              Padding(padding: EdgeInsets.only(bottom: AppSpacing.sm), child: ListRowSkeleton()),
+              Padding(
+                padding: EdgeInsets.only(bottom: AppSpacing.sm),
+                child: ListRowSkeleton(),
+              ),
+              Padding(
+                padding: EdgeInsets.only(bottom: AppSpacing.sm),
+                child: ListRowSkeleton(),
+              ),
               ListRowSkeleton(),
             ],
           ),
           error: (error, _) {
             final failure = Failure.from(error);
             return ErrorView(
-              title: failure.isNetworkError ? l10n.errorNoConnectionTitle : l10n.errorGenericTitle,
-              message: failure.isNetworkError ? l10n.errorNoConnectionMessage : l10n.errorGenericMessage,
+              title: failure.isNetworkError
+                  ? l10n.errorNoConnectionTitle
+                  : l10n.errorGenericTitle,
+              message: failure.isNetworkError
+                  ? l10n.errorNoConnectionMessage
+                  : l10n.errorGenericMessage,
               retryLabel: l10n.commonRetry,
               onRetry: () => ref.invalidate(walletTransactionsProvider),
             );
@@ -47,7 +57,8 @@ class WalletHistoryScreen extends ConsumerWidget {
               padding: const EdgeInsets.all(AppSpacing.lg),
               itemCount: transactions.length,
               separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
-              itemBuilder: (context, index) => _TransactionTile(transaction: transactions[index]),
+              itemBuilder: (context, index) =>
+                  _TransactionTile(transaction: transactions[index]),
             );
           },
         ),
@@ -103,7 +114,11 @@ class _TransactionTile extends StatelessWidget {
               borderRadius: BorderRadius.circular(AppRadius.sm),
             ),
             alignment: Alignment.center,
-            child: Icon(icon, size: 20, color: theme.colorScheme.onSurfaceVariant),
+            child: Icon(
+              icon,
+              size: 20,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
           ),
           const SizedBox(width: AppSpacing.md),
           Expanded(
@@ -111,18 +126,26 @@ class _TransactionTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(transaction.reason ?? transaction.reference ?? typeLabel, style: theme.textTheme.titleSmall),
+                Text(
+                  transaction.reason ?? transaction.reference ?? typeLabel,
+                  style: theme.textTheme.titleSmall,
+                ),
                 const SizedBox(height: 2),
                 Text(
                   '$typeLabel · ${_formatDate(transaction.createdAt)}',
-                  style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ],
             ),
           ),
           Text(
             '$sign${formatMoney(transaction.amountMinor, transaction.currency, localeName)}',
-            style: theme.textTheme.titleSmall?.copyWith(color: color, fontWeight: FontWeight.w700),
+            style: theme.textTheme.titleSmall?.copyWith(
+              color: color,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ],
       ),

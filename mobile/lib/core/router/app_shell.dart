@@ -6,7 +6,7 @@ import '../../l10n/generated/app_localizations.dart';
 import '../notifications/notification_watcher.dart';
 import '../widgets/app_bottom_nav.dart';
 
-/// Bottom-nav shell for the three primary destinations. Each branch keeps
+/// Bottom-nav shell for the four primary destinations. Each branch keeps
 /// its own navigation stack/scroll position via [StatefulShellRoute] —
 /// switching tabs never rebuilds the others from scratch.
 class AppShell extends ConsumerWidget {
@@ -38,6 +38,11 @@ class AppShell extends ConsumerWidget {
             icon: Icons.home_outlined,
             selectedIcon: Icons.home_rounded,
             label: l10n.navHome,
+          ),
+          AppNavItem(
+            icon: Icons.sports_esports_outlined,
+            selectedIcon: Icons.sports_esports_rounded,
+            label: l10n.navGames,
           ),
           AppNavItem(
             icon: Icons.receipt_long_outlined,

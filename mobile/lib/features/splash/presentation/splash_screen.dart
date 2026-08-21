@@ -41,7 +41,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     await Future.delayed(const Duration(milliseconds: 480));
     if (!mounted) return;
 
-    final hasCompletedOnboarding = ref.read(preferencesServiceProvider).hasCompletedOnboarding;
+    final hasCompletedOnboarding = ref
+        .read(preferencesServiceProvider)
+        .hasCompletedOnboarding;
     context.go(hasCompletedOnboarding ? '/home' : '/onboarding');
   }
 
@@ -66,7 +68,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
               const SizedBox(height: 16),
               Text(
                 AppBranding.appName,
-                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, letterSpacing: 1.2),
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 1.2,
+                ),
               ),
             ],
           ),

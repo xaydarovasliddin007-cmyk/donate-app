@@ -1,4 +1,12 @@
-enum OrderStatus { pending, paid, processing, completed, failed, cancelled, refunded }
+enum OrderStatus {
+  pending,
+  paid,
+  processing,
+  completed,
+  failed,
+  cancelled,
+  refunded,
+}
 
 OrderStatus orderStatusFromJson(String value) => switch (value) {
   'PENDING' => OrderStatus.pending,

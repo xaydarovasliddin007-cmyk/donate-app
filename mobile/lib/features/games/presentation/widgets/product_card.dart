@@ -41,11 +41,18 @@ class ProductCard extends StatelessWidget {
                     color: theme.colorScheme.primaryContainer,
                     borderRadius: BorderRadius.circular(AppRadius.sm),
                   ),
-                  child: Icon(Icons.diamond_rounded, size: 16, color: theme.colorScheme.onPrimaryContainer),
+                  child: Icon(
+                    Icons.diamond_rounded,
+                    size: 16,
+                    color: theme.colorScheme.onPrimaryContainer,
+                  ),
                 ),
                 if (product.isTest)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: theme.colorScheme.tertiaryContainer,
                       borderRadius: BorderRadius.circular(AppRadius.pill),

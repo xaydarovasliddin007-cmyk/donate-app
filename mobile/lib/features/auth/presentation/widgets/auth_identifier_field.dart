@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 
-/// Single "email or phone" field — the backend accepts either, so the UI
-/// doesn't force the user to pick a mode upfront.
+final _emailPattern = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+
+/// Email field for login/register — phone-based auth was removed, so this
+/// no longer needs to guess which kind of identifier the user typed.
 class AuthIdentifierField extends StatelessWidget {
   const AuthIdentifierField({super.key, required this.controller});
 
@@ -15,11 +17,18 @@ class AuthIdentifierField extends StatelessWidget {
       controller: controller,
       keyboardType: TextInputType.emailAddress,
       textInputAction: TextInputAction.next,
+      autocorrect: false,
       decoration: InputDecoration(
         labelText: l10n.authIdentifierLabel,
         hintText: l10n.authIdentifierHint,
+        prefixIcon: const Icon(Icons.mail_outline_rounded),
       ),
-      validator: (value) => (value == null || value.trim().isEmpty) ? l10n.authIdentifierRequired : null,
+      validator: (value) {
+        final trimmed = value?.trim() ?? '';
+        if (trimmed.isEmpty) return l10n.authIdentifierRequired;
+        if (!_emailPattern.hasMatch(trimmed)) return l10n.authIdentifierInvalid;
+        return null;
+      },
     );
   }
 }

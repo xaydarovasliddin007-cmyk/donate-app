@@ -17,7 +17,9 @@ class OrderProgressTimeline extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (status == OrderStatus.failed || status == OrderStatus.cancelled || status == OrderStatus.refunded) {
+    if (status == OrderStatus.failed ||
+        status == OrderStatus.cancelled ||
+        status == OrderStatus.refunded) {
       return _OutcomeBanner(status: status);
     }
 
@@ -29,12 +31,20 @@ class OrderProgressTimeline extends StatelessWidget {
       OrderStatus.completed => 2,
       _ => 0,
     };
-    final labels = [l10n.orderStatusPaid, l10n.orderStatusProcessing, l10n.orderStatusCompleted];
+    final labels = [
+      l10n.orderStatusPaid,
+      l10n.orderStatusProcessing,
+      l10n.orderStatusCompleted,
+    ];
 
     return Row(
       children: [
         for (var i = 0; i < labels.length; i++) ...[
-          _StepDot(label: labels[i], reached: i <= stepIndex, active: i == stepIndex),
+          _StepDot(
+            label: labels[i],
+            reached: i <= stepIndex,
+            active: i == stepIndex,
+          ),
           if (i != labels.length - 1) _StepConnector(filled: i < stepIndex),
         ],
       ],
@@ -43,7 +53,11 @@ class OrderProgressTimeline extends StatelessWidget {
 }
 
 class _StepDot extends StatelessWidget {
-  const _StepDot({required this.label, required this.reached, required this.active});
+  const _StepDot({
+    required this.label,
+    required this.reached,
+    required this.active,
+  });
 
   final String label;
   final bool reached;
@@ -52,7 +66,9 @@ class _StepDot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final color = reached ? theme.colorScheme.primary : theme.colorScheme.outlineVariant;
+    final color = reached
+        ? theme.colorScheme.primary
+        : theme.colorScheme.outlineVariant;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -75,7 +91,9 @@ class _StepDot extends StatelessWidget {
         Text(
           label,
           style: theme.textTheme.labelSmall?.copyWith(
-            color: reached ? theme.colorScheme.onSurface : theme.colorScheme.onSurfaceVariant,
+            color: reached
+                ? theme.colorScheme.onSurface
+                : theme.colorScheme.onSurfaceVariant,
             fontWeight: active ? FontWeight.w700 : FontWeight.w500,
           ),
         ),
@@ -98,7 +116,9 @@ class _StepConnector extends StatelessWidget {
         child: AnimatedContainer(
           duration: AppMotion.medium,
           height: 2,
-          color: filled ? theme.colorScheme.primary : theme.colorScheme.outlineVariant,
+          color: filled
+              ? theme.colorScheme.primary
+              : theme.colorScheme.outlineVariant,
         ),
       ),
     );
@@ -115,9 +135,21 @@ class _OutcomeBanner extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final (icon, color, label) = switch (status) {
-      OrderStatus.failed => (Icons.error_rounded, AppColors.danger, l10n.orderStatusFailed),
-      OrderStatus.cancelled => (Icons.block_rounded, AppColors.danger, l10n.orderStatusCancelled),
-      OrderStatus.refunded => (Icons.replay_rounded, AppColors.warning, l10n.orderStatusRefunded),
+      OrderStatus.failed => (
+        Icons.error_rounded,
+        AppColors.danger,
+        l10n.orderStatusFailed,
+      ),
+      OrderStatus.cancelled => (
+        Icons.block_rounded,
+        AppColors.danger,
+        l10n.orderStatusCancelled,
+      ),
+      OrderStatus.refunded => (
+        Icons.replay_rounded,
+        AppColors.warning,
+        l10n.orderStatusRefunded,
+      ),
       _ => (Icons.info_rounded, theme.colorScheme.primary, ''),
     };
 
@@ -132,7 +164,10 @@ class _OutcomeBanner extends StatelessWidget {
           Icon(icon, color: color),
           const SizedBox(width: AppSpacing.sm),
           Expanded(
-            child: Text(label, style: theme.textTheme.titleSmall?.copyWith(color: color)),
+            child: Text(
+              label,
+              style: theme.textTheme.titleSmall?.copyWith(color: color),
+            ),
           ),
         ],
       ),

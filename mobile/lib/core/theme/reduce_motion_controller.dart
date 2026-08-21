@@ -16,4 +16,6 @@ class ReduceMotionController extends Notifier<bool> {
   }
 }
 
-final reduceMotionProvider = NotifierProvider<ReduceMotionController, bool>(ReduceMotionController.new);
+final reduceMotionProvider = NotifierProvider<ReduceMotionController, bool>(
+  ReduceMotionController.new,
+);

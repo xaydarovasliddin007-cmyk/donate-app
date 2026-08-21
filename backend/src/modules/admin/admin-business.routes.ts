@@ -6,6 +6,7 @@ import {
   adminCreateGameSchema,
   adminCreateGameServerSchema,
   adminCreateProductSchema,
+  adminCreatePromoCodeSchema,
   adminCreateReceivingMethodSchema,
   adminListAuditLogsQuerySchema,
   adminListGamesQuerySchema,
@@ -21,6 +22,7 @@ import {
   adminUpdateGameSchema,
   adminUpdateGameServerSchema,
   adminUpdateProductSchema,
+  adminUpdatePromoCodeSchema,
   adminUpdateProviderSchema,
   adminUpdateReceivingMethodSchema,
   adminWalletAdjustSchema,
@@ -31,6 +33,7 @@ import type {
   AdminCreateGameInput,
   AdminCreateGameServerInput,
   AdminCreateProductInput,
+  AdminCreatePromoCodeInput,
   AdminCreateReceivingMethodInput,
   AdminListAuditLogsQuery,
   AdminListGamesQuery,
@@ -46,6 +49,7 @@ import type {
   AdminUpdateGameInput,
   AdminUpdateGameServerInput,
   AdminUpdateProductInput,
+  AdminUpdatePromoCodeInput,
   AdminUpdateProviderInput,
   AdminUpdateReceivingMethodInput,
   AdminWalletAdjustInput,
@@ -178,6 +182,32 @@ export async function adminBusinessRoutes(app: FastifyInstance) {
     async (request) => {
       const body = request.body as AdminUpdateReceivingMethodInput;
       return adminService.updateReceivingMethodAdmin(ctx, request.currentAdmin!.id, request.params.id, body);
+    },
+  );
+
+  // --- Promo codes --------------------------------------------------------
+
+  app.get('/promo-codes', { preHandler: requireAdminRole(...FINANCE_ROLES) }, async () => {
+    const promoCodes = await adminService.listPromoCodesAdmin(ctx);
+    return { promoCodes };
+  });
+
+  app.post(
+    '/promo-codes',
+    { preHandler: [requireAdminRole(...FINANCE_ROLES), validateBody(adminCreatePromoCodeSchema)] },
+    async (request, reply) => {
+      const body = request.body as AdminCreatePromoCodeInput;
+      const created = await adminService.createPromoCodeAdmin(ctx, request.currentAdmin!.id, body);
+      return reply.status(201).send(created);
+    },
+  );
+
+  app.patch<{ Params: { id: string } }>(
+    '/promo-codes/:id',
+    { preHandler: [requireAdminRole(...FINANCE_ROLES), validateBody(adminUpdatePromoCodeSchema)] },
+    async (request) => {
+      const body = request.body as AdminUpdatePromoCodeInput;
+      return adminService.updatePromoCodeAdmin(ctx, request.currentAdmin!.id, request.params.id, body);
     },
   );
 

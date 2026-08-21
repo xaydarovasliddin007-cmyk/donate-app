@@ -9,6 +9,8 @@ final savedGamesApiProvider = Provider<SavedGamesApi>(
 
 /// Callers must only watch this when authenticated (see HomeScreen) — the
 /// backend requires auth and there's nothing meaningful to show a guest.
-final savedGamesListProvider = FutureProvider.autoDispose<List<SavedGame>>((ref) {
+final savedGamesListProvider = FutureProvider.autoDispose<List<SavedGame>>((
+  ref,
+) {
   return ref.watch(savedGamesApiProvider).list();
 });

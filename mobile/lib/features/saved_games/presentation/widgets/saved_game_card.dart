@@ -12,7 +12,11 @@ import '../../domain/saved_game.dart';
 /// product so the caller can jump straight to checkout — no product
 /// selection, no player-info form, matching the returning-user fast path.
 class SavedGameCard extends ConsumerWidget {
-  const SavedGameCard({super.key, required this.savedGame, required this.onQuickBuy});
+  const SavedGameCard({
+    super.key,
+    required this.savedGame,
+    required this.onQuickBuy,
+  });
 
   final SavedGame savedGame;
   final void Function(Product product) onQuickBuy;
@@ -25,7 +29,10 @@ class SavedGameCard extends ConsumerWidget {
     // Reuses the server saved from the last order on this game (if any) so
     // Quick Buy prices correctly for games where price depends on server.
     final productsAsync = ref.watch(
-      gameProductsProvider((gameId: savedGame.game.id, serverCode: savedGame.serverId)),
+      gameProductsProvider((
+        gameId: savedGame.game.id,
+        serverCode: savedGame.serverId,
+      )),
     );
 
     return Container(
@@ -42,7 +49,10 @@ class SavedGameCard extends ConsumerWidget {
         children: [
           Row(
             children: [
-              Text(savedGame.game.logoEmoji ?? '🎮', style: const TextStyle(fontSize: 20)),
+              Text(
+                savedGame.game.logoEmoji ?? '🎮',
+                style: const TextStyle(fontSize: 20),
+              ),
               const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: Text(
@@ -59,7 +69,9 @@ class SavedGameCard extends ConsumerWidget {
             savedGame.serverId == null
                 ? 'ID: ${savedGame.playerId}'
                 : 'ID: ${savedGame.playerId} · ${savedGame.serverId}',
-            style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -67,12 +79,20 @@ class SavedGameCard extends ConsumerWidget {
           productsAsync.when(
             loading: () => const SizedBox(
               height: 36,
-              child: Center(child: SizedBox(height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 2))),
+              child: Center(
+                child: SizedBox(
+                  height: 16,
+                  width: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
             ),
             error: (_, _) => const SizedBox.shrink(),
             data: (products) {
               if (products.isEmpty) return const SizedBox.shrink();
-              final cheapest = products.reduce((a, b) => a.amountMinor <= b.amountMinor ? a : b);
+              final cheapest = products.reduce(
+                (a, b) => a.amountMinor <= b.amountMinor ? a : b,
+              );
               return SizedBox(
                 width: double.infinity,
                 child: FilledButton(

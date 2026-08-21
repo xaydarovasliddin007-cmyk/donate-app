@@ -49,7 +49,8 @@ class _OrderStatusScreenState extends ConsumerState<OrderStatusScreen> {
 
   Future<void> _contactSupport(Order order) async {
     final l10n = AppLocalizations.of(context);
-    final publicId = ref.read(authControllerProvider).value?.user?.publicId ?? '—';
+    final publicId =
+        ref.read(authControllerProvider).value?.user?.publicId ?? '—';
     final body = [
       '${l10n.profileUzdonateIdLabel}: $publicId',
       '${l10n.orderNumberLabel}: ${order.orderNumber}',
@@ -57,7 +58,10 @@ class _OrderStatusScreenState extends ConsumerState<OrderStatusScreen> {
       '${l10n.checkoutProductLabel}: ${order.items.first.productName}',
       '${l10n.orderStatusLabel}: ${orderStatusLabel(context, order.status)}',
     ].join('\n');
-    await launchSupportContact(subject: l10n.supportRequestSubject(order.orderNumber), body: body);
+    await launchSupportContact(
+      subject: l10n.supportRequestSubject(order.orderNumber),
+      body: body,
+    );
   }
 
   @override
@@ -76,14 +80,19 @@ class _OrderStatusScreenState extends ConsumerState<OrderStatusScreen> {
         error: (error, _) {
           final failure = Failure.from(error);
           return ErrorView(
-            title: failure.isNetworkError ? l10n.errorNoConnectionTitle : l10n.errorGenericTitle,
-            message: failure.isNetworkError ? l10n.errorNoConnectionMessage : l10n.errorGenericMessage,
+            title: failure.isNetworkError
+                ? l10n.errorNoConnectionTitle
+                : l10n.errorGenericTitle,
+            message: failure.isNetworkError
+                ? l10n.errorNoConnectionMessage
+                : l10n.errorGenericMessage,
             retryLabel: l10n.commonRetry,
             onRetry: () => ref.invalidate(orderByIdProvider(widget.orderId)),
           );
         },
         data: (order) => RefreshIndicator(
-          onRefresh: () async => ref.invalidate(orderByIdProvider(widget.orderId)),
+          onRefresh: () async =>
+              ref.invalidate(orderByIdProvider(widget.orderId)),
           child: ListView(
             padding: const EdgeInsets.all(AppSpacing.lg),
             children: [
@@ -98,10 +107,22 @@ class _OrderStatusScreenState extends ConsumerState<OrderStatusScreen> {
                   padding: const EdgeInsets.all(AppSpacing.md),
                   child: Column(
                     children: [
-                      _Row(label: l10n.orderNumberLabel, value: order.orderNumber),
-                      _Row(label: l10n.checkoutGameLabel, value: order.game.name),
-                      _Row(label: l10n.checkoutProductLabel, value: order.items.first.productName),
-                      _Row(label: l10n.orderPlayerIdLabel, value: order.playerId),
+                      _Row(
+                        label: l10n.orderNumberLabel,
+                        value: order.orderNumber,
+                      ),
+                      _Row(
+                        label: l10n.checkoutGameLabel,
+                        value: order.game.name,
+                      ),
+                      _Row(
+                        label: l10n.checkoutProductLabel,
+                        value: order.items.first.productName,
+                      ),
+                      _Row(
+                        label: l10n.orderPlayerIdLabel,
+                        value: order.playerId,
+                      ),
                       _Row(
                         label: l10n.orderAmountLabel,
                         value: formatMoney(
@@ -112,16 +133,25 @@ class _OrderStatusScreenState extends ConsumerState<OrderStatusScreen> {
                       ),
                       _Row(
                         label: l10n.orderCreatedAtLabel,
-                        value: DateFormat.yMd().add_Hm().format(order.createdAt.toLocal()),
+                        value: DateFormat.yMd().add_Hm().format(
+                          order.createdAt.toLocal(),
+                        ),
                       ),
                       if (order.failureReason != null)
-                        _Row(label: l10n.orderFailureReasonLabel, value: order.failureReason!),
+                        _Row(
+                          label: l10n.orderFailureReasonLabel,
+                          value: order.failureReason!,
+                        ),
                     ],
                   ),
                 ),
               ),
-              if (order.status == OrderStatus.pending && order.latestPaymentId != null)
-                _DevPaymentSimulator(orderId: order.id, paymentId: order.latestPaymentId!),
+              if (order.status == OrderStatus.pending &&
+                  order.latestPaymentId != null)
+                _DevPaymentSimulator(
+                  orderId: order.id,
+                  paymentId: order.latestPaymentId!,
+                ),
               const SizedBox(height: AppSpacing.lg),
               OutlinedButton.icon(
                 onPressed: () => _contactSupport(order),
@@ -150,7 +180,12 @@ class _Row extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+          Text(
+            label,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
           Flexible(child: Text(value, textAlign: TextAlign.end)),
         ],
       ),
@@ -165,7 +200,8 @@ class _DevPaymentSimulator extends ConsumerStatefulWidget {
   final String paymentId;
 
   @override
-  ConsumerState<_DevPaymentSimulator> createState() => _DevPaymentSimulatorState();
+  ConsumerState<_DevPaymentSimulator> createState() =>
+      _DevPaymentSimulatorState();
 }
 
 class _DevPaymentSimulatorState extends ConsumerState<_DevPaymentSimulator> {
@@ -174,7 +210,9 @@ class _DevPaymentSimulatorState extends ConsumerState<_DevPaymentSimulator> {
   Future<void> _simulate(bool succeed) async {
     setState(() => _submitting = true);
     try {
-      await ref.read(paymentsApiProvider).simulateWebhook(widget.paymentId, succeed: succeed);
+      await ref
+          .read(paymentsApiProvider)
+          .simulateWebhook(widget.paymentId, succeed: succeed);
     } catch (_) {
       // The order screen's own error state will surface on next refresh if this failed.
     } finally {
@@ -199,9 +237,15 @@ class _DevPaymentSimulatorState extends ConsumerState<_DevPaymentSimulator> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(l10n.paymentDevSimulateTitle, style: theme.textTheme.titleSmall),
+              Text(
+                l10n.paymentDevSimulateTitle,
+                style: theme.textTheme.titleSmall,
+              ),
               const SizedBox(height: AppSpacing.sm),
-              Text(l10n.paymentDevSimulateMessage, style: theme.textTheme.bodySmall),
+              Text(
+                l10n.paymentDevSimulateMessage,
+                style: theme.textTheme.bodySmall,
+              ),
               const SizedBox(height: AppSpacing.md),
               if (_submitting)
                 const Center(child: LoadingView())

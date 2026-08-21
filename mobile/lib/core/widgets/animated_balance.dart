@@ -41,11 +41,16 @@ class _AnimatedBalanceState extends ConsumerState<AnimatedBalance> {
   Widget build(BuildContext context) {
     final reduceMotion = ref.watch(reduceMotionProvider);
     return TweenAnimationBuilder<int>(
-      tween: IntTween(begin: reduceMotion ? widget.amountMinor : _previous, end: widget.amountMinor),
+      tween: IntTween(
+        begin: reduceMotion ? widget.amountMinor : _previous,
+        end: widget.amountMinor,
+      ),
       duration: reduceMotion ? Duration.zero : AppMotion.fast,
       curve: AppMotion.standard,
-      builder: (context, value, child) =>
-          Text(formatMoney(value, widget.currency, widget.localeName), style: widget.style),
+      builder: (context, value, child) => Text(
+        formatMoney(value, widget.currency, widget.localeName),
+        style: widget.style,
+      ),
     );
   }
 }
