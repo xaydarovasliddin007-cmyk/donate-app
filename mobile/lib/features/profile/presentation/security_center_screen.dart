@@ -215,8 +215,9 @@ class _SessionTile extends ConsumerWidget {
   String _deviceLabel(String? userAgent) {
     if (userAgent == null || userAgent.isEmpty) return 'Unknown device';
     if (userAgent.contains('Android')) return 'Android device';
-    if (userAgent.contains('iPhone') || userAgent.contains('iOS'))
+    if (userAgent.contains('iPhone') || userAgent.contains('iOS')) {
       return 'iPhone';
+    }
     if (userAgent.contains('Windows')) return 'Windows';
     if (userAgent.contains('Macintosh')) return 'Mac';
     return userAgent.length > 40 ? '${userAgent.substring(0, 40)}…' : userAgent;

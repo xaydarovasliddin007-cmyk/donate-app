@@ -18,8 +18,9 @@ class LocaleController extends Notifier<Locale> {
     // falling back to Uzbek only when the device language isn't one we ship.
     // Once the user picks a language in Settings, that choice is persisted
     // and always wins from then on, regardless of device language.
-    if (saved == null)
+    if (saved == null) {
       return _matchSupported(PlatformDispatcher.instance.locale.languageCode);
+    }
     return _matchSupported(saved);
   }
 
