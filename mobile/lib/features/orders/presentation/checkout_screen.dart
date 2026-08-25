@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,6 +10,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/utils/idempotency_key.dart';
 import '../../../core/utils/money_formatter.dart';
 import '../../../core/widgets/pressable_scale.dart';
+import '../../../core/widgets/staggered_entrance.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../games/domain/game.dart';
 import '../../games/domain/product.dart';
@@ -16,7 +18,7 @@ import '../../payments/application/payments_providers.dart';
 import '../../wallet/application/wallet_providers.dart';
 import '../application/orders_providers.dart';
 
-enum _PaymentMethod { wallet, mock }
+enum _PaymentMethod { wallet, payme, click, mock }
 
 class CheckoutScreen extends ConsumerStatefulWidget {
   const CheckoutScreen({
@@ -78,6 +80,12 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
             .createPayment(
               orderId: order.id,
               idempotencyKey: '$_idempotencyKey-pay',
+              providerCode: switch (_method) {
+                _PaymentMethod.payme => 'PAYME',
+                _PaymentMethod.click => 'CLICK',
+                _PaymentMethod.mock => 'DEV_MOCK_PAYMENT',
+                _PaymentMethod.wallet => throw StateError('handled above'),
+              },
             );
       }
 
@@ -134,39 +142,72 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                 style: theme.textTheme.titleSmall,
               ),
               const SizedBox(height: AppSpacing.sm),
-              _PaymentMethodTile(
-                icon: Icons.account_balance_wallet_outlined,
-                title: l10n.checkoutPayWithWalletLabel,
-                subtitle: walletAsync.when(
-                  loading: () => null,
-                  error: (_, _) => null,
-                  data: (wallet) => l10n.checkoutPayWithWalletBalance(
-                    formatMoney(
-                      wallet.balanceMinor,
-                      wallet.currency,
-                      localeName,
+              for (final (index, entry)
+                  in <(_PaymentMethod, IconData, String, String?)>[
+                    (
+                      _PaymentMethod.wallet,
+                      Icons.account_balance_wallet_outlined,
+                      l10n.checkoutPayWithWalletLabel,
+                      walletAsync.when(
+                        loading: () => null,
+                        error: (_, _) => null,
+                        data: (wallet) => l10n.checkoutPayWithWalletBalance(
+                          formatMoney(
+                            wallet.balanceMinor,
+                            wallet.currency,
+                            localeName,
+                          ),
+                        ),
+                      ),
+                    ),
+                    (
+                      _PaymentMethod.payme,
+                      Icons.qr_code_rounded,
+                      l10n.checkoutPayWithPaymeLabel,
+                      l10n.checkoutPayWithPaymeSubtitle,
+                    ),
+                    (
+                      _PaymentMethod.click,
+                      Icons.touch_app_rounded,
+                      l10n.checkoutPayWithClickLabel,
+                      l10n.checkoutPayWithClickSubtitle,
+                    ),
+                  ].indexed)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                  child: StaggeredEntrance(
+                    index: index,
+                    child: _PaymentMethodTile(
+                      icon: entry.$2,
+                      title: entry.$3,
+                      subtitle: entry.$4,
+                      selected: _method == entry.$1,
+                      onTap: () => setState(() {
+                        _method = entry.$1;
+                        _errorMessage = null;
+                        _insufficientBalance = false;
+                      }),
                     ),
                   ),
                 ),
-                selected: _method == _PaymentMethod.wallet,
-                onTap: () => setState(() {
-                  _method = _PaymentMethod.wallet;
-                  _errorMessage = null;
-                  _insufficientBalance = false;
-                }),
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              _PaymentMethodTile(
-                icon: Icons.credit_card_outlined,
-                title: l10n.checkoutMockPaymentLabel,
-                subtitle: null,
-                selected: _method == _PaymentMethod.mock,
-                onTap: () => setState(() {
-                  _method = _PaymentMethod.mock;
-                  _errorMessage = null;
-                  _insufficientBalance = false;
-                }),
-              ),
+              if (kDebugMode)
+                Padding(
+                  padding: const EdgeInsets.only(top: 2, bottom: AppSpacing.sm),
+                  child: TextButton.icon(
+                    onPressed: () => setState(() {
+                      _method = _PaymentMethod.mock;
+                      _errorMessage = null;
+                      _insufficientBalance = false;
+                    }),
+                    icon: Icon(
+                      _method == _PaymentMethod.mock
+                          ? Icons.check_circle_rounded
+                          : Icons.bug_report_outlined,
+                      size: 16,
+                    ),
+                    label: Text(l10n.checkoutMockPaymentLabel),
+                  ),
+                ),
               if (_errorMessage != null) ...[
                 const SizedBox(height: AppSpacing.md),
                 Text(
@@ -352,6 +393,10 @@ class _PaymentMethodTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final gradient = isDark
+        ? AppColors.heroGradientDark
+        : AppColors.heroGradientLight;
 
     return PressableScale(
       onTap: onTap,
@@ -370,23 +415,40 @@ class _PaymentMethodTile extends StatelessWidget {
                 : theme.colorScheme.outlineVariant,
             width: selected ? 1.5 : 1,
           ),
+          boxShadow: selected
+              ? [
+                  BoxShadow(
+                    color: gradient.first.withValues(alpha: 0.18),
+                    blurRadius: 14,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : null,
         ),
         child: Row(
           children: [
-            AnimatedSwitcher(
+            AnimatedContainer(
               duration: AppMotion.fast,
-              child: Icon(
-                selected
-                    ? Icons.radio_button_checked_rounded
-                    : Icons.radio_button_unchecked_rounded,
-                key: ValueKey(selected),
+              width: 36,
+              height: 36,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                gradient: selected ? LinearGradient(colors: gradient) : null,
                 color: selected
-                    ? theme.colorScheme.primary
+                    ? null
+                    : theme.colorScheme.surfaceContainerHighest.withValues(
+                        alpha: 0.6,
+                      ),
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+              ),
+              child: Icon(
+                icon,
+                size: 18,
+                color: selected
+                    ? Colors.white
                     : theme.colorScheme.onSurfaceVariant,
               ),
             ),
-            const SizedBox(width: AppSpacing.md),
-            Icon(icon, size: 20, color: theme.colorScheme.onSurfaceVariant),
             const SizedBox(width: AppSpacing.sm),
             Expanded(
               child: Column(
@@ -405,6 +467,22 @@ class _PaymentMethodTile extends StatelessWidget {
                   ],
                 ],
               ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            AnimatedSwitcher(
+              duration: AppMotion.fast,
+              child: selected
+                  ? Icon(
+                      Icons.check_circle_rounded,
+                      key: const ValueKey(true),
+                      color: theme.colorScheme.primary,
+                    )
+                  : Icon(
+                      Icons.circle_outlined,
+                      key: const ValueKey(false),
+                      size: 20,
+                      color: theme.colorScheme.outlineVariant,
+                    ),
             ),
           ],
         ),

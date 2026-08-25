@@ -379,6 +379,18 @@ class AppLocalizationsRu extends AppLocalizations {
   }
 
   @override
+  String get checkoutPayWithPaymeLabel => 'Payme';
+
+  @override
+  String get checkoutPayWithPaymeSubtitle => 'Картой или через QR';
+
+  @override
+  String get checkoutPayWithClickLabel => 'Click';
+
+  @override
+  String get checkoutPayWithClickSubtitle => 'Картой или через QR';
+
+  @override
   String get checkoutInsufficientBalanceMessage =>
       'Недостаточно средств на кошельке';
 

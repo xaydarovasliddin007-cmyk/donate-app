@@ -131,6 +131,10 @@
   "checkoutMockPaymentLabel": "Тестовая платёжная система (dev)",
   "checkoutCreatingOrder": "Создание заказа…",
   "checkoutPayWithWalletLabel": "Кошелёк UZDONATE",
+  "checkoutPayWithPaymeLabel": "Payme",
+  "checkoutPayWithPaymeSubtitle": "Картой или через QR",
+  "checkoutPayWithClickLabel": "Click",
+  "checkoutPayWithClickSubtitle": "Картой или через QR",
   "checkoutPayWithWalletBalance": "Баланс: {amount}",
   "@checkoutPayWithWalletBalance": {
     "placeholders": { "amount": { "type": "String" } }

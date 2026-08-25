@@ -139,6 +139,10 @@
   "@checkoutPayWithWalletBalance": {
     "placeholders": { "amount": { "type": "String" } }
   },
+  "checkoutPayWithPaymeLabel": "Payme",
+  "checkoutPayWithPaymeSubtitle": "Karta yoki QR orqali",
+  "checkoutPayWithClickLabel": "Click",
+  "checkoutPayWithClickSubtitle": "Karta yoki QR orqali",
   "checkoutInsufficientBalanceMessage": "Hamyoningizda mablag' yetarli emas",
   "checkoutTopUpNowButton": "Hamyonni to'ldirish",
 

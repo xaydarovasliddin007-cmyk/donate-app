@@ -800,6 +800,30 @@ abstract class AppLocalizations {
   /// **'Balans: {amount}'**
   String checkoutPayWithWalletBalance(String amount);
 
+  /// No description provided for @checkoutPayWithPaymeLabel.
+  ///
+  /// In uz, this message translates to:
+  /// **'Payme'**
+  String get checkoutPayWithPaymeLabel;
+
+  /// No description provided for @checkoutPayWithPaymeSubtitle.
+  ///
+  /// In uz, this message translates to:
+  /// **'Karta yoki QR orqali'**
+  String get checkoutPayWithPaymeSubtitle;
+
+  /// No description provided for @checkoutPayWithClickLabel.
+  ///
+  /// In uz, this message translates to:
+  /// **'Click'**
+  String get checkoutPayWithClickLabel;
+
+  /// No description provided for @checkoutPayWithClickSubtitle.
+  ///
+  /// In uz, this message translates to:
+  /// **'Karta yoki QR orqali'**
+  String get checkoutPayWithClickSubtitle;
+
   /// No description provided for @checkoutInsufficientBalanceMessage.
   ///
   /// In uz, this message translates to:

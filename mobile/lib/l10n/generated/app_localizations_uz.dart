@@ -380,6 +380,18 @@ class AppLocalizationsUz extends AppLocalizations {
   }
 
   @override
+  String get checkoutPayWithPaymeLabel => 'Payme';
+
+  @override
+  String get checkoutPayWithPaymeSubtitle => 'Karta yoki QR orqali';
+
+  @override
+  String get checkoutPayWithClickLabel => 'Click';
+
+  @override
+  String get checkoutPayWithClickSubtitle => 'Karta yoki QR orqali';
+
+  @override
   String get checkoutInsufficientBalanceMessage =>
       'Hamyoningizda mablag\' yetarli emas';
 

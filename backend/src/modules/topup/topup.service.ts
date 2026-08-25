@@ -10,9 +10,9 @@ interface TopUpContext {
   prisma: PrismaClient;
 }
 
-// How long a reserved card stays exclusively assigned to one pending
-// request before it's free for someone else to be assigned instead.
-const RESERVATION_TTL_MS = 20 * 60 * 1000;
+// How long a reservation's amount stays claimed before it's free for
+// someone else to be assigned instead.
+const RESERVATION_TTL_MS = 7 * 60 * 1000;
 
 /** Last-4-or-so digits, digits only — how a stored card number and whatever
  * a bank notification message reveals get compared, without either needing
