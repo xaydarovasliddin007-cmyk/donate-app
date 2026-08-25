@@ -230,8 +230,8 @@
   "topupInstructionsTitle": "Balans qanday to'ldiriladi?",
   "topupStep1Title": "Summani kiriting",
   "topupStep1Message": "Necha pul o'tkazmoqchi bo'lsangiz, o'sha summani kiriting",
-  "topupStep2Title": "Sizga karta beriladi",
-  "topupStep2Message": "Ilova sizga bitta karta raqamini ko'rsatadi",
+  "topupStep2Title": "Kartalar ko'rsatiladi",
+  "topupStep2Message": "Ilova sizga bir nechta karta raqamini ko'rsatadi — istalganiga o'tkazishingiz mumkin",
   "topupStep3Title": "Aynan shu summani o'tkazing",
   "topupStep3Message": "Ko'rsatilgan kartaga rovno shu summani o'tkazing — balansingiz avtomatik to'ldiriladi",
   "topupUserReferenceLabel": "Izoh (ixtiyoriy)",
@@ -244,8 +244,9 @@
   "topupStatusRejected": "Rad etildi",
   "topupStatusExpired": "Muddati o'tgan",
   "topupValidationError": "Summani kiriting",
-  "topupReservedCardTitle": "Quyidagi kartaga o'tkazing",
+  "topupReservedCardTitle": "Quyidagi kartalardan biriga o'tkazing",
   "topupExactAmountLabel": "Aynan shu summani o'tkazing",
+  "topupExactAmountWarning": "Faqat aynan ko'rsatilgan summani o'tkazing. Boshqacha summa yuborilsa, mablag' hisobingizga tushmaydi!",
   "topupTimeLeftLabel": "Qolgan vaqt: {time}",
   "@topupTimeLeftLabel": {
     "placeholders": {
@@ -253,8 +254,10 @@
     }
   },
   "topupWaitingMessage": "To'lovingizni kutyapmiz. Pul tushishi bilan balansingiz avtomatik to'ldiriladi.",
+  "topupIvePaidButton": "To'ladim",
+  "topupCheckingMessage": "Tekshirilmoqda… odatda bir necha soniyada tasdiqlanadi.",
   "topupExpiredTitle": "Vaqt tugadi",
-  "topupExpiredMessage": "Ushbu karta band qilingan vaqt tugadi. Qaytadan urinib ko'ring.",
+  "topupExpiredMessage": "Ushbu band qilingan vaqt tugadi. Qaytadan urinib ko'ring.",
   "topupTryAgainButton": "Qaytadan urinish",
   "topupCancelReservationButton": "Bekor qilish",
 

@@ -749,8 +749,14 @@ model TopUpRequest {
   id                String             @id @default(uuid()) @db.Uuid
   userId            String             @map("user_id") @db.Uuid
   user              User               @relation(fields: [userId], references: [id])
-  receivingMethodId String             @map("receiving_method_id") @db.Uuid
-  receivingMethod   ReceivingMethod    @relation(fields: [receivingMethodId], references: [id])
+  // Null until a matching bank transaction actually lands (or, for the
+  // manual admin-verify path, until an admin identifies which card it
+  // arrived on) — the reservation flow shows the user every active card
+  // and lets them transfer to whichever one they like, disambiguated by
+  // amountMinor being unique among concurrently pending requests, not by
+  // being tied to one exclusive card up front.
+  receivingMethodId String?            @map("receiving_method_id") @db.Uuid
+  receivingMethod   ReceivingMethod?   @relation(fields: [receivingMethodId], references: [id])
   amountMinor       Int                @map("amount_minor")
   currency          String             @default("UZS")
   status            TopUpRequestStatus @default(PENDING)
@@ -761,7 +767,7 @@ model TopUpRequest {
   userReference     String?            @map("user_reference")
   // Set only by reserveTopUpRequest() (the "assign me one free card"
   // flow) — null for the older free-pick flow. A PENDING request past this
-  // time no longer blocks its card from being reserved by someone else,
+  // time no longer blocks its amount from being reserved by someone else,
   // even before a sweep flips its status to EXPIRED.
   expiresAt         DateTime?          @map("expires_at")
   // True when a Telegram bank-notification match (see modules/topup/humo-webhook.ts)

@@ -281,10 +281,14 @@ class _AmountEntryView extends StatelessWidget {
   }
 }
 
-/// The "you've been given exactly one card" step: shows the assigned card,
-/// the exact amount to transfer, a live countdown until the reservation
-/// expires, and the current status while the app polls in the background.
-class _ReservationView extends ConsumerWidget {
+/// The "here are all the cards, transfer to any of them" step: lists every
+/// active receiving card, the exact amount to transfer, a live countdown
+/// until the reservation expires, an "I've paid" acknowledgment the user
+/// can tap for reassurance, and the current status while the app polls in
+/// the background. Tapping "I've paid" never credits anything by itself —
+/// only a matching bank transaction (or a manual admin review) does that;
+/// it just switches the waiting copy to something less generic.
+class _ReservationView extends ConsumerStatefulWidget {
   const _ReservationView({
     required this.reservation,
     required this.remaining,
@@ -295,6 +299,14 @@ class _ReservationView extends ConsumerWidget {
   final Duration? remaining;
   final VoidCallback onTryAgain;
 
+  @override
+  ConsumerState<_ReservationView> createState() => _ReservationViewState();
+}
+
+class _ReservationViewState extends ConsumerState<_ReservationView> {
+  String? _selectedMethodId;
+  bool _confirmedPaid = false;
+
   String _formatDuration(Duration d) {
     final minutes = d.inMinutes.remainder(60).toString().padLeft(2, '0');
     final seconds = d.inSeconds.remainder(60).toString().padLeft(2, '0');
@@ -302,14 +314,21 @@ class _ReservationView extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final locale = Localizations.localeOf(context).toString();
     final reduceMotion = ref.watch(reduceMotionProvider);
+    final reservation = widget.reservation;
+    final remaining = widget.remaining;
+    final methods =
+        reservation.receivingMethods ??
+        (reservation.receivingMethod != null
+            ? [reservation.receivingMethod!]
+            : const []);
     final isExpired =
         reservation.status == TopUpRequestStatus.expired ||
-        (remaining != null && remaining! <= Duration.zero);
+        (remaining != null && remaining <= Duration.zero);
     final isRejected = reservation.status == TopUpRequestStatus.rejected;
     final isDone = isExpired || isRejected;
 
@@ -329,15 +348,50 @@ class _ReservationView extends ConsumerWidget {
         children: [
           Text(l10n.topupReservedCardTitle, style: theme.textTheme.titleSmall),
           const SizedBox(height: AppSpacing.sm),
-          _ReceivingMethodTile(
-            method: reservation.receivingMethod,
-            selected: true,
-            onTap: null,
-            onCopy: () => Clipboard.setData(
-              ClipboardData(text: reservation.receivingMethod.cardNumber),
+          for (final method in methods)
+            Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+              child: _ReceivingMethodTile(
+                method: method,
+                selected: (_selectedMethodId ?? methods.first.id) == method.id,
+                onTap: () => setState(() => _selectedMethodId = method.id),
+                onCopy: () =>
+                    Clipboard.setData(ClipboardData(text: method.cardNumber)),
+              ),
+            ),
+          const SizedBox(height: AppSpacing.sm),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(AppSpacing.md),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.errorContainer.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              border: Border.all(
+                color: theme.colorScheme.error.withValues(alpha: 0.4),
+              ),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  Icons.error_rounded,
+                  size: 18,
+                  color: theme.colorScheme.error,
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Text(
+                    l10n.topupExactAmountWarning,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.error,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: AppSpacing.lg),
+          const SizedBox(height: AppSpacing.md),
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(AppSpacing.lg),
@@ -394,35 +448,52 @@ class _ReservationView extends ConsumerWidget {
             if (remaining != null)
               Center(
                 child: Text(
-                  l10n.topupTimeLeftLabel(_formatDuration(remaining!)),
+                  l10n.topupTimeLeftLabel(_formatDuration(remaining)),
                   style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w700,
-                    color: remaining!.inMinutes < 2
+                    color: remaining.inMinutes < 2
                         ? theme.colorScheme.error
                         : theme.colorScheme.onSurface,
                   ),
                 ),
               ),
             const SizedBox(height: AppSpacing.md),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const SizedBox(
-                  height: 16,
-                  width: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                Flexible(
-                  child: Text(
-                    l10n.topupWaitingMessage,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
+            if (!_confirmedPaid) ...[
+              FilledButton.icon(
+                onPressed: () => setState(() => _confirmedPaid = true),
+                icon: const Icon(Icons.check_circle_outline_rounded),
+                label: Text(l10n.topupIvePaidButton),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              Center(
+                child: Text(
+                  l10n.topupWaitingMessage,
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
-              ],
-            ),
+              ),
+            ] else
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const SizedBox(
+                    height: 16,
+                    width: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Flexible(
+                    child: Text(
+                      l10n.topupCheckingMessage,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
           ] else ...[
             Center(
               child: Column(
@@ -452,12 +523,12 @@ class _ReservationView extends ConsumerWidget {
           const SizedBox(height: AppSpacing.lg),
           if (isDone)
             FilledButton(
-              onPressed: onTryAgain,
+              onPressed: widget.onTryAgain,
               child: Text(l10n.topupTryAgainButton),
             )
           else
             TextButton(
-              onPressed: onTryAgain,
+              onPressed: widget.onTryAgain,
               child: Text(l10n.topupCancelReservationButton),
             ),
         ],

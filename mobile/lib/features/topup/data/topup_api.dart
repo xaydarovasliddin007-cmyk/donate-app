@@ -39,8 +39,9 @@ class TopupApi {
         .toList();
   }
 
-  /// The automatic card-transfer flow: assigns exactly one free receiving
-  /// card to this exact amount, instead of letting the user pick freely.
+  /// The automatic card-transfer flow: reserves this exact amount (bumped
+  /// by a few tiyin server-side if another pending request already claimed
+  /// it) and returns every active receiving card the user can transfer to.
   Future<TopUpRequest> reserveTopUp({required int amountMinor}) async {
     final json = await _client.post(
       '/topups/reserve',

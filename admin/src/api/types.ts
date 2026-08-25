@@ -155,7 +155,10 @@ export interface ReceivingMethod {
 export interface TopUpRequestAdmin {
   id: string;
   userId: string;
-  receivingMethodId: string;
+  // Null until a matching bank transaction (or a manual admin review)
+  // identifies which of the shown cards actually received the transfer —
+  // the reservation flow no longer locks the user to one card up front.
+  receivingMethodId: string | null;
   amountMinor: number;
   currency: string;
   status: TopUpRequestStatus;
@@ -164,7 +167,7 @@ export interface TopUpRequestAdmin {
   reviewedAt: string | null;
   rejectionReason: string | null;
   createdAt: string;
-  receivingMethod: ReceivingMethod;
+  receivingMethod: ReceivingMethod | null;
   user: { id: string; publicId: string; email: string | null; phone: string | null; displayName: string | null };
 }
 

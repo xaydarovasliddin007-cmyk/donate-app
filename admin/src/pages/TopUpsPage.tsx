@@ -51,9 +51,15 @@ function TopUpRow({ request, onChanged }: { request: TopUpRequestAdmin; onChange
       <td>{request.user.displayName ?? request.user.email ?? request.user.phone ?? request.user.publicId}</td>
       <td>{formatMinor(request.amountMinor, request.currency)}</td>
       <td>
-        {request.receivingMethod.cardHolderName}
-        <br />
-        <span className="muted">{request.receivingMethod.cardNumber}</span>
+        {request.receivingMethod ? (
+          <>
+            {request.receivingMethod.cardHolderName}
+            <br />
+            <span className="muted">{request.receivingMethod.cardNumber}</span>
+          </>
+        ) : (
+          <span className="muted">{t('topups.methodNotYetMatched')}</span>
+        )}
       </td>
       <td className="muted">{request.userReference ?? '—'}</td>
       <td>

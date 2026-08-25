@@ -617,10 +617,11 @@ class AppLocalizationsRu extends AppLocalizations {
   String get topupStep1Message => 'Укажите сумму, которую хотите перевести';
 
   @override
-  String get topupStep2Title => 'Вам выдадут карту';
+  String get topupStep2Title => 'Вам покажут карты';
 
   @override
-  String get topupStep2Message => 'Приложение покажет вам один номер карты';
+  String get topupStep2Message =>
+      'Приложение покажет вам несколько карт — переведите на любую из них';
 
   @override
   String get topupStep3Title => 'Переведите ровно эту сумму';
@@ -662,10 +663,14 @@ class AppLocalizationsRu extends AppLocalizations {
   String get topupValidationError => 'Введите сумму';
 
   @override
-  String get topupReservedCardTitle => 'Переведите на эту карту';
+  String get topupReservedCardTitle => 'Переведите на одну из этих карт';
 
   @override
   String get topupExactAmountLabel => 'Переведите ровно эту сумму';
+
+  @override
+  String get topupExactAmountWarning =>
+      'Переводите строго указанную сумму. Если сумма будет другой, деньги не зачислятся на баланс!';
 
   @override
   String topupTimeLeftLabel(String time) {
@@ -677,11 +682,18 @@ class AppLocalizationsRu extends AppLocalizations {
       'Ожидаем ваш перевод. Как только деньги поступят, баланс пополнится автоматически.';
 
   @override
+  String get topupIvePaidButton => 'Я оплатил';
+
+  @override
+  String get topupCheckingMessage =>
+      'Проверяем… обычно подтверждается за несколько секунд.';
+
+  @override
   String get topupExpiredTitle => 'Время истекло';
 
   @override
   String get topupExpiredMessage =>
-      'Время бронирования этой карты истекло. Попробуйте ещё раз.';
+      'Время бронирования истекло. Попробуйте ещё раз.';
 
   @override
   String get topupTryAgainButton => 'Попробовать снова';

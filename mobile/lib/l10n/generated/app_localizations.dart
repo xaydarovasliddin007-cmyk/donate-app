@@ -1259,13 +1259,13 @@ abstract class AppLocalizations {
   /// No description provided for @topupStep2Title.
   ///
   /// In uz, this message translates to:
-  /// **'Sizga karta beriladi'**
+  /// **'Kartalar ko\'rsatiladi'**
   String get topupStep2Title;
 
   /// No description provided for @topupStep2Message.
   ///
   /// In uz, this message translates to:
-  /// **'Ilova sizga bitta karta raqamini ko\'rsatadi'**
+  /// **'Ilova sizga bir nechta karta raqamini ko\'rsatadi — istalganiga o\'tkazishingiz mumkin'**
   String get topupStep2Message;
 
   /// No description provided for @topupStep3Title.
@@ -1343,7 +1343,7 @@ abstract class AppLocalizations {
   /// No description provided for @topupReservedCardTitle.
   ///
   /// In uz, this message translates to:
-  /// **'Quyidagi kartaga o\'tkazing'**
+  /// **'Quyidagi kartalardan biriga o\'tkazing'**
   String get topupReservedCardTitle;
 
   /// No description provided for @topupExactAmountLabel.
@@ -1351,6 +1351,12 @@ abstract class AppLocalizations {
   /// In uz, this message translates to:
   /// **'Aynan shu summani o\'tkazing'**
   String get topupExactAmountLabel;
+
+  /// No description provided for @topupExactAmountWarning.
+  ///
+  /// In uz, this message translates to:
+  /// **'Faqat aynan ko\'rsatilgan summani o\'tkazing. Boshqacha summa yuborilsa, mablag\' hisobingizga tushmaydi!'**
+  String get topupExactAmountWarning;
 
   /// No description provided for @topupTimeLeftLabel.
   ///
@@ -1364,6 +1370,18 @@ abstract class AppLocalizations {
   /// **'To\'lovingizni kutyapmiz. Pul tushishi bilan balansingiz avtomatik to\'ldiriladi.'**
   String get topupWaitingMessage;
 
+  /// No description provided for @topupIvePaidButton.
+  ///
+  /// In uz, this message translates to:
+  /// **'To\'ladim'**
+  String get topupIvePaidButton;
+
+  /// No description provided for @topupCheckingMessage.
+  ///
+  /// In uz, this message translates to:
+  /// **'Tekshirilmoqda… odatda bir necha soniyada tasdiqlanadi.'**
+  String get topupCheckingMessage;
+
   /// No description provided for @topupExpiredTitle.
   ///
   /// In uz, this message translates to:
@@ -1373,7 +1391,7 @@ abstract class AppLocalizations {
   /// No description provided for @topupExpiredMessage.
   ///
   /// In uz, this message translates to:
-  /// **'Ushbu karta band qilingan vaqt tugadi. Qaytadan urinib ko\'ring.'**
+  /// **'Ushbu band qilingan vaqt tugadi. Qaytadan urinib ko\'ring.'**
   String get topupExpiredMessage;
 
   /// No description provided for @topupTryAgainButton.

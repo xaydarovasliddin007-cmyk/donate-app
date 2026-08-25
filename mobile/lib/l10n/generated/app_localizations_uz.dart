@@ -623,11 +623,11 @@ class AppLocalizationsUz extends AppLocalizations {
       'Necha pul o\'tkazmoqchi bo\'lsangiz, o\'sha summani kiriting';
 
   @override
-  String get topupStep2Title => 'Sizga karta beriladi';
+  String get topupStep2Title => 'Kartalar ko\'rsatiladi';
 
   @override
   String get topupStep2Message =>
-      'Ilova sizga bitta karta raqamini ko\'rsatadi';
+      'Ilova sizga bir nechta karta raqamini ko\'rsatadi — istalganiga o\'tkazishingiz mumkin';
 
   @override
   String get topupStep3Title => 'Aynan shu summani o\'tkazing';
@@ -668,10 +668,14 @@ class AppLocalizationsUz extends AppLocalizations {
   String get topupValidationError => 'Summani kiriting';
 
   @override
-  String get topupReservedCardTitle => 'Quyidagi kartaga o\'tkazing';
+  String get topupReservedCardTitle => 'Quyidagi kartalardan biriga o\'tkazing';
 
   @override
   String get topupExactAmountLabel => 'Aynan shu summani o\'tkazing';
+
+  @override
+  String get topupExactAmountWarning =>
+      'Faqat aynan ko\'rsatilgan summani o\'tkazing. Boshqacha summa yuborilsa, mablag\' hisobingizga tushmaydi!';
 
   @override
   String topupTimeLeftLabel(String time) {
@@ -683,11 +687,18 @@ class AppLocalizationsUz extends AppLocalizations {
       'To\'lovingizni kutyapmiz. Pul tushishi bilan balansingiz avtomatik to\'ldiriladi.';
 
   @override
+  String get topupIvePaidButton => 'To\'ladim';
+
+  @override
+  String get topupCheckingMessage =>
+      'Tekshirilmoqda… odatda bir necha soniyada tasdiqlanadi.';
+
+  @override
   String get topupExpiredTitle => 'Vaqt tugadi';
 
   @override
   String get topupExpiredMessage =>
-      'Ushbu karta band qilingan vaqt tugadi. Qaytadan urinib ko\'ring.';
+      'Ushbu band qilingan vaqt tugadi. Qaytadan urinib ko\'ring.';
 
   @override
   String get topupTryAgainButton => 'Qaytadan urinish';

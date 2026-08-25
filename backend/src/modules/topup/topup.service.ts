@@ -52,56 +52,76 @@ export async function createTopUpRequest(ctx: TopUpContext, userId: string, inpu
   return request;
 }
 
+const MAX_AMOUNT_BUMP_ATTEMPTS = 100;
+
 /**
- * The "assign me one free card" flow: unlike createTopUpRequest() (where the
- * user freely picks any active method), this exclusively locks exactly one
- * card to this request for RESERVATION_TTL_MS — the point being that once a
- * matching bank-transfer notification arrives for that card, the *amount
- * alone* is enough to know which request it belongs to, with no added
- * disambiguation digits, because no other request can be using that card at
- * the same time. If every card is currently reserved, this fails rather
- * than silently reusing one still in use.
+ * Finds an amountMinor no other currently-live PENDING request is using,
+ * starting from what the user asked for and adding a 1-99 tiyin bump only
+ * if that exact amount is already spoken for. This — not a card exclusively
+ * reserved to one request — is what lets reserveTopUpRequest() show every
+ * active card as a valid transfer target: whichever card the matching
+ * transaction actually lands on, the amount alone identifies the request.
+ *
+ * Known small race window: two concurrent reservations could both pass this
+ * check for the same amount before either commits. That never causes a
+ * wrong credit — autoVerifyFromCardTransaction() only auto-finalizes an
+ * exact single match, so a collision just falls back to the existing
+ * "ambiguous match, needs manual review" path.
+ */
+async function pickUniqueAmount(ctx: TopUpContext, requestedAmountMinor: number, now: Date): Promise<number> {
+  for (let bump = 0; bump < MAX_AMOUNT_BUMP_ATTEMPTS; bump++) {
+    const candidate = requestedAmountMinor + bump;
+    const clash = await ctx.prisma.topUpRequest.findFirst({
+      where: { status: 'PENDING', amountMinor: candidate, expiresAt: { gt: now } },
+      select: { id: true },
+    });
+    if (!clash) return candidate;
+  }
+  throw new ConflictError('Too many top-ups are pending right now — please try again in a few minutes');
+}
+
+/**
+ * The "here are all the cards, transfer to any of them" flow: unlike
+ * createTopUpRequest() (where the user picks a card up front and commits to
+ * it), this shows every active receiving method and leaves receivingMethodId
+ * null until a matching transaction (or a manual admin review) identifies
+ * which one actually got the transfer — see pickUniqueAmount() for how the
+ * exact amount stays unambiguous across every concurrently pending request.
  */
 export async function reserveTopUpRequest(ctx: TopUpContext, userId: string, amountMinor: number) {
   const now = new Date();
 
   // Self-healing sweep: nothing depends on a background job for this — a
   // PENDING row past its own expiresAt already doesn't block a new
-  // reservation (see the query below), so this just keeps admin-facing
+  // reservation (see pickUniqueAmount), so this just keeps admin-facing
   // status accurate.
   await ctx.prisma.topUpRequest.updateMany({
     where: { status: 'PENDING', expiresAt: { lt: now } },
     data: { status: 'EXPIRED' },
   });
 
-  const method = await ctx.prisma.receivingMethod.findFirst({
-    where: {
-      isActive: true,
-      topUpRequests: { none: { status: 'PENDING', expiresAt: { gt: now } } },
-    },
-    orderBy: { sortOrder: 'asc' },
-  });
-
-  if (!method) {
-    throw new ConflictError('All receiving cards are currently in use — please try again in a few minutes');
+  const activeMethods = await listActiveReceivingMethods(ctx);
+  if (activeMethods.length === 0) {
+    throw new ConflictError('No receiving cards are configured right now — please try again later');
   }
+
+  const uniqueAmountMinor = await pickUniqueAmount(ctx, amountMinor, now);
 
   const request = await ctx.prisma.topUpRequest.create({
     data: {
       userId,
-      receivingMethodId: method.id,
-      amountMinor,
+      amountMinor: uniqueAmountMinor,
       expiresAt: new Date(now.getTime() + RESERVATION_TTL_MS),
     },
-    include: { receivingMethod: true },
   });
 
-  return request;
+  return { ...request, receivingMethods: activeMethods };
 }
 
 interface FinalizeVerificationOptions {
   adminId?: string;
   autoVerified: boolean;
+  receivingMethodId?: string;
 }
 
 /**
@@ -137,6 +157,7 @@ async function finalizeVerification(ctx: TopUpContext, requestId: string, option
       reviewedByAdminId: options.adminId,
       reviewedAt: new Date(),
       autoVerified: options.autoVerified,
+      receivingMethodId: options.receivingMethodId,
     },
     include: { receivingMethod: true },
   });
@@ -158,36 +179,44 @@ async function finalizeVerification(ctx: TopUpContext, requestId: string, option
 
 /**
  * Called by the Telegram bank-notification webhook (see humo-webhook.ts)
- * for every parsed transaction message. Matches on card + exact amount +
- * still-live reservation; if that's not exactly one request, this
- * deliberately does nothing rather than guess — an ambiguous or unmatched
- * transaction just falls back to sitting there for manual admin review
- * (the notification itself still went to admins when the request was
- * created... actually reserved ones don't notify on creation, see below).
+ * for every parsed transaction message. First confirms the transaction
+ * actually landed on one of OUR currently-active cards — a coincidental
+ * amount match on an unrelated card must never auto-credit anyone — then
+ * matches purely on exact amount + still-pending reservation, since
+ * reserveTopUpRequest() already guarantees that amount is unique across
+ * every concurrently pending request rather than tying it to one card. If
+ * that's not exactly one request (should only happen from the narrow race
+ * window noted on pickUniqueAmount, or a stale/duplicate notification),
+ * this deliberately does nothing rather than guess — it falls back to
+ * sitting there for manual admin review instead of risking a wrong credit.
  */
 export async function autoVerifyFromCardTransaction(ctx: TopUpContext, input: HumoTransactionInput) {
   const hint = trailingDigits(input.cardHint);
   const now = new Date();
 
-  const candidates = await ctx.prisma.topUpRequest.findMany({
-    where: { status: 'PENDING', amountMinor: input.amountMinor, expiresAt: { gt: now } },
-    include: { receivingMethod: true },
-  });
-  const matches = candidates.filter((c) => trailingDigits(c.receivingMethod.cardNumber) === hint);
-  const [match] = matches;
+  const activeMethods = await ctx.prisma.receivingMethod.findMany({ where: { isActive: true } });
+  const method = activeMethods.find((m) => trailingDigits(m.cardNumber) === hint);
+  if (!method) {
+    return null;
+  }
 
+  const matches = await ctx.prisma.topUpRequest.findMany({
+    where: { status: 'PENDING', amountMinor: input.amountMinor, expiresAt: { gt: now } },
+  });
+
+  const [match] = matches;
   if (matches.length !== 1 || !match) {
     if (matches.length > 1) {
       notifyAdmins(
         `⚠️ <b>Ambiguous auto top-up match</b> — ${matches.length} pending requests match ` +
-          `${formatMinorAmount(input.amountMinor, 'UZS')} on card ...${hint}. Needs manual review.\n` +
+          `${formatMinorAmount(input.amountMinor, 'UZS')}. Needs manual review.\n` +
           (input.rawMessage ? `Message: ${input.rawMessage}` : ''),
       );
     }
     return null;
   }
 
-  return finalizeVerification(ctx, match.id, { autoVerified: true });
+  return finalizeVerification(ctx, match.id, { autoVerified: true, receivingMethodId: method.id });
 }
 
 export async function listMyTopUpRequests(ctx: TopUpContext, userId: string, limit: number) {
@@ -206,6 +235,15 @@ export async function getTopUpRequestForUser(ctx: TopUpContext, userId: string, 
   });
   if (!request) throw new NotFoundError('Top-up request not found');
   if (request.userId !== userId) throw new ForbiddenError('This top-up request does not belong to you');
+
+  // Only the reservation flow (expiresAt set) needs the card list re-sent
+  // on every poll, so the mobile UI doesn't lose it after the first
+  // refresh — the older pick-one-method-up-front flow already committed
+  // to a single method at creation and doesn't use this field.
+  if (request.expiresAt) {
+    const receivingMethods = await listActiveReceivingMethods(ctx);
+    return { ...request, receivingMethods };
+  }
   return request;
 }
 

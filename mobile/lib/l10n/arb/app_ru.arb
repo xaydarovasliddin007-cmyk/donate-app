@@ -220,8 +220,8 @@
   "topupInstructionsTitle": "Как пополняется баланс?",
   "topupStep1Title": "Введите сумму",
   "topupStep1Message": "Укажите сумму, которую хотите перевести",
-  "topupStep2Title": "Вам выдадут карту",
-  "topupStep2Message": "Приложение покажет вам один номер карты",
+  "topupStep2Title": "Вам покажут карты",
+  "topupStep2Message": "Приложение покажет вам несколько карт — переведите на любую из них",
   "topupStep3Title": "Переведите ровно эту сумму",
   "topupStep3Message": "Переведите на указанную карту ровно эту сумму — баланс пополнится автоматически",
   "topupUserReferenceLabel": "Комментарий (необязательно)",
@@ -234,8 +234,9 @@
   "topupStatusRejected": "Отклонено",
   "topupStatusExpired": "Истёк срок",
   "topupValidationError": "Введите сумму",
-  "topupReservedCardTitle": "Переведите на эту карту",
+  "topupReservedCardTitle": "Переведите на одну из этих карт",
   "topupExactAmountLabel": "Переведите ровно эту сумму",
+  "topupExactAmountWarning": "Переводите строго указанную сумму. Если сумма будет другой, деньги не зачислятся на баланс!",
   "topupTimeLeftLabel": "Осталось времени: {time}",
   "@topupTimeLeftLabel": {
     "placeholders": {
@@ -243,8 +244,10 @@
     }
   },
   "topupWaitingMessage": "Ожидаем ваш перевод. Как только деньги поступят, баланс пополнится автоматически.",
+  "topupIvePaidButton": "Я оплатил",
+  "topupCheckingMessage": "Проверяем… обычно подтверждается за несколько секунд.",
   "topupExpiredTitle": "Время истекло",
-  "topupExpiredMessage": "Время бронирования этой карты истекло. Попробуйте ещё раз.",
+  "topupExpiredMessage": "Время бронирования истекло. Попробуйте ещё раз.",
   "topupTryAgainButton": "Попробовать снова",
   "topupCancelReservationButton": "Отменить",
 
