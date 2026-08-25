@@ -34,6 +34,9 @@ class AppLocalizationsUz extends AppLocalizations {
   String get commonClose => 'Yopish';
 
   @override
+  String get commonCopy => 'Nusxalash';
+
+  @override
   String get commonConfirm => 'Tasdiqlash';
 
   @override
@@ -592,31 +595,31 @@ class AppLocalizationsUz extends AppLocalizations {
   String get topupBankLabel => 'Bank';
 
   @override
-  String get topupSubmitButton => 'To\'lovni tasdiqlash';
+  String get topupSubmitButton => 'Karta olish';
 
   @override
   String get topupInstructionsTitle => 'Balans qanday to\'ldiriladi?';
 
   @override
-  String get topupStep1Title => 'Summani o\'tkazing';
+  String get topupStep1Title => 'Summani kiriting';
 
   @override
   String get topupStep1Message =>
-      'Tanlagan summangizni quyida ko\'rsatilgan kartaga o\'tkazing';
+      'Necha pul o\'tkazmoqchi bo\'lsangiz, o\'sha summani kiriting';
 
   @override
-  String get topupStep2Title => 'Tasdiqlang';
+  String get topupStep2Title => 'Sizga karta beriladi';
 
   @override
   String get topupStep2Message =>
-      '\"To\'lovni tasdiqlash\" tugmasini bosib, so\'rov yuboring';
+      'Ilova sizga bitta karta raqamini ko\'rsatadi';
 
   @override
-  String get topupStep3Title => 'Kutib turing';
+  String get topupStep3Title => 'Aynan shu summani o\'tkazing';
 
   @override
   String get topupStep3Message =>
-      'Admin tekshiruvidan so\'ng balansingiz avtomatik to\'ldiriladi';
+      'Ko\'rsatilgan kartaga rovno shu summani o\'tkazing — balansingiz avtomatik to\'ldiriladi';
 
   @override
   String get topupUserReferenceLabel => 'Izoh (ixtiyoriy)';
@@ -625,11 +628,11 @@ class AppLocalizationsUz extends AppLocalizations {
   String get topupUserReferenceHint => 'Masalan: kartangizning oxirgi 4 raqami';
 
   @override
-  String get topupSuccessTitle => 'So\'rov yuborildi';
+  String get topupSuccessTitle => 'Balans to\'ldirildi';
 
   @override
   String get topupSuccessMessage =>
-      'To\'lovingiz tekshirilmoqda. Tasdiqlangach, balansingiz avtomatik to\'ldiriladi.';
+      'To\'lovingiz aniqlandi va balansingizga qo\'shildi.';
 
   @override
   String get topupHistoryTitle => 'To\'ldirishlar tarixi';
@@ -648,6 +651,34 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get topupValidationError => 'Summani kiriting';
+
+  @override
+  String get topupReservedCardTitle => 'Quyidagi kartaga o\'tkazing';
+
+  @override
+  String get topupExactAmountLabel => 'Aynan shu summani o\'tkazing';
+
+  @override
+  String topupTimeLeftLabel(String time) {
+    return 'Qolgan vaqt: $time';
+  }
+
+  @override
+  String get topupWaitingMessage =>
+      'To\'lovingizni kutyapmiz. Pul tushishi bilan balansingiz avtomatik to\'ldiriladi.';
+
+  @override
+  String get topupExpiredTitle => 'Vaqt tugadi';
+
+  @override
+  String get topupExpiredMessage =>
+      'Ushbu karta band qilingan vaqt tugadi. Qaytadan urinib ko\'ring.';
+
+  @override
+  String get topupTryAgainButton => 'Qaytadan urinish';
+
+  @override
+  String get topupCancelReservationButton => 'Bekor qilish';
 
   @override
   String get profileUzdonateIdLabel => 'UZDONATE ID';

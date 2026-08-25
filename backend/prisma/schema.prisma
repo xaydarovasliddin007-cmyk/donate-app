@@ -757,6 +757,15 @@ model TopUpRequest {
   // proof; only `reviewedByAdminId`+`status=VERIFIED` actually credits the
   // wallet.
   userReference     String?            @map("user_reference")
+  // Set only by reserveTopUpRequest() (the "assign me one free card"
+  // flow) — null for the older free-pick flow. A PENDING request past this
+  // time no longer blocks its card from being reserved by someone else,
+  // even before a sweep flips its status to EXPIRED.
+  expiresAt         DateTime?          @map("expires_at")
+  // True when a Telegram bank-notification match (see modules/topup/humo-webhook.ts)
+  // verified this automatically, rather than an admin — reviewedByAdminId
+  // stays null in that case.
+  autoVerified      Boolean            @default(false) @map("auto_verified")
   reviewedByAdminId String?            @map("reviewed_by_admin_id") @db.Uuid
   reviewedByAdmin   AdminUser?         @relation(fields: [reviewedByAdminId], references: [id])
   reviewedAt        DateTime?          @map("reviewed_at")

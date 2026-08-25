@@ -69,6 +69,14 @@ const envSchema = z.object({
   APIGAMES_USERNAME: z.string().trim().min(1).optional(),
   APIGAMES_API_KEY: z.string().trim().min(1).optional(),
 
+  // Optional: shared secret the Telegram bank-notification listener script
+  // (scripts/humo-listener.ts) must send on every request to
+  // POST /webhooks/humo-transaction. Without it, that endpoint refuses all
+  // requests — auto-verification of card-transfer top-ups simply doesn't
+  // run, and top-ups fall back to manual admin review (see
+  // modules/topup/topup.service.ts).
+  HUMO_WEBHOOK_SECRET: z.string().trim().min(1).optional(),
+
   // Optional: outgoing email (registration verification codes) via SMTP —
   // same "wired but needs credentials" pattern as the above. Without these,
   // src/lib/mailer.ts logs the email content instead of sending it, so the

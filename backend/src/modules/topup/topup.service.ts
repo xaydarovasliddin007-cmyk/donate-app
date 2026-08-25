@@ -4,10 +4,20 @@ import { formatMinorAmount } from '../../lib/money.js';
 import { notifyAdmins } from '../../lib/telegram.js';
 import { createNotification } from '../notifications/notifications.service.js';
 import * as walletService from '../wallet/wallet.service.js';
-import type { CreateTopUpRequestInput } from './topup.schemas.js';
+import type { CreateTopUpRequestInput, HumoTransactionInput } from './topup.schemas.js';
 
 interface TopUpContext {
   prisma: PrismaClient;
+}
+
+// How long a reserved card stays exclusively assigned to one pending
+// request before it's free for someone else to be assigned instead.
+const RESERVATION_TTL_MS = 20 * 60 * 1000;
+
+/** Last-4-or-so digits, digits only — how both a masked PAN and whatever a
+ * bank notification message reveals get compared, never a full card number. */
+function trailingDigits(value: string): string {
+  return value.replace(/\D/g, '').slice(-4);
 }
 
 export async function listActiveReceivingMethods(ctx: TopUpContext) {
@@ -39,6 +49,144 @@ export async function createTopUpRequest(ctx: TopUpContext, userId: string, inpu
   );
 
   return request;
+}
+
+/**
+ * The "assign me one free card" flow: unlike createTopUpRequest() (where the
+ * user freely picks any active method), this exclusively locks exactly one
+ * card to this request for RESERVATION_TTL_MS — the point being that once a
+ * matching bank-transfer notification arrives for that card, the *amount
+ * alone* is enough to know which request it belongs to, with no added
+ * disambiguation digits, because no other request can be using that card at
+ * the same time. If every card is currently reserved, this fails rather
+ * than silently reusing one still in use.
+ */
+export async function reserveTopUpRequest(ctx: TopUpContext, userId: string, amountMinor: number) {
+  const now = new Date();
+
+  // Self-healing sweep: nothing depends on a background job for this — a
+  // PENDING row past its own expiresAt already doesn't block a new
+  // reservation (see the query below), so this just keeps admin-facing
+  // status accurate.
+  await ctx.prisma.topUpRequest.updateMany({
+    where: { status: 'PENDING', expiresAt: { lt: now } },
+    data: { status: 'EXPIRED' },
+  });
+
+  const method = await ctx.prisma.receivingMethod.findFirst({
+    where: {
+      isActive: true,
+      topUpRequests: { none: { status: 'PENDING', expiresAt: { gt: now } } },
+    },
+    orderBy: { sortOrder: 'asc' },
+  });
+
+  if (!method) {
+    throw new ConflictError('All receiving cards are currently in use — please try again in a few minutes');
+  }
+
+  const request = await ctx.prisma.topUpRequest.create({
+    data: {
+      userId,
+      receivingMethodId: method.id,
+      amountMinor,
+      expiresAt: new Date(now.getTime() + RESERVATION_TTL_MS),
+    },
+    include: { receivingMethod: true },
+  });
+
+  return request;
+}
+
+interface FinalizeVerificationOptions {
+  adminId?: string;
+  autoVerified: boolean;
+}
+
+/**
+ * Shared by the admin's manual verifyTopUpRequest() and the Telegram-bot
+ * auto-verify path — credits the wallet and notifies exactly once either
+ * way. Idempotency key is deterministic on the request ID, so a retried
+ * call after a partial failure is safe: applyLedgerEntry just returns the
+ * already-applied entry instead of crediting twice.
+ */
+async function finalizeVerification(ctx: TopUpContext, requestId: string, options: FinalizeVerificationOptions) {
+  const request = await ctx.prisma.topUpRequest.findUnique({ where: { id: requestId } });
+  if (!request) {
+    throw new NotFoundError('Top-up request not found');
+  }
+  if (request.status !== 'PENDING') {
+    throw new ConflictError(`Only PENDING top-up requests can be verified (this one is ${request.status})`);
+  }
+
+  await walletService.creditWallet(ctx, {
+    userId: request.userId,
+    type: 'TOPUP',
+    amountMinor: request.amountMinor,
+    idempotencyKey: `topup:${request.id}`,
+    reference: `Top-up ${request.id}`,
+    topUpRequestId: request.id,
+    createdByAdminId: options.adminId,
+  });
+
+  const updated = await ctx.prisma.topUpRequest.update({
+    where: { id: request.id },
+    data: {
+      status: 'VERIFIED',
+      reviewedByAdminId: options.adminId,
+      reviewedAt: new Date(),
+      autoVerified: options.autoVerified,
+    },
+    include: { receivingMethod: true },
+  });
+
+  notifyAdmins(
+    `✅ <b>Top-up verified${options.autoVerified ? ' (auto)' : ''}</b> — ` +
+      `${formatMinorAmount(request.amountMinor, request.currency)}`,
+  );
+  await createNotification(ctx, {
+    userId: request.userId,
+    type: 'TOPUP_SUCCESS',
+    title: 'Top-up successful',
+    body: `${formatMinorAmount(request.amountMinor, request.currency)} was added to your UZDONATE wallet.`,
+    deepLink: '/wallet',
+  });
+
+  return updated;
+}
+
+/**
+ * Called by the Telegram bank-notification webhook (see humo-webhook.ts)
+ * for every parsed transaction message. Matches on card + exact amount +
+ * still-live reservation; if that's not exactly one request, this
+ * deliberately does nothing rather than guess — an ambiguous or unmatched
+ * transaction just falls back to sitting there for manual admin review
+ * (the notification itself still went to admins when the request was
+ * created... actually reserved ones don't notify on creation, see below).
+ */
+export async function autoVerifyFromCardTransaction(ctx: TopUpContext, input: HumoTransactionInput) {
+  const hint = trailingDigits(input.cardHint);
+  const now = new Date();
+
+  const candidates = await ctx.prisma.topUpRequest.findMany({
+    where: { status: 'PENDING', amountMinor: input.amountMinor, expiresAt: { gt: now } },
+    include: { receivingMethod: true },
+  });
+  const matches = candidates.filter((c) => trailingDigits(c.receivingMethod.cardNumberMasked) === hint);
+  const [match] = matches;
+
+  if (matches.length !== 1 || !match) {
+    if (matches.length > 1) {
+      notifyAdmins(
+        `⚠️ <b>Ambiguous auto top-up match</b> — ${matches.length} pending requests match ` +
+          `${formatMinorAmount(input.amountMinor, 'UZS')} on card ...${hint}. Needs manual review.\n` +
+          (input.rawMessage ? `Message: ${input.rawMessage}` : ''),
+      );
+    }
+    return null;
+  }
+
+  return finalizeVerification(ctx, match.id, { autoVerified: true });
 }
 
 export async function listMyTopUpRequests(ctx: TopUpContext, userId: string, limit: number) {

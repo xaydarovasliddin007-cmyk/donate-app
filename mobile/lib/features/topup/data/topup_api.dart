@@ -38,4 +38,19 @@ class TopupApi {
         .map((t) => TopUpRequest.fromJson(t as Map<String, dynamic>))
         .toList();
   }
+
+  /// The automatic card-transfer flow: assigns exactly one free receiving
+  /// card to this exact amount, instead of letting the user pick freely.
+  Future<TopUpRequest> reserveTopUp({required int amountMinor}) async {
+    final json = await _client.post(
+      '/topups/reserve',
+      body: {'amountMinor': amountMinor},
+    );
+    return TopUpRequest.fromJson(json);
+  }
+
+  Future<TopUpRequest> getTopUp(String id) async {
+    final json = await _client.get('/topups/$id');
+    return TopUpRequest.fromJson(json);
+  }
 }

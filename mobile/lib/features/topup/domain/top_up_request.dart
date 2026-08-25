@@ -18,6 +18,7 @@ class TopUpRequest {
     required this.receivingMethod,
     required this.createdAt,
     this.rejectionReason,
+    this.expiresAt,
   });
 
   final String id;
@@ -27,6 +28,11 @@ class TopUpRequest {
   final ReceivingMethod receivingMethod;
   final DateTime createdAt;
   final String? rejectionReason;
+
+  /// Set only for card-transfer reservations created via [TopupApi.reserveTopUp]
+  /// — after this, the assigned card is free for someone else to be given
+  /// instead, whether or not this request ever got paid.
+  final DateTime? expiresAt;
 
   factory TopUpRequest.fromJson(Map<String, dynamic> json) => TopUpRequest(
     id: json['id'] as String,
@@ -38,5 +44,8 @@ class TopUpRequest {
     ),
     createdAt: DateTime.parse(json['createdAt'] as String),
     rejectionReason: json['rejectionReason'] as String?,
+    expiresAt: json['expiresAt'] != null
+        ? DateTime.parse(json['expiresAt'] as String)
+        : null,
   );
 }

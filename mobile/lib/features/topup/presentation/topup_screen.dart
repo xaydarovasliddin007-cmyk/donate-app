@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/errors/failure.dart';
 import '../../../core/theme/app_colors.dart';
@@ -6,19 +9,19 @@ import '../../../core/theme/app_motion.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/reduce_motion_controller.dart';
 import '../../../core/utils/money_formatter.dart';
-import '../../../core/widgets/error_view.dart';
-import '../../../core/widgets/loading_view.dart';
 import '../../../core/widgets/pressable_scale.dart';
-import '../../../core/widgets/staggered_entrance.dart';
 import '../../../core/widgets/success_checkmark.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../wallet/application/wallet_providers.dart';
 import '../application/topup_providers.dart';
 import '../domain/receiving_method.dart';
+import '../domain/top_up_request.dart';
 
 /// Major-unit UZS presets — common round top-up amounts, so most users never
 /// have to type anything.
 const _presetAmounts = [50000, 100000, 200000, 500000, 1000000];
+
+const _pollInterval = Duration(seconds: 4);
 
 class TopupScreen extends ConsumerStatefulWidget {
   const TopupScreen({super.key});
@@ -29,11 +32,17 @@ class TopupScreen extends ConsumerStatefulWidget {
 
 class _TopupScreenState extends ConsumerState<TopupScreen> {
   final _amountController = TextEditingController();
-  final _referenceController = TextEditingController();
-  String? _selectedMethodId;
   int? _selectedPreset;
   bool _submitting = false;
   String? _errorMessage;
+
+  // Once set, the screen shows the assigned card + countdown instead of the
+  // amount-entry form — this is the "you've been given exactly one card"
+  // step of the automatic card-transfer flow.
+  TopUpRequest? _reservation;
+  Timer? _pollTimer;
+  Timer? _countdownTimer;
+  Duration? _remaining;
 
   void _pickPreset(int amount) {
     setState(() {
@@ -46,19 +55,16 @@ class _TopupScreenState extends ConsumerState<TopupScreen> {
   @override
   void dispose() {
     _amountController.dispose();
-    _referenceController.dispose();
+    _pollTimer?.cancel();
+    _countdownTimer?.cancel();
     super.dispose();
   }
 
-  Future<void> _submit(List<ReceivingMethod> methods) async {
+  Future<void> _requestCard() async {
     final l10n = AppLocalizations.of(context);
     final amountMajor = double.tryParse(_amountController.text.trim());
     if (amountMajor == null || amountMajor <= 0) {
       setState(() => _errorMessage = l10n.topupValidationError);
-      return;
-    }
-    if (_selectedMethodId == null) {
-      setState(() => _errorMessage = l10n.topupSelectMethodTitle);
       return;
     }
 
@@ -68,176 +74,382 @@ class _TopupScreenState extends ConsumerState<TopupScreen> {
     });
 
     try {
-      await ref
+      final reservation = await ref
           .read(topupApiProvider)
-          .createTopUpRequest(
-            receivingMethodId: _selectedMethodId!,
-            amountMinor: (amountMajor * 100).round(),
-            userReference: _referenceController.text.trim().isEmpty
-                ? null
-                : _referenceController.text.trim(),
-          );
-      ref.invalidate(walletProvider);
-
+          .reserveTopUp(amountMinor: (amountMajor * 100).round());
       if (!mounted) return;
-      await showDialog<void>(
-        context: context,
-        builder: (context) => AlertDialog(
-          icon: const SuccessCheckmark(),
-          title: Text(l10n.topupSuccessTitle),
-          content: Text(l10n.topupSuccessMessage),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text(l10n.commonClose),
-            ),
-          ],
-        ),
-      );
-      if (mounted) Navigator.of(context).pop();
+      setState(() {
+        _reservation = reservation;
+        _submitting = false;
+      });
+      _startCountdown(reservation.expiresAt);
+      _startPolling(reservation.id);
     } catch (error) {
       final failure = Failure.from(error);
+      if (!mounted) return;
       setState(() {
+        _submitting = false;
         _errorMessage = failure.isNetworkError
             ? l10n.errorNoConnectionMessage
             : failure.message;
       });
-    } finally {
-      if (mounted) setState(() => _submitting = false);
     }
+  }
+
+  void _startCountdown(DateTime? expiresAt) {
+    _countdownTimer?.cancel();
+    if (expiresAt == null) return;
+    void tick() {
+      final left = expiresAt.difference(DateTime.now());
+      if (!mounted) return;
+      setState(() => _remaining = left.isNegative ? Duration.zero : left);
+    }
+
+    tick();
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (_) => tick());
+  }
+
+  void _startPolling(String requestId) {
+    _pollTimer?.cancel();
+    _pollTimer = Timer.periodic(_pollInterval, (_) async {
+      try {
+        final updated = await ref.read(topupApiProvider).getTopUp(requestId);
+        if (!mounted) return;
+        if (updated.status == TopUpRequestStatus.verified) {
+          _pollTimer?.cancel();
+          _countdownTimer?.cancel();
+          setState(() => _reservation = updated);
+          await _showSuccess();
+        } else if (updated.status != TopUpRequestStatus.pending) {
+          _pollTimer?.cancel();
+          _countdownTimer?.cancel();
+          setState(() => _reservation = updated);
+        }
+      } catch (_) {
+        // Transient network hiccup — the next tick just tries again.
+      }
+    });
+  }
+
+  Future<void> _showSuccess() async {
+    final l10n = AppLocalizations.of(context);
+    ref.invalidate(walletProvider);
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        icon: const SuccessCheckmark(),
+        title: Text(l10n.topupSuccessTitle),
+        content: Text(l10n.topupSuccessMessage),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text(l10n.commonClose),
+          ),
+        ],
+      ),
+    );
+    if (mounted) Navigator.of(context).pop();
+  }
+
+  void _reset() {
+    _pollTimer?.cancel();
+    _countdownTimer?.cancel();
+    setState(() {
+      _reservation = null;
+      _remaining = null;
+      _errorMessage = null;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    final methodsAsync = ref.watch(receivingMethodsProvider);
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.topupTitle)),
       body: SafeArea(
-        child: methodsAsync.when(
-          loading: () => const LoadingView(),
-          error: (error, _) {
-            final failure = Failure.from(error);
-            return ErrorView(
-              title: failure.isNetworkError
-                  ? l10n.errorNoConnectionTitle
-                  : l10n.errorGenericTitle,
-              message: failure.isNetworkError
-                  ? l10n.errorNoConnectionMessage
-                  : l10n.errorGenericMessage,
-              retryLabel: l10n.commonRetry,
-              onRetry: () => ref.invalidate(receivingMethodsProvider),
-            );
-          },
-          data: (methods) {
-            return TweenAnimationBuilder<double>(
-              tween: Tween(begin: 0, end: 1),
-              duration: AppMotion.entrance,
-              curve: AppMotion.standard,
-              builder: (context, t, child) => Opacity(
-                opacity: t,
-                child: Transform.translate(
-                  offset: Offset(0, (1 - t) * 12),
-                  child: child,
-                ),
+        child: _reservation != null
+            ? _ReservationView(
+                reservation: _reservation!,
+                remaining: _remaining,
+                onTryAgain: _reset,
+              )
+            : _AmountEntryView(
+                amountController: _amountController,
+                selectedPreset: _selectedPreset,
+                submitting: _submitting,
+                errorMessage: _errorMessage,
+                onPickPreset: _pickPreset,
+                onAmountChanged: () => setState(() => _errorMessage = null),
+                onSubmit: _requestCard,
               ),
-              child: ListView(
-                padding: const EdgeInsets.all(AppSpacing.lg),
-                children: [
-                  // Explained up front, before the form — the point raised was
-                  // that users don't clearly understand how a top-up actually
-                  // reaches their balance, so this leads the screen instead of
-                  // being a small paragraph buried under the submit button.
-                  const _HowItWorksCard(),
-                  const SizedBox(height: AppSpacing.lg),
-                  Text(
-                    l10n.topupAmountLabel,
-                    style: theme.textTheme.titleSmall,
+      ),
+    );
+  }
+}
+
+class _AmountEntryView extends StatelessWidget {
+  const _AmountEntryView({
+    required this.amountController,
+    required this.selectedPreset,
+    required this.submitting,
+    required this.errorMessage,
+    required this.onPickPreset,
+    required this.onAmountChanged,
+    required this.onSubmit,
+  });
+
+  final TextEditingController amountController;
+  final int? selectedPreset;
+  final bool submitting;
+  final String? errorMessage;
+  final ValueChanged<int> onPickPreset;
+  final VoidCallback onAmountChanged;
+  final VoidCallback onSubmit;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: AppMotion.entrance,
+      curve: AppMotion.standard,
+      builder: (context, t, child) => Opacity(
+        opacity: t,
+        child: Transform.translate(
+          offset: Offset(0, (1 - t) * 12),
+          child: child,
+        ),
+      ),
+      child: ListView(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        children: [
+          // Explained up front, before the form — the point raised was that
+          // users don't clearly understand how a top-up actually reaches
+          // their balance, so this leads the screen instead of being a
+          // small paragraph buried under the submit button.
+          const _HowItWorksCard(),
+          const SizedBox(height: AppSpacing.lg),
+          Text(l10n.topupAmountLabel, style: theme.textTheme.titleSmall),
+          const SizedBox(height: AppSpacing.sm),
+          _AmountField(controller: amountController, onChanged: onAmountChanged),
+          const SizedBox(height: AppSpacing.sm),
+          Wrap(
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.sm,
+            children: [
+              for (final preset in _presetAmounts)
+                _PresetChip(
+                  label: formatMoney(
+                    preset * 100,
+                    'UZS',
+                    Localizations.localeOf(context).toString(),
                   ),
-                  const SizedBox(height: AppSpacing.sm),
-                  _AmountField(controller: _amountController),
-                  const SizedBox(height: AppSpacing.sm),
-                  Wrap(
-                    spacing: AppSpacing.sm,
-                    runSpacing: AppSpacing.sm,
-                    children: [
-                      for (final preset in _presetAmounts)
-                        _PresetChip(
-                          label: formatMoney(
-                            preset * 100,
-                            'UZS',
-                            Localizations.localeOf(context).toString(),
-                          ),
-                          selected: _selectedPreset == preset,
-                          onTap: () => _pickPreset(preset),
+                  selected: selectedPreset == preset,
+                  onTap: () => onPickPreset(preset),
+                ),
+            ],
+          ),
+          if (errorMessage != null) ...[
+            const SizedBox(height: AppSpacing.md),
+            Text(errorMessage!, style: TextStyle(color: theme.colorScheme.error)),
+          ],
+          const SizedBox(height: AppSpacing.lg),
+          FilledButton(
+            onPressed: submitting ? null : onSubmit,
+            child: submitting
+                ? const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Text(l10n.topupSubmitButton),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The "you've been given exactly one card" step: shows the assigned card,
+/// the exact amount to transfer, a live countdown until the reservation
+/// expires, and the current status while the app polls in the background.
+class _ReservationView extends ConsumerWidget {
+  const _ReservationView({
+    required this.reservation,
+    required this.remaining,
+    required this.onTryAgain,
+  });
+
+  final TopUpRequest reservation;
+  final Duration? remaining;
+  final VoidCallback onTryAgain;
+
+  String _formatDuration(Duration d) {
+    final minutes = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final seconds = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return '$minutes:$seconds';
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final locale = Localizations.localeOf(context).toString();
+    final reduceMotion = ref.watch(reduceMotionProvider);
+    final isExpired =
+        reservation.status == TopUpRequestStatus.expired ||
+        (remaining != null && remaining! <= Duration.zero);
+    final isRejected = reservation.status == TopUpRequestStatus.rejected;
+    final isDone = isExpired || isRejected;
+
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: reduceMotion ? Duration.zero : AppMotion.entrance,
+      curve: AppMotion.standard,
+      builder: (context, t, child) => Opacity(
+        opacity: t,
+        child: Transform.translate(
+          offset: Offset(0, (1 - t) * 12),
+          child: child,
+        ),
+      ),
+      child: ListView(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        children: [
+          Text(l10n.topupReservedCardTitle, style: theme.textTheme.titleSmall),
+          const SizedBox(height: AppSpacing.sm),
+          _ReceivingMethodTile(
+            method: reservation.receivingMethod,
+            selected: true,
+            onTap: null,
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainerHighest.withValues(
+                alpha: 0.5,
+              ),
+              borderRadius: BorderRadius.circular(AppRadius.lg),
+              border: Border.all(color: theme.colorScheme.outlineVariant),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l10n.topupExactAmountLabel,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        formatMoney(
+                          reservation.amountMinor,
+                          reservation.currency,
+                          locale,
                         ),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.lg),
-                  Text(
-                    l10n.topupSelectMethodTitle,
-                    style: theme.textTheme.titleSmall,
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          mainAxisSpacing: AppSpacing.sm,
-                          crossAxisSpacing: AppSpacing.sm,
-                          childAspectRatio: 1.55,
+                        style: theme.textTheme.headlineMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
                         ),
-                    itemCount: methods.length,
-                    itemBuilder: (context, index) {
-                      final method = methods[index];
-                      return StaggeredEntrance(
-                        index: index,
-                        child: _ReceivingMethodTile(
-                          method: method,
-                          selected: _selectedMethodId == method.id,
-                          onTap: () => setState(() {
-                            _selectedMethodId = method.id;
-                            _errorMessage = null;
-                          }),
-                        ),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  TextField(
-                    controller: _referenceController,
-                    decoration: InputDecoration(
-                      labelText: l10n.topupUserReferenceLabel,
-                      hintText: l10n.topupUserReferenceHint,
+                      ),
                     ),
-                  ),
-                  if (_errorMessage != null) ...[
-                    const SizedBox(height: AppSpacing.md),
-                    Text(
-                      _errorMessage!,
-                      style: TextStyle(color: theme.colorScheme.error),
+                    IconButton(
+                      tooltip: l10n.commonCopy,
+                      icon: const Icon(Icons.copy_rounded),
+                      onPressed: () => Clipboard.setData(
+                        ClipboardData(
+                          text: (reservation.amountMinor / 100)
+                              .toStringAsFixed(0),
+                        ),
+                      ),
                     ),
                   ],
-                  const SizedBox(height: AppSpacing.lg),
-                  FilledButton(
-                    onPressed: _submitting ? null : () => _submit(methods),
-                    child: _submitting
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : Text(l10n.topupSubmitButton),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          if (!isDone) ...[
+            if (remaining != null)
+              Center(
+                child: Text(
+                  l10n.topupTimeLeftLabel(_formatDuration(remaining!)),
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: remaining!.inMinutes < 2
+                        ? theme.colorScheme.error
+                        : theme.colorScheme.onSurface,
+                  ),
+                ),
+              ),
+            const SizedBox(height: AppSpacing.md),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const SizedBox(
+                  height: 16,
+                  width: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Flexible(
+                  child: Text(
+                    l10n.topupWaitingMessage,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ] else ...[
+            Center(
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.timer_off_rounded,
+                    size: 40,
+                    color: theme.colorScheme.error,
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  Text(
+                    l10n.topupExpiredTitle,
+                    style: theme.textTheme.titleMedium,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    l10n.topupExpiredMessage,
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ),
-            );
-          },
-        ),
+            ),
+          ],
+          const SizedBox(height: AppSpacing.lg),
+          if (isDone)
+            FilledButton(
+              onPressed: onTryAgain,
+              child: Text(l10n.topupTryAgainButton),
+            )
+          else
+            TextButton(
+              onPressed: onTryAgain,
+              child: Text(l10n.topupCancelReservationButton),
+            ),
+        ],
       ),
     );
   }
@@ -246,9 +458,10 @@ class _TopupScreenState extends ConsumerState<TopupScreen> {
 /// Bigger, bolder amount entry — the screen's primary input deserves more
 /// visual weight than a default-styled [TextField].
 class _AmountField extends StatelessWidget {
-  const _AmountField({required this.controller});
+  const _AmountField({required this.controller, required this.onChanged});
 
   final TextEditingController controller;
+  final VoidCallback onChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -267,6 +480,7 @@ class _AmountField extends StatelessWidget {
       ),
       child: TextField(
         controller: controller,
+        onChanged: (_) => onChanged(),
         keyboardType: const TextInputType.numberWithOptions(decimal: false),
         style: theme.textTheme.headlineMedium?.copyWith(
           fontWeight: FontWeight.w800,
@@ -333,9 +547,10 @@ class _PresetChip extends StatelessWidget {
   }
 }
 
-/// Numbered, iconed walkthrough of the manual top-up process — leads the
-/// screen so the "why do I transfer money and then wait" question is
-/// answered before the user fills in anything.
+/// Numbered, iconed walkthrough of the automatic card-transfer top-up
+/// process — leads the screen so the "why am I being given a card, and what
+/// happens after I pay" questions are answered before the user types
+/// anything.
 class _HowItWorksCard extends ConsumerWidget {
   const _HowItWorksCard();
 
@@ -345,13 +560,9 @@ class _HowItWorksCard extends ConsumerWidget {
     final theme = Theme.of(context);
     final reduceMotion = ref.watch(reduceMotionProvider);
     final steps = [
-      (Icons.credit_card_rounded, l10n.topupStep1Title, l10n.topupStep1Message),
-      (Icons.task_alt_rounded, l10n.topupStep2Title, l10n.topupStep2Message),
-      (
-        Icons.hourglass_top_rounded,
-        l10n.topupStep3Title,
-        l10n.topupStep3Message,
-      ),
+      (Icons.edit_rounded, l10n.topupStep1Title, l10n.topupStep1Message),
+      (Icons.credit_card_rounded, l10n.topupStep2Title, l10n.topupStep2Message),
+      (Icons.bolt_rounded, l10n.topupStep3Title, l10n.topupStep3Message),
     ];
 
     return Container(
@@ -455,9 +666,7 @@ class _StepRow extends StatelessWidget {
 }
 
 /// A payment method rendered as a miniature bank-card mockup — gradient
-/// face, masked number, cardholder/bank — rather than a plain list row with
-/// a leading radio button. Selection is shown with a bright border ring and
-/// a checkmark badge instead of the radio icon.
+/// face, masked number, cardholder/bank — rather than a plain list row.
 class _ReceivingMethodTile extends StatelessWidget {
   const _ReceivingMethodTile({
     required this.method,
@@ -467,7 +676,7 @@ class _ReceivingMethodTile extends StatelessWidget {
 
   final ReceivingMethod method;
   final bool selected;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -481,6 +690,7 @@ class _ReceivingMethodTile extends StatelessWidget {
       borderRadius: BorderRadius.circular(AppRadius.md),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
+        width: double.infinity,
         padding: const EdgeInsets.all(AppSpacing.md),
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -530,12 +740,13 @@ class _ReceivingMethodTile extends StatelessWidget {
                   ),
               ],
             ),
-            const Spacer(),
+            const SizedBox(height: AppSpacing.md),
             Text(
               method.cardNumberMasked,
-              style: theme.textTheme.titleSmall?.copyWith(
+              style: theme.textTheme.titleMedium?.copyWith(
                 color: Colors.white,
                 letterSpacing: 0.5,
+                fontWeight: FontWeight.w700,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,

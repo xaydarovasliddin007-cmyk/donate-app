@@ -24,6 +24,7 @@ import { notificationsRoutes } from './modules/notifications/notifications.route
 import { adminRoutes } from './modules/admin/admin.routes.js';
 import { paymeWebhookRoutes } from './providers/payme/payme-webhook.js';
 import { clickWebhookRoutes } from './providers/click/click-webhook.js';
+import { humoWebhookRoutes } from './modules/topup/humo-webhook.js';
 
 export async function buildApp() {
   const app = Fastify({
@@ -98,6 +99,7 @@ export async function buildApp() {
         async (payments) => {
           await payments.register(paymeWebhookRoutes);
           await payments.register(clickWebhookRoutes);
+          await payments.register(humoWebhookRoutes);
         },
         { prefix: '/payments' },
       );

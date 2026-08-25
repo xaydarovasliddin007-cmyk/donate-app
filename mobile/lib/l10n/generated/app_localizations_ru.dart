@@ -34,6 +34,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get commonClose => 'Закрыть';
 
   @override
+  String get commonCopy => 'Копировать';
+
+  @override
   String get commonConfirm => 'Подтвердить';
 
   @override
@@ -587,31 +590,29 @@ class AppLocalizationsRu extends AppLocalizations {
   String get topupBankLabel => 'Банк';
 
   @override
-  String get topupSubmitButton => 'Подтвердить оплату';
+  String get topupSubmitButton => 'Получить карту';
 
   @override
   String get topupInstructionsTitle => 'Как пополняется баланс?';
 
   @override
-  String get topupStep1Title => 'Переведите сумму';
+  String get topupStep1Title => 'Введите сумму';
 
   @override
-  String get topupStep1Message =>
-      'Переведите выбранную сумму на карту, указанную ниже';
+  String get topupStep1Message => 'Укажите сумму, которую хотите перевести';
 
   @override
-  String get topupStep2Title => 'Подтвердите';
+  String get topupStep2Title => 'Вам выдадут карту';
 
   @override
-  String get topupStep2Message =>
-      'Нажмите «Подтвердить оплату», чтобы отправить запрос';
+  String get topupStep2Message => 'Приложение покажет вам один номер карты';
 
   @override
-  String get topupStep3Title => 'Дождитесь проверки';
+  String get topupStep3Title => 'Переведите ровно эту сумму';
 
   @override
   String get topupStep3Message =>
-      'После проверки администратором баланс пополнится автоматически';
+      'Переведите на указанную карту ровно эту сумму — баланс пополнится автоматически';
 
   @override
   String get topupUserReferenceLabel => 'Комментарий (необязательно)';
@@ -621,11 +622,11 @@ class AppLocalizationsRu extends AppLocalizations {
       'Например: последние 4 цифры вашей карты';
 
   @override
-  String get topupSuccessTitle => 'Заявка отправлена';
+  String get topupSuccessTitle => 'Баланс пополнен';
 
   @override
   String get topupSuccessMessage =>
-      'Ваш платёж проверяется. После подтверждения баланс пополнится автоматически.';
+      'Ваш платёж обнаружен и зачислен на баланс.';
 
   @override
   String get topupHistoryTitle => 'История пополнений';
@@ -644,6 +645,34 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get topupValidationError => 'Введите сумму';
+
+  @override
+  String get topupReservedCardTitle => 'Переведите на эту карту';
+
+  @override
+  String get topupExactAmountLabel => 'Переведите ровно эту сумму';
+
+  @override
+  String topupTimeLeftLabel(String time) {
+    return 'Осталось времени: $time';
+  }
+
+  @override
+  String get topupWaitingMessage =>
+      'Ожидаем ваш перевод. Как только деньги поступят, баланс пополнится автоматически.';
+
+  @override
+  String get topupExpiredTitle => 'Время истекло';
+
+  @override
+  String get topupExpiredMessage =>
+      'Время бронирования этой карты истекло. Попробуйте ещё раз.';
+
+  @override
+  String get topupTryAgainButton => 'Попробовать снова';
+
+  @override
+  String get topupCancelReservationButton => 'Отменить';
 
   @override
   String get profileUzdonateIdLabel => 'UZDONATE ID';

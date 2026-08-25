@@ -21,7 +21,8 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
-    "prisma:seed": "tsx prisma/seed.ts"
+    "prisma:seed": "tsx prisma/seed.ts",
+    "humo:listener": "tsx scripts/humo-listener.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -45,6 +46,7 @@
     "google-auth-library": "^11.0.0",
     "nodemailer": "^9.0.5",
     "pino": "^10.3.1",
+    "telegram": "^2.26.22",
     "zod": "^4.4.3"
   },
   "devDependencies": {
