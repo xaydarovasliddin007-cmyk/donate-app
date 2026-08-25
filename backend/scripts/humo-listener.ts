@@ -55,27 +55,32 @@ async function prompt(question: string): Promise<string> {
 }
 
 /**
- * Best-effort parser for @HUMOcardbot's notification text. No real sample
- * message was available while writing this, so it looks for the two
- * pieces of information any such notification has to contain — an amount
- * and a card reference — under a few common phrasings, rather than
- * matching one exact template. THIS NEEDS CALIBRATION: paste the first
- * real notification text into the "sample messages" below once you have
- * one, and adjust the regexes to match it exactly. A message that fails
- * to parse is simply skipped (logged, not forwarded) — that top-up just
- * waits for manual admin review, it never causes a wrong credit.
+ * Parser for @HUMOcardbot's notification text. Calibrated against a real
+ * message:
+ *   Пополнение
+ *   1.000,00 UZS
+ *   NBU P2P HUMOHUMO>tas
+ *   HUMOCARD *8882
+ *   17:16 25.08.2026
+ * — dot is the thousands separator, comma introduces the 2-digit tiyin
+ * part (European-style formatting, not the "1,000.00" US style the first
+ * pass assumed — that mismatch was silently multiplying every amount by
+ * 100). A message that fails to parse is simply skipped (logged, not
+ * forwarded) — that top-up just waits for manual admin review, it never
+ * causes a wrong credit.
  */
 function parseHumoMessage(text: string): { cardHint: string; amountMinor: number } | null {
-  // Amount: a run of digits with optional space/comma/dot thousands
-  // separators, e.g. "50 000", "50,000.00", "50000" — followed by (or
-  // preceded by) a currency marker so we don't accidentally match a card
-  // number as an amount.
-  const amountMatch = text.match(/([\d][\d\s.,]*\d|\d)\s*(?:so'?m|sum|uzs)/i);
-  const amountRaw = amountMatch?.[1];
-  if (!amountRaw) return null;
-  const digitsOnly = amountRaw.replace(/[^\d]/g, '');
-  if (!digitsOnly) return null;
-  const amountMinor = Number(digitsOnly) * 100;
+  // Amount: an integer part with optional space/dot thousands separators,
+  // an optional ",NN" tiyin part, followed by a currency marker so we
+  // don't accidentally match a card number as an amount.
+  const amountMatch = text.match(/([\d](?:[\d.\s]*\d)?)(?:,(\d{1,2}))?\s*(?:so'?m|sum|uzs)/i);
+  const integerRaw = amountMatch?.[1];
+  if (!integerRaw) return null;
+  const integerDigits = integerRaw.replace(/[.\s]/g, '');
+  if (!integerDigits) return null;
+  const fractionRaw = amountMatch![2];
+  const fractionTiyin = fractionRaw ? Number(fractionRaw.padEnd(2, '0').slice(0, 2)) : 0;
+  const amountMinor = Number(integerDigits) * 100 + fractionTiyin;
   if (!Number.isFinite(amountMinor) || amountMinor <= 0) return null;
 
   // Card hint: the last group of 4+ digits appearing near "karta"/"card"/
