@@ -33,32 +33,32 @@ enum UserStatus {
 }
 
 model User {
-  id           String     @id @default(uuid()) @db.Uuid
+  id              String     @id @default(uuid()) @db.Uuid
   // Permanent, human-readable, user-facing identity ("UZD-XXXXXXXX") — never
   // the DB primary key. Generated once at account creation (see
   // lib/public-id.ts) and never changes; safe to show in support/admin
   // search contexts instead of the internal UUID.
-  publicId     String     @unique @map("public_id")
-  email        String?    @unique
+  publicId        String     @unique @map("public_id")
+  email           String?    @unique
   // Kept for existing accounts/admin lookups, but no longer collected at
   // register/login time — the identifier field is email-only now (see
   // modules/auth). Never populated by new signups.
-  phone        String?    @unique
+  phone           String?    @unique
   // Nullable: a Google-only account never sets a password. Every write path
   // that creates a user must set at least one of passwordHash/googleId.
-  passwordHash String?    @map("password_hash")
-  googleId     String?    @unique @map("google_id")
-  avatarUrl    String?    @map("avatar_url")
-  displayName  String?    @map("display_name")
-  locale       String     @default("uz")
-  role         UserRole   @default(CUSTOMER)
-  status       UserStatus @default(ACTIVE)
+  passwordHash    String?    @map("password_hash")
+  googleId        String?    @unique @map("google_id")
+  avatarUrl       String?    @map("avatar_url")
+  displayName     String?    @map("display_name")
+  locale          String     @default("uz")
+  role            UserRole   @default(CUSTOMER)
+  status          UserStatus @default(ACTIVE)
   // Set once the user enters a valid code sent to their email
   // (EmailVerificationToken below). Null forever for Google-only accounts'
   // email, since Google already verified it before we ever saw it.
-  emailVerifiedAt DateTime? @map("email_verified_at")
-  createdAt    DateTime   @default(now()) @map("created_at")
-  updatedAt    DateTime   @updatedAt @map("updated_at")
+  emailVerifiedAt DateTime?  @map("email_verified_at")
+  createdAt       DateTime   @default(now()) @map("created_at")
+  updatedAt       DateTime   @updatedAt @map("updated_at")
 
   refreshTokens           RefreshToken[]
   orders                  Order[]
@@ -172,11 +172,11 @@ model AdminUser {
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @map("updated_at")
 
-  refreshTokens        AdminRefreshToken[]
-  auditLogs            AuditLog[]
-  walletTransactions   WalletTransaction[]
-  reviewedTopUps       TopUpRequest[]
-  createdPromoCodes    PromoCode[]
+  refreshTokens      AdminRefreshToken[]
+  auditLogs          AuditLog[]
+  walletTransactions WalletTransaction[]
+  reviewedTopUps     TopUpRequest[]
+  createdPromoCodes  PromoCode[]
 
   @@map("admin_users")
 }
@@ -190,18 +190,18 @@ model AdminUser {
 // ---------------------------------------------------------------------------
 
 model PromoCode {
-  id               String    @id @default(uuid()) @db.Uuid
+  id               String     @id @default(uuid()) @db.Uuid
   // Stored uppercase; redemption lookups normalize the input the same way.
-  code             String    @unique
-  bonusAmountMinor Int       @map("bonus_amount_minor")
-  currency         String    @default("UZS")
+  code             String     @unique
+  bonusAmountMinor Int        @map("bonus_amount_minor")
+  currency         String     @default("UZS")
   // Null = unlimited redemptions (until expiresAt/isActive says otherwise).
-  maxRedemptions   Int?      @map("max_redemptions")
-  redemptionCount  Int       @default(0) @map("redemption_count")
-  expiresAt        DateTime? @map("expires_at")
-  isActive         Boolean   @default(true) @map("is_active")
-  createdAt        DateTime  @default(now()) @map("created_at")
-  createdByAdminId String?   @map("created_by_admin_id") @db.Uuid
+  maxRedemptions   Int?       @map("max_redemptions")
+  redemptionCount  Int        @default(0) @map("redemption_count")
+  expiresAt        DateTime?  @map("expires_at")
+  isActive         Boolean    @default(true) @map("is_active")
+  createdAt        DateTime   @default(now()) @map("created_at")
+  createdByAdminId String?    @map("created_by_admin_id") @db.Uuid
   createdByAdmin   AdminUser? @relation(fields: [createdByAdminId], references: [id])
 
   redemptions PromoCodeRedemption[]
@@ -249,22 +249,22 @@ enum GameAvailability {
 }
 
 model Game {
-  id           String            @id @default(uuid()) @db.Uuid
-  slug         String            @unique
+  id           String           @id @default(uuid()) @db.Uuid
+  slug         String           @unique
   name         String
   // Free-text category label (e.g. "MOBA", "Battle Royale"). A dedicated
   // Category table would be premature at this catalog size — this is enough
   // for the home screen's category filter.
   category     String?
-  logoEmoji    String?           @map("logo_emoji")
+  logoEmoji    String?          @map("logo_emoji")
   // Remote icon URL (e.g. the game's official Play Store listing icon).
   // Nullable — the mobile app falls back to logoEmoji/a colored initial
   // avatar when this isn't set.
-  logoUrl      String?           @map("logo_url")
-  availability GameAvailability  @default(COMING_SOON)
-  sortOrder    Int               @default(0) @map("sort_order")
-  createdAt    DateTime          @default(now()) @map("created_at")
-  updatedAt    DateTime          @updatedAt @map("updated_at")
+  logoUrl      String?          @map("logo_url")
+  availability GameAvailability @default(COMING_SOON)
+  sortOrder    Int              @default(0) @map("sort_order")
+  createdAt    DateTime         @default(now()) @map("created_at")
+  updatedAt    DateTime         @updatedAt @map("updated_at")
 
   products            Product[]
   servers             GameServer[]
@@ -347,15 +347,15 @@ enum ProviderHealthStatus {
 }
 
 model Provider {
-  id            String                @id @default(uuid()) @db.Uuid
-  code          String                @unique
+  id            String               @id @default(uuid()) @db.Uuid
+  code          String               @unique
   name          String
   type          ProviderType
-  isActive      Boolean               @default(true) @map("is_active")
-  healthStatus  ProviderHealthStatus  @default(UNKNOWN) @map("health_status")
-  lastCheckedAt DateTime?             @map("last_checked_at")
-  createdAt     DateTime              @default(now()) @map("created_at")
-  updatedAt     DateTime              @updatedAt @map("updated_at")
+  isActive      Boolean              @default(true) @map("is_active")
+  healthStatus  ProviderHealthStatus @default(UNKNOWN) @map("health_status")
+  lastCheckedAt DateTime?            @map("last_checked_at")
+  createdAt     DateTime             @default(now()) @map("created_at")
+  updatedAt     DateTime             @updatedAt @map("updated_at")
 
   providerProducts ProviderProduct[]
   providerAttempts ProviderAttempt[]
@@ -533,19 +533,19 @@ enum ProviderAttemptStatus {
 }
 
 model ProviderAttempt {
-  id                     String                 @id @default(uuid()) @db.Uuid
-  orderId                String                 @map("order_id") @db.Uuid
-  order                  Order                  @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  providerId             String                 @map("provider_id") @db.Uuid
-  provider               Provider               @relation(fields: [providerId], references: [id])
-  providerProductCode    String                 @map("provider_product_code")
-  attemptNumber          Int                    @default(1) @map("attempt_number")
-  status                 ProviderAttemptStatus  @default(PENDING)
-  providerTransactionId  String?                @map("provider_transaction_id")
-  requestPayload         Json?                  @map("request_payload")
-  responsePayload        Json?                  @map("response_payload")
-  createdAt              DateTime               @default(now()) @map("created_at")
-  completedAt            DateTime?              @map("completed_at")
+  id                    String                @id @default(uuid()) @db.Uuid
+  orderId               String                @map("order_id") @db.Uuid
+  order                 Order                 @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  providerId            String                @map("provider_id") @db.Uuid
+  provider              Provider              @relation(fields: [providerId], references: [id])
+  providerProductCode   String                @map("provider_product_code")
+  attemptNumber         Int                   @default(1) @map("attempt_number")
+  status                ProviderAttemptStatus @default(PENDING)
+  providerTransactionId String?               @map("provider_transaction_id")
+  requestPayload        Json?                 @map("request_payload")
+  responsePayload       Json?                 @map("response_payload")
+  createdAt             DateTime              @default(now()) @map("created_at")
+  completedAt           DateTime?             @map("completed_at")
 
   @@index([orderId])
   @@map("provider_attempts")
@@ -605,15 +605,15 @@ enum AuditActorType {
 }
 
 model AuditLog {
-  id          String         @id @default(uuid()) @db.Uuid
-  actorType   AuditActorType @map("actor_type")
-  actorId     String?        @map("actor_id") @db.Uuid
-  actor       AdminUser?     @relation(fields: [actorId], references: [id])
-  action      String
-  entityType  String         @map("entity_type")
-  entityId    String?        @map("entity_id")
-  metadata    Json?
-  createdAt   DateTime       @default(now()) @map("created_at")
+  id         String         @id @default(uuid()) @db.Uuid
+  actorType  AuditActorType @map("actor_type")
+  actorId    String?        @map("actor_id") @db.Uuid
+  actor      AdminUser?     @relation(fields: [actorId], references: [id])
+  action     String
+  entityType String         @map("entity_type")
+  entityId   String?        @map("entity_id")
+  metadata   Json?
+  createdAt  DateTime       @default(now()) @map("created_at")
 
   @@index([entityType, entityId])
   @@map("audit_logs")
@@ -716,18 +716,20 @@ enum ReceivingMethodType {
 }
 
 model ReceivingMethod {
-  id               String              @id @default(uuid()) @db.Uuid
-  type             ReceivingMethodType @default(CARD_TRANSFER)
-  // Display-only masked PAN (e.g. "8600 **** **** 1234") — admin enters
-  // this already masked; the platform never needs/stores a full card
-  // number since money only ever flows one direction (user -> this card).
-  cardNumberMasked String              @map("card_number_masked")
-  cardHolderName   String              @map("card_holder_name")
-  bankName         String?             @map("bank_name")
-  isActive         Boolean             @default(true) @map("is_active")
-  sortOrder        Int                 @default(0) @map("sort_order")
-  createdAt        DateTime            @default(now()) @map("created_at")
-  updatedAt        DateTime            @updatedAt @map("updated_at")
+  id             String              @id @default(uuid()) @db.Uuid
+  type           ReceivingMethodType @default(CARD_TRANSFER)
+  // The FULL card number (e.g. "8600 1234 5678 8882") — not a real PAN
+  // security concern the way a debit/credit card's CVV+expiry would be
+  // (a receive-only card-transfer target being known lets someone send it
+  // money, not take money out), and the customer needs the complete
+  // number displayed to actually key it into their own banking app.
+  cardNumber     String              @map("card_number")
+  cardHolderName String              @map("card_holder_name")
+  bankName       String?             @map("bank_name")
+  isActive       Boolean             @default(true) @map("is_active")
+  sortOrder      Int                 @default(0) @map("sort_order")
+  createdAt      DateTime            @default(now()) @map("created_at")
+  updatedAt      DateTime            @updatedAt @map("updated_at")
 
   topUpRequests TopUpRequest[]
 

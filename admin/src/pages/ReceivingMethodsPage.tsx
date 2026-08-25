@@ -16,7 +16,7 @@ export function ReceivingMethodsPage() {
     [],
   );
 
-  const [cardNumberMasked, setCardNumberMasked] = useState('');
+  const [cardNumber, setCardNumber] = useState('');
   const [cardHolderName, setCardHolderName] = useState('');
   const [bankName, setBankName] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
@@ -24,7 +24,7 @@ export function ReceivingMethodsPage() {
 
   async function createMethod(event: FormEvent) {
     event.preventDefault();
-    if (!cardNumberMasked.trim() || !cardHolderName.trim()) {
+    if (!cardNumber.trim() || !cardHolderName.trim()) {
       setFormError(t('receivingMethods.fieldsRequired'));
       return;
     }
@@ -32,11 +32,11 @@ export function ReceivingMethodsPage() {
     setFormError(null);
     try {
       await api.post('/admin/receiving-methods', {
-        cardNumberMasked: cardNumberMasked.trim(),
+        cardNumber: cardNumber.trim(),
         cardHolderName: cardHolderName.trim(),
         bankName: bankName.trim() || undefined,
       });
-      setCardNumberMasked('');
+      setCardNumber('');
       setCardHolderName('');
       setBankName('');
       reload();
@@ -74,8 +74,8 @@ export function ReceivingMethodsPage() {
           <div className="toolbar">
             <input
               placeholder={t('receivingMethods.cardNumberPlaceholder')}
-              value={cardNumberMasked}
-              onChange={(e) => setCardNumberMasked(e.target.value)}
+              value={cardNumber}
+              onChange={(e) => setCardNumber(e.target.value)}
             />
             <input
               placeholder={t('receivingMethods.cardHolderPlaceholder')}
@@ -126,7 +126,7 @@ export function ReceivingMethodsPage() {
           <tbody>
             {data.receivingMethods.map((method) => (
               <tr key={method.id}>
-                <td>{method.cardNumberMasked}</td>
+                <td>{method.cardNumber}</td>
                 <td>{method.cardHolderName}</td>
                 <td>{method.bankName ?? '—'}</td>
                 <td>
@@ -159,7 +159,7 @@ export function ReceivingMethodsPage() {
         title={t('receivingMethods.confirmDeactivateTitle')}
         message={
           confirmingDeactivate
-            ? t('receivingMethods.confirmDeactivateMessage', { card: confirmingDeactivate.cardNumberMasked })
+            ? t('receivingMethods.confirmDeactivateMessage', { card: confirmingDeactivate.cardNumber })
             : ''
         }
         confirmLabel={t('common.deactivate')}

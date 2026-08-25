@@ -14,8 +14,9 @@ interface TopUpContext {
 // request before it's free for someone else to be assigned instead.
 const RESERVATION_TTL_MS = 20 * 60 * 1000;
 
-/** Last-4-or-so digits, digits only — how both a masked PAN and whatever a
- * bank notification message reveals get compared, never a full card number. */
+/** Last-4-or-so digits, digits only — how a stored card number and whatever
+ * a bank notification message reveals get compared, without either needing
+ * to be formatted identically. */
 function trailingDigits(value: string): string {
   return value.replace(/\D/g, '').slice(-4);
 }
@@ -172,7 +173,7 @@ export async function autoVerifyFromCardTransaction(ctx: TopUpContext, input: Hu
     where: { status: 'PENDING', amountMinor: input.amountMinor, expiresAt: { gt: now } },
     include: { receivingMethod: true },
   });
-  const matches = candidates.filter((c) => trailingDigits(c.receivingMethod.cardNumberMasked) === hint);
+  const matches = candidates.filter((c) => trailingDigits(c.receivingMethod.cardNumber) === hint);
   const [match] = matches;
 
   if (matches.length !== 1 || !match) {
@@ -300,7 +301,7 @@ export async function listReceivingMethodsAdmin(ctx: TopUpContext) {
 
 export async function createReceivingMethod(
   ctx: TopUpContext,
-  input: { cardNumberMasked: string; cardHolderName: string; bankName?: string; sortOrder?: number },
+  input: { cardNumber: string; cardHolderName: string; bankName?: string; sortOrder?: number },
 ) {
   return ctx.prisma.receivingMethod.create({ data: input });
 }
@@ -308,7 +309,7 @@ export async function createReceivingMethod(
 export async function updateReceivingMethod(
   ctx: TopUpContext,
   id: string,
-  changes: { isActive?: boolean; cardNumberMasked?: string; cardHolderName?: string; bankName?: string; sortOrder?: number },
+  changes: { isActive?: boolean; cardNumber?: string; cardHolderName?: string; bankName?: string; sortOrder?: number },
 ) {
   const existing = await ctx.prisma.receivingMethod.findUnique({ where: { id } });
   if (!existing) throw new NotFoundError('Receiving method not found');

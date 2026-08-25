@@ -334,7 +334,7 @@ async function main() {
     await prisma.receivingMethod.create({
       data: {
         type: 'CARD_TRANSFER',
-        cardNumberMasked: '8600 0000 0000 0000',
+        cardNumber: '8600 0000 0000 0000',
         cardHolderName: 'UZDONATE (dev placeholder)',
         bankName: 'Dev Bank',
         isActive: true,

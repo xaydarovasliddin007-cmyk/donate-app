@@ -60,7 +60,7 @@ describe('topup reservation + auto-verification (live DB)', () => {
     }
     const card = await prisma.receivingMethod.create({
       data: {
-        cardNumberMasked: '9999 0000 0000 4242',
+        cardNumber: '9999 0000 0000 4242',
         cardHolderName: 'Vitest Reservation Test',
         bankName: 'Test Bank',
         isActive: true,

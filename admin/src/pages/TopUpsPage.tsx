@@ -53,7 +53,7 @@ function TopUpRow({ request, onChanged }: { request: TopUpRequestAdmin; onChange
       <td>
         {request.receivingMethod.cardHolderName}
         <br />
-        <span className="muted">{request.receivingMethod.cardNumberMasked}</span>
+        <span className="muted">{request.receivingMethod.cardNumber}</span>
       </td>
       <td className="muted">{request.userReference ?? '—'}</td>
       <td>

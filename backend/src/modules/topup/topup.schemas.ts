@@ -16,7 +16,7 @@ export const listTopUpRequestsQuerySchema = z.object({
 
 // What the Telegram listener script (scripts/humo-listener.ts) posts once it
 // parses a bank notification message — cardHint is whatever trailing digits
-// the message revealed (matched against ReceivingMethod.cardNumberMasked's
+// the message revealed (matched against ReceivingMethod.cardNumber's
 // own trailing digits, not stored/compared as a full PAN).
 export const humoTransactionSchema = z.object({
   cardHint: z.string().trim().min(4).max(19),

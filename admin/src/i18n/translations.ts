@@ -270,7 +270,7 @@ const en: Dict = {
   'receivingMethods.blurb':
     'Cards shown to users for manual top-up transfers. There is no hardcoded card anywhere in the codebase — every card here is admin-configured.',
   'receivingMethods.addCard': 'Add a receiving card',
-  'receivingMethods.cardNumberPlaceholder': 'Masked card number (e.g. 8600 **** **** 1234)',
+  'receivingMethods.cardNumberPlaceholder': 'Full card number (e.g. 8600 1234 5678 8882)',
   'receivingMethods.cardHolderPlaceholder': 'Card holder name',
   'receivingMethods.bankPlaceholder': 'Bank name (optional)',
   'receivingMethods.adding': 'Adding…',
@@ -576,7 +576,7 @@ const uz: Dict = {
   'receivingMethods.blurb':
     "Foydalanuvchilarga qo'lda to'ldirish uchun ko'rsatiladigan kartalar. Kodda qattiq yozilgan karta yo'q — bu yerdagi har bir karta admin tomonidan sozlangan.",
   'receivingMethods.addCard': 'Qabul kartasi qoshish',
-  'receivingMethods.cardNumberPlaceholder': "Yashiringan karta raqami (masalan, 8600 **** **** 1234)",
+  'receivingMethods.cardNumberPlaceholder': "To'liq karta raqami (masalan, 8600 1234 5678 8882)",
   'receivingMethods.cardHolderPlaceholder': "Karta egasining ismi",
   'receivingMethods.bankPlaceholder': 'Bank nomi (ixtiyoriy)',
   'receivingMethods.adding': "Qo'shilmoqda…",
@@ -880,7 +880,7 @@ const ru: Dict = {
   'receivingMethods.blurb':
     'Карты, показываемые пользователям для ручного пополнения переводом. В коде нет ни одной «зашитой» карты — каждая карта здесь настроена администратором.',
   'receivingMethods.addCard': 'Добавить карту для приёма',
-  'receivingMethods.cardNumberPlaceholder': 'Замаскированный номер карты (напр. 8600 **** **** 1234)',
+  'receivingMethods.cardNumberPlaceholder': 'Полный номер карты (напр. 8600 1234 5678 8882)',
   'receivingMethods.cardHolderPlaceholder': 'Имя владельца карты',
   'receivingMethods.bankPlaceholder': 'Название банка (необязательно)',
   'receivingMethods.adding': 'Добавление…',

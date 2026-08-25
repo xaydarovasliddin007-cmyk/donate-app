@@ -140,7 +140,7 @@ export const adminUpdatePromoCodeSchema = z.object({
 });
 
 export const adminCreateReceivingMethodSchema = z.object({
-  cardNumberMasked: z.string().trim().min(4).max(40),
+  cardNumber: z.string().trim().min(4).max(40),
   cardHolderName: z.string().trim().min(1).max(120),
   bankName: z.string().trim().min(1).max(120).optional(),
   sortOrder: z.number().int().optional(),
@@ -149,7 +149,7 @@ export const adminCreateReceivingMethodSchema = z.object({
 export const adminUpdateReceivingMethodSchema = z
   .object({
     isActive: z.boolean().optional(),
-    cardNumberMasked: z.string().trim().min(4).max(40).optional(),
+    cardNumber: z.string().trim().min(4).max(40).optional(),
     cardHolderName: z.string().trim().min(1).max(120).optional(),
     bankName: z.string().trim().min(1).max(120).optional(),
     sortOrder: z.number().int().optional(),

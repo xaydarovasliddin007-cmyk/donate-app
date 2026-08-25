@@ -144,7 +144,7 @@ export interface UserDetail {
 export interface ReceivingMethod {
   id: string;
   type: 'CARD_TRANSFER';
-  cardNumberMasked: string;
+  cardNumber: string;
   cardHolderName: string;
   bankName: string | null;
   isActive: boolean;

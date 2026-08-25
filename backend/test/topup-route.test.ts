@@ -38,7 +38,7 @@ describe('topup route protection', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/api/v1/admin/receiving-methods',
-      payload: { cardNumberMasked: '8600 **** **** 1234', cardHolderName: 'UZDONATE' },
+      payload: { cardNumber: '8600 **** **** 1234', cardHolderName: 'UZDONATE' },
     });
     expect(response.statusCode).toBe(401);
   });

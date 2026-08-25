@@ -333,6 +333,9 @@ class _ReservationView extends ConsumerWidget {
             method: reservation.receivingMethod,
             selected: true,
             onTap: null,
+            onCopy: () => Clipboard.setData(
+              ClipboardData(text: reservation.receivingMethod.cardNumber),
+            ),
           ),
           const SizedBox(height: AppSpacing.lg),
           Container(
@@ -631,11 +634,13 @@ class _ReceivingMethodTile extends StatelessWidget {
     required this.method,
     required this.selected,
     required this.onTap,
+    this.onCopy,
   });
 
   final ReceivingMethod method;
   final bool selected;
   final VoidCallback? onTap;
+  final VoidCallback? onCopy;
 
   @override
   Widget build(BuildContext context) {
@@ -700,15 +705,34 @@ class _ReceivingMethodTile extends StatelessWidget {
               ],
             ),
             const SizedBox(height: AppSpacing.md),
-            Text(
-              method.cardNumberMasked,
-              style: theme.textTheme.titleMedium?.copyWith(
-                color: Colors.white,
-                letterSpacing: 0.5,
-                fontWeight: FontWeight.w700,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    method.cardNumber,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: Colors.white,
+                      letterSpacing: 0.5,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                if (onCopy != null)
+                  InkWell(
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
+                    onTap: onCopy,
+                    child: const Padding(
+                      padding: EdgeInsets.all(4),
+                      child: Icon(
+                        Icons.copy_rounded,
+                        size: 16,
+                        color: Colors.white70,
+                      ),
+                    ),
+                  ),
+              ],
             ),
             const SizedBox(height: 2),
             Text(

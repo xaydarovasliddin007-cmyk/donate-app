@@ -631,7 +631,7 @@ export async function listReceivingMethodsAdmin(ctx: AdminContext) {
 export async function createReceivingMethodAdmin(
   ctx: AdminContext,
   adminId: string,
-  input: { cardNumberMasked: string; cardHolderName: string; bankName?: string; sortOrder?: number },
+  input: { cardNumber: string; cardHolderName: string; bankName?: string; sortOrder?: number },
 ) {
   const created = await topupService.createReceivingMethod(ctx, input);
   await writeAuditLog(ctx.prisma, {
@@ -649,7 +649,7 @@ export async function updateReceivingMethodAdmin(
   id: string,
   changes: {
     isActive?: boolean;
-    cardNumberMasked?: string;
+    cardNumber?: string;
     cardHolderName?: string;
     bankName?: string;
     sortOrder?: number;
