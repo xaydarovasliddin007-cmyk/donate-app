@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/errors/failure.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_motion.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/reduce_motion_controller.dart';
 import '../../../core/utils/money_formatter.dart';
 import '../../../core/widgets/empty_view.dart';
 import '../../../core/widgets/error_view.dart';
 import '../../../core/widgets/skeletons.dart';
+import '../../../core/widgets/staggered_entrance.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../application/wallet_providers.dart';
 import '../domain/wallet.dart';
@@ -17,6 +21,7 @@ class WalletHistoryScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final transactionsAsync = ref.watch(walletTransactionsProvider);
+    final reduceMotion = ref.watch(reduceMotionProvider);
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.walletTransactionHistoryTitle)),
@@ -53,12 +58,27 @@ class WalletHistoryScreen extends ConsumerWidget {
             if (transactions.isEmpty) {
               return EmptyView(title: l10n.walletTransactionHistoryEmpty);
             }
-            return ListView.separated(
-              padding: const EdgeInsets.all(AppSpacing.lg),
-              itemCount: transactions.length,
-              separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
-              itemBuilder: (context, index) =>
-                  _TransactionTile(transaction: transactions[index]),
+            return TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0, end: 1),
+              duration: reduceMotion ? Duration.zero : AppMotion.entrance,
+              curve: AppMotion.standard,
+              builder: (context, t, child) => Opacity(
+                opacity: t,
+                child: Transform.translate(
+                  offset: Offset(0, (1 - t) * 12),
+                  child: child,
+                ),
+              ),
+              child: ListView.separated(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                itemCount: transactions.length,
+                separatorBuilder: (_, _) =>
+                    const SizedBox(height: AppSpacing.sm),
+                itemBuilder: (context, index) => StaggeredEntrance(
+                  index: index,
+                  child: _TransactionTile(transaction: transactions[index]),
+                ),
+              ),
             );
           },
         ),
@@ -79,7 +99,7 @@ class _TransactionTile extends StatelessWidget {
     final localeName = Localizations.localeOf(context).toString();
     final isCredit = transaction.direction == WalletTransactionDirection.credit;
     final sign = isCredit ? '+' : '−';
-    final color = isCredit ? Colors.green : theme.colorScheme.onSurface;
+    final color = isCredit ? AppColors.success : theme.colorScheme.onSurface;
 
     final typeLabel = switch (transaction.type) {
       WalletTransactionType.topup => l10n.walletTypeTopup,
@@ -110,14 +130,18 @@ class _TransactionTile extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHighest,
+              color: isCredit
+                  ? AppColors.success.withValues(alpha: 0.14)
+                  : theme.colorScheme.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(AppRadius.sm),
             ),
             alignment: Alignment.center,
             child: Icon(
               icon,
               size: 20,
-              color: theme.colorScheme.onSurfaceVariant,
+              color: isCredit
+                  ? AppColors.success
+                  : theme.colorScheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(width: AppSpacing.md),
