@@ -74,20 +74,26 @@ class AuthController extends AsyncNotifier<AuthState> {
     await _applyAuthResult(result);
   }
 
-  Future<void> register({
+  Future<void> registerRequestCode({
     required String email,
-    required String password,
     String? displayName,
     required String locale,
+  }) => ref
+      .read(authApiProvider)
+      .registerRequestCode(
+        email: email,
+        displayName: displayName,
+        locale: locale,
+      );
+
+  Future<void> registerComplete({
+    required String email,
+    required String code,
+    required String password,
   }) async {
     final result = await ref
         .read(authApiProvider)
-        .register(
-          email: email,
-          password: password,
-          displayName: displayName,
-          locale: locale,
-        );
+        .registerComplete(email: email, code: code, password: password);
     await _applyAuthResult(result);
   }
 

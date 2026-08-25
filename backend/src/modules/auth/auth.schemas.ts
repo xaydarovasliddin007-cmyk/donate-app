@@ -1,10 +1,18 @@
 import { z } from 'zod';
 
-export const registerSchema = z.object({
+export const registerRequestCodeSchema = z.object({
   email: z.string().trim().toLowerCase().email(),
-  password: z.string().min(8).max(128),
   displayName: z.string().trim().min(1).max(80).optional(),
   locale: z.enum(['uz', 'ru', 'en']).default('uz'),
+});
+
+export const registerCompleteSchema = z.object({
+  email: z.string().trim().toLowerCase().email(),
+  code: z
+    .string()
+    .trim()
+    .regex(/^\d{6}$/, 'Code must be 6 digits'),
+  password: z.string().min(8).max(128),
 });
 
 export const loginSchema = z.object({
@@ -30,7 +38,8 @@ export const googleAuthSchema = z.object({
   locale: z.enum(['uz', 'ru', 'en']).default('uz'),
 });
 
-export type RegisterInput = z.infer<typeof registerSchema>;
+export type RegisterRequestCodeInput = z.infer<typeof registerRequestCodeSchema>;
+export type RegisterCompleteInput = z.infer<typeof registerCompleteSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type VerifyEmailInput = z.infer<typeof verifyEmailSchema>;
 export type RefreshInput = z.infer<typeof refreshSchema>;

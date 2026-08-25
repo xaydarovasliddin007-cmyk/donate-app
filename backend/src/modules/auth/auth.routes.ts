@@ -1,21 +1,49 @@
 import type { FastifyInstance } from 'fastify';
 import { validateBody } from '../../lib/validate.js';
 import { authenticate } from '../../middleware/authenticate.js';
-import { googleAuthSchema, loginSchema, refreshSchema, registerSchema, verifyEmailSchema } from './auth.schemas.js';
+import {
+  googleAuthSchema,
+  loginSchema,
+  refreshSchema,
+  registerCompleteSchema,
+  registerRequestCodeSchema,
+  verifyEmailSchema,
+} from './auth.schemas.js';
 import * as authService from './auth.service.js';
-import type { GoogleAuthInput, LoginInput, RefreshInput, RegisterInput, VerifyEmailInput } from './auth.schemas.js';
+import type {
+  GoogleAuthInput,
+  LoginInput,
+  RefreshInput,
+  RegisterCompleteInput,
+  RegisterRequestCodeInput,
+  VerifyEmailInput,
+} from './auth.schemas.js';
 
 export async function authRoutes(app: FastifyInstance) {
   const ctx = { prisma: app.prisma, signAccessToken: app.jwt.sign.bind(app.jwt) };
 
-  app.post('/auth/register', { preHandler: validateBody(registerSchema) }, async (request, reply) => {
-    const body = request.body as RegisterInput;
-    const result = await authService.register(ctx, body, {
-      userAgent: request.headers['user-agent'],
-      ipAddress: request.ip,
-    });
-    return reply.status(201).send(result);
-  });
+  app.post(
+    '/auth/register/request-code',
+    { preHandler: validateBody(registerRequestCodeSchema) },
+    async (request, reply) => {
+      const body = request.body as RegisterRequestCodeInput;
+      await authService.requestRegistration(ctx, body);
+      return reply.status(204).send();
+    },
+  );
+
+  app.post(
+    '/auth/register/complete',
+    { preHandler: validateBody(registerCompleteSchema) },
+    async (request, reply) => {
+      const body = request.body as RegisterCompleteInput;
+      const result = await authService.completeRegistration(ctx, body, {
+        userAgent: request.headers['user-agent'],
+        ipAddress: request.ip,
+      });
+      return reply.status(201).send(result);
+    },
+  );
 
   app.post('/auth/login', { preHandler: validateBody(loginSchema) }, async (request) => {
     const body = request.body as LoginInput;

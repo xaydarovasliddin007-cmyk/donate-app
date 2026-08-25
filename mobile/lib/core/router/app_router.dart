@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/register_screen.dart';
-import '../../features/auth/presentation/verify_email_screen.dart';
+import '../../features/auth/presentation/complete_registration_screen.dart';
 import '../../features/games/domain/game.dart';
 import '../../features/games/domain/product.dart';
 import '../../features/games/presentation/all_games_screen.dart';
@@ -28,7 +28,7 @@ abstract final class AppRoutes {
   static const onboarding = '/onboarding';
   static const login = '/login';
   static const register = '/register';
-  static const verifyEmail = '/verify-email';
+  static const registerComplete = '/register/complete';
   static const home = '/home';
   static const games = '/catalog';
   static const orders = '/orders';
@@ -86,11 +86,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             _fadeSlidePage(state, const RegisterScreen()),
       ),
       GoRoute(
-        path: AppRoutes.verifyEmail,
-        pageBuilder: (context, state) => _fadeSlidePage(
-          state,
-          VerifyEmailScreen(email: state.extra as String),
-        ),
+        path: AppRoutes.registerComplete,
+        pageBuilder: (context, state) {
+          final extra = state.extra! as Map<String, Object?>;
+          return _fadeSlidePage(
+            state,
+            CompleteRegistrationScreen(
+              email: extra['email']! as String,
+              displayName: extra['displayName'] as String?,
+            ),
+          );
+        },
       ),
 
       GoRoute(

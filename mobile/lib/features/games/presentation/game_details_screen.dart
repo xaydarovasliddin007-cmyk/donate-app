@@ -8,6 +8,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/empty_view.dart';
 import '../../../core/widgets/error_view.dart';
 import '../../../core/widgets/loading_view.dart';
+import '../../../core/widgets/staggered_entrance.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../auth/application/auth_controller.dart';
 import '../application/games_providers.dart';
@@ -324,9 +325,12 @@ class _ProductGrid extends ConsumerWidget {
             ),
             delegate: SliverChildBuilderDelegate((context, i) {
               final product = products[i];
-              return ProductCard(
-                product: product,
-                onTap: () => _onProductTap(context, ref, product),
+              return StaggeredEntrance(
+                index: i,
+                child: ProductCard(
+                  product: product,
+                  onTap: () => _onProductTap(context, ref, product),
+                ),
               );
             }, childCount: products.length),
           ),

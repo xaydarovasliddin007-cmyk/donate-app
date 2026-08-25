@@ -164,6 +164,12 @@ class AppLocalizationsRu extends AppLocalizations {
   String get authPasswordLabel => 'Пароль';
 
   @override
+  String get authConfirmPasswordLabel => 'Подтвердите пароль';
+
+  @override
+  String get authPasswordMismatch => 'Пароли не совпадают';
+
+  @override
   String get authDisplayNameLabel => 'Имя (необязательно)';
 
   @override
@@ -171,6 +177,13 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get authRegisterButton => 'Зарегистрироваться';
+
+  @override
+  String get authRegisterCompleteButton => 'Создать аккаунт';
+
+  @override
+  String get authRegisterCompleteSubtitle =>
+      'Подтвердите код и придумайте пароль';
 
   @override
   String get authNoAccountPrompt => 'Нет аккаунта?';
@@ -241,9 +254,6 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get authVerifyEmailResendSuccess => 'Код отправлен повторно';
-
-  @override
-  String get authVerifyEmailSkipButton => 'Позже';
 
   @override
   String get authVerifyEmailFailed => 'Код неверен или истёк';
@@ -580,11 +590,28 @@ class AppLocalizationsRu extends AppLocalizations {
   String get topupSubmitButton => 'Подтвердить оплату';
 
   @override
-  String get topupInstructionsTitle => 'Как пополнить?';
+  String get topupInstructionsTitle => 'Как пополняется баланс?';
 
   @override
-  String get topupInstructions =>
-      '1. Переведите указанную сумму на карту ниже.\n2. Нажмите «Подтвердить оплату».\n3. После проверки администратором баланс пополнится автоматически.';
+  String get topupStep1Title => 'Переведите сумму';
+
+  @override
+  String get topupStep1Message =>
+      'Переведите выбранную сумму на карту, указанную ниже';
+
+  @override
+  String get topupStep2Title => 'Подтвердите';
+
+  @override
+  String get topupStep2Message =>
+      'Нажмите «Подтвердить оплату», чтобы отправить запрос';
+
+  @override
+  String get topupStep3Title => 'Дождитесь проверки';
+
+  @override
+  String get topupStep3Message =>
+      'После проверки администратором баланс пополнится автоматически';
 
   @override
   String get topupUserReferenceLabel => 'Комментарий (необязательно)';

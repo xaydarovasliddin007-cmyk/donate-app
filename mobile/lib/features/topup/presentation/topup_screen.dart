@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/errors/failure.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_motion.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/reduce_motion_controller.dart';
 import '../../../core/utils/money_formatter.dart';
 import '../../../core/widgets/error_view.dart';
 import '../../../core/widgets/loading_view.dart';
 import '../../../core/widgets/pressable_scale.dart';
+import '../../../core/widgets/staggered_entrance.dart';
 import '../../../core/widgets/success_checkmark.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../wallet/application/wallet_providers.dart';
@@ -129,127 +132,324 @@ class _TopupScreenState extends ConsumerState<TopupScreen> {
             );
           },
           data: (methods) {
-            return ListView(
-              padding: const EdgeInsets.all(AppSpacing.lg),
-              children: [
-                Text(l10n.topupAmountLabel, style: theme.textTheme.titleSmall),
-                const SizedBox(height: AppSpacing.sm),
-                TextField(
-                  controller: _amountController,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: false,
-                  ),
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                  decoration: InputDecoration(
-                    hintText: l10n.topupAmountHint,
-                    suffixText: 'UZS',
-                  ),
-                  onChanged: (_) => setState(() => _selectedPreset = null),
+            return TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0, end: 1),
+              duration: AppMotion.entrance,
+              curve: AppMotion.standard,
+              builder: (context, t, child) => Opacity(
+                opacity: t,
+                child: Transform.translate(
+                  offset: Offset(0, (1 - t) * 12),
+                  child: child,
                 ),
-                const SizedBox(height: AppSpacing.sm),
-                Wrap(
-                  spacing: AppSpacing.sm,
-                  runSpacing: AppSpacing.sm,
-                  children: [
-                    for (final preset in _presetAmounts)
-                      ChoiceChip(
-                        label: Text(
-                          formatMoney(
+              ),
+              child: ListView(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                children: [
+                  // Explained up front, before the form — the point raised was
+                  // that users don't clearly understand how a top-up actually
+                  // reaches their balance, so this leads the screen instead of
+                  // being a small paragraph buried under the submit button.
+                  const _HowItWorksCard(),
+                  const SizedBox(height: AppSpacing.lg),
+                  Text(
+                    l10n.topupAmountLabel,
+                    style: theme.textTheme.titleSmall,
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  _AmountField(controller: _amountController),
+                  const SizedBox(height: AppSpacing.sm),
+                  Wrap(
+                    spacing: AppSpacing.sm,
+                    runSpacing: AppSpacing.sm,
+                    children: [
+                      for (final preset in _presetAmounts)
+                        _PresetChip(
+                          label: formatMoney(
                             preset * 100,
                             'UZS',
                             Localizations.localeOf(context).toString(),
                           ),
+                          selected: _selectedPreset == preset,
+                          onTap: () => _pickPreset(preset),
                         ),
-                        selected: _selectedPreset == preset,
-                        onSelected: (_) => _pickPreset(preset),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                Text(
-                  l10n.topupSelectMethodTitle,
-                  style: theme.textTheme.titleSmall,
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    mainAxisSpacing: AppSpacing.sm,
-                    crossAxisSpacing: AppSpacing.sm,
-                    childAspectRatio: 1.55,
-                  ),
-                  itemCount: methods.length,
-                  itemBuilder: (context, index) {
-                    final method = methods[index];
-                    return _ReceivingMethodTile(
-                      method: method,
-                      selected: _selectedMethodId == method.id,
-                      onTap: () => setState(() {
-                        _selectedMethodId = method.id;
-                        _errorMessage = null;
-                      }),
-                    );
-                  },
-                ),
-                const SizedBox(height: AppSpacing.md),
-                TextField(
-                  controller: _referenceController,
-                  decoration: InputDecoration(
-                    labelText: l10n.topupUserReferenceLabel,
-                    hintText: l10n.topupUserReferenceHint,
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                Container(
-                  padding: const EdgeInsets.all(AppSpacing.md),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surfaceContainerHighest.withValues(
-                      alpha: 0.5,
-                    ),
-                    borderRadius: BorderRadius.circular(AppRadius.md),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        l10n.topupInstructionsTitle,
-                        style: theme.textTheme.titleSmall,
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        l10n.topupInstructions,
-                        style: theme.textTheme.bodySmall,
-                      ),
                     ],
                   ),
-                ),
-                if (_errorMessage != null) ...[
-                  const SizedBox(height: AppSpacing.md),
+                  const SizedBox(height: AppSpacing.lg),
                   Text(
-                    _errorMessage!,
-                    style: TextStyle(color: theme.colorScheme.error),
+                    l10n.topupSelectMethodTitle,
+                    style: theme.textTheme.titleSmall,
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          mainAxisSpacing: AppSpacing.sm,
+                          crossAxisSpacing: AppSpacing.sm,
+                          childAspectRatio: 1.55,
+                        ),
+                    itemCount: methods.length,
+                    itemBuilder: (context, index) {
+                      final method = methods[index];
+                      return StaggeredEntrance(
+                        index: index,
+                        child: _ReceivingMethodTile(
+                          method: method,
+                          selected: _selectedMethodId == method.id,
+                          onTap: () => setState(() {
+                            _selectedMethodId = method.id;
+                            _errorMessage = null;
+                          }),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  TextField(
+                    controller: _referenceController,
+                    decoration: InputDecoration(
+                      labelText: l10n.topupUserReferenceLabel,
+                      hintText: l10n.topupUserReferenceHint,
+                    ),
+                  ),
+                  if (_errorMessage != null) ...[
+                    const SizedBox(height: AppSpacing.md),
+                    Text(
+                      _errorMessage!,
+                      style: TextStyle(color: theme.colorScheme.error),
+                    ),
+                  ],
+                  const SizedBox(height: AppSpacing.lg),
+                  FilledButton(
+                    onPressed: _submitting ? null : () => _submit(methods),
+                    child: _submitting
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Text(l10n.topupSubmitButton),
                   ),
                 ],
-                const SizedBox(height: AppSpacing.lg),
-                FilledButton(
-                  onPressed: _submitting ? null : () => _submit(methods),
-                  child: _submitting
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Text(l10n.topupSubmitButton),
-                ),
-              ],
+              ),
             );
           },
         ),
       ),
+    );
+  }
+}
+
+/// Bigger, bolder amount entry — the screen's primary input deserves more
+/// visual weight than a default-styled [TextField].
+class _AmountField extends StatelessWidget {
+  const _AmountField({required this.controller});
+
+  final TextEditingController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+      ),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: 4,
+      ),
+      child: TextField(
+        controller: controller,
+        keyboardType: const TextInputType.numberWithOptions(decimal: false),
+        style: theme.textTheme.headlineMedium?.copyWith(
+          fontWeight: FontWeight.w800,
+        ),
+        decoration: InputDecoration(
+          hintText: l10n.topupAmountHint,
+          suffixText: 'UZS',
+          suffixStyle: theme.textTheme.titleMedium?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+          border: InputBorder.none,
+        ),
+      ),
+    );
+  }
+}
+
+class _PresetChip extends StatelessWidget {
+  const _PresetChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final gradient = isDark
+        ? AppColors.heroGradientDark
+        : AppColors.heroGradientLight;
+
+    return PressableScale(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppRadius.pill),
+      child: AnimatedContainer(
+        duration: AppMotion.fast,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+        decoration: BoxDecoration(
+          gradient: selected ? LinearGradient(colors: gradient) : null,
+          color: selected
+              ? null
+              : theme.colorScheme.surfaceContainerHighest.withValues(
+                  alpha: 0.6,
+                ),
+          borderRadius: BorderRadius.circular(AppRadius.pill),
+          border: selected
+              ? null
+              : Border.all(color: theme.colorScheme.outlineVariant),
+        ),
+        child: Text(
+          label,
+          style: theme.textTheme.labelLarge?.copyWith(
+            color: selected ? Colors.white : theme.colorScheme.onSurface,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Numbered, iconed walkthrough of the manual top-up process — leads the
+/// screen so the "why do I transfer money and then wait" question is
+/// answered before the user fills in anything.
+class _HowItWorksCard extends ConsumerWidget {
+  const _HowItWorksCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final reduceMotion = ref.watch(reduceMotionProvider);
+    final steps = [
+      (Icons.credit_card_rounded, l10n.topupStep1Title, l10n.topupStep1Message),
+      (Icons.task_alt_rounded, l10n.topupStep2Title, l10n.topupStep2Message),
+      (
+        Icons.hourglass_top_rounded,
+        l10n.topupStep3Title,
+        l10n.topupStep3Message,
+      ),
+    ];
+
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(l10n.topupInstructionsTitle, style: theme.textTheme.titleSmall),
+          const SizedBox(height: AppSpacing.sm),
+          for (var i = 0; i < steps.length; i++) ...[
+            if (i > 0) const SizedBox(height: AppSpacing.sm),
+            TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0, end: 1),
+              duration: reduceMotion
+                  ? Duration.zero
+                  : AppMotion.fast + Duration(milliseconds: i * 90),
+              curve: AppMotion.standard,
+              builder: (context, t, child) => Opacity(
+                opacity: t,
+                child: Transform.translate(
+                  offset: Offset((1 - t) * -8, 0),
+                  child: child,
+                ),
+              ),
+              child: _StepRow(
+                number: i + 1,
+                icon: steps[i].$1,
+                title: steps[i].$2,
+                message: steps[i].$3,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _StepRow extends StatelessWidget {
+  const _StepRow({
+    required this.number,
+    required this.icon,
+    required this.title,
+    required this.message,
+  });
+
+  final int number;
+  final IconData icon;
+  final String title;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 32,
+          height: 32,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: theme.colorScheme.primaryContainer,
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            icon,
+            size: 16,
+            color: theme.colorScheme.onPrimaryContainer,
+          ),
+        ),
+        const SizedBox(width: AppSpacing.sm),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '$number. $title',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              Text(
+                message,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
@@ -293,6 +493,15 @@ class _ReceivingMethodTile extends StatelessWidget {
             color: selected ? Colors.white : Colors.transparent,
             width: selected ? 2 : 0,
           ),
+          boxShadow: selected
+              ? [
+                  BoxShadow(
+                    color: gradient.first.withValues(alpha: 0.45),
+                    blurRadius: 14,
+                    offset: const Offset(0, 6),
+                  ),
+                ]
+              : null,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

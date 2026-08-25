@@ -25,20 +25,28 @@ class AuthApi {
 
   final ApiClient _client;
 
-  Future<AuthResult> register({
+  /// Step 1 of registration: sends a 6-digit code to [email]. No account
+  /// exists yet — [registerComplete] creates it once the code (and a
+  /// password) is supplied.
+  Future<void> registerRequestCode({
     required String email,
-    required String password,
     String? displayName,
     required String locale,
+  }) => _client.post(
+    '/auth/register/request-code',
+    body: {'email': email, 'displayName': ?displayName, 'locale': locale},
+  );
+
+  /// Step 2: confirms the code and creates the account (already
+  /// email-verified) with [password].
+  Future<AuthResult> registerComplete({
+    required String email,
+    required String code,
+    required String password,
   }) async {
     final json = await _client.post(
-      '/auth/register',
-      body: {
-        'email': email,
-        'password': password,
-        'displayName': ?displayName,
-        'locale': locale,
-      },
+      '/auth/register/complete',
+      body: {'email': email, 'code': code, 'password': password},
     );
     return AuthResult.fromJson(json);
   }

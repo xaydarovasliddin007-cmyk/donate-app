@@ -9,6 +9,10 @@ import '../../../l10n/generated/app_localizations.dart';
 import '../application/auth_controller.dart';
 import 'widgets/auth_identifier_field.dart';
 
+/// Step 1 of registration: just email + optional display name. No password
+/// here — that's set on the next screen only after the emailed code is
+/// confirmed, so a typo'd/unowned email can never end up with a live,
+/// password-protected account attached to it.
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
 
@@ -19,7 +23,6 @@ class RegisterScreen extends ConsumerStatefulWidget {
 class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
   final _identifierController = TextEditingController();
-  final _passwordController = TextEditingController();
   final _displayNameController = TextEditingController();
   bool _submitting = false;
   String? _errorMessage;
@@ -27,7 +30,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   @override
   void dispose() {
     _identifierController.dispose();
-    _passwordController.dispose();
     _displayNameController.dispose();
     super.dispose();
   }
@@ -42,20 +44,24 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     });
 
     final email = _identifierController.text.trim();
+    final rawDisplayName = _displayNameController.text.trim();
+    final displayName = rawDisplayName.isEmpty ? null : rawDisplayName;
     final locale = ref.read(localeControllerProvider).languageCode;
 
     try {
       await ref
           .read(authControllerProvider.notifier)
-          .register(
+          .registerRequestCode(
             email: email,
-            password: _passwordController.text,
-            displayName: _displayNameController.text.trim().isEmpty
-                ? null
-                : _displayNameController.text.trim(),
+            displayName: displayName,
             locale: locale,
           );
-      if (mounted) context.pushReplacement('/verify-email', extra: email);
+      if (mounted) {
+        context.pushReplacement(
+          '/register/complete',
+          extra: {'email': email, 'displayName': displayName},
+        );
+      }
     } catch (error) {
       final failure = Failure.from(error);
       setState(
@@ -89,19 +95,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     AuthIdentifierField(controller: _identifierController),
-                    const SizedBox(height: AppSpacing.md),
-                    TextFormField(
-                      controller: _passwordController,
-                      obscureText: true,
-                      textInputAction: TextInputAction.next,
-                      decoration: InputDecoration(
-                        labelText: l10n.authPasswordLabel,
-                        prefixIcon: const Icon(Icons.lock_outline_rounded),
-                      ),
-                      validator: (value) => (value == null || value.length < 8)
-                          ? l10n.authPasswordTooShort
-                          : null,
-                    ),
                     const SizedBox(height: AppSpacing.md),
                     TextFormField(
                       controller: _displayNameController,

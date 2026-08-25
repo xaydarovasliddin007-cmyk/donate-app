@@ -20,7 +20,7 @@ import '../../games/presentation/widgets/game_card.dart';
 import '../../games/presentation/widgets/product_card.dart';
 import '../../notifications/application/notifications_providers.dart';
 import '../../orders/application/orders_providers.dart';
-import '../../orders/presentation/widgets/order_status_badge.dart';
+import '../../orders/presentation/widgets/order_card.dart';
 import '../../saved_games/application/saved_games_providers.dart';
 import '../../saved_games/presentation/widgets/saved_game_card.dart';
 import '../../wallet/presentation/widgets/wallet_balance_card.dart';
@@ -475,18 +475,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             child: Column(
                               children: [
                                 for (final order in orders.take(3))
-                                  Card(
-                                    margin: const EdgeInsets.only(
+                                  Padding(
+                                    padding: const EdgeInsets.only(
                                       bottom: AppSpacing.sm,
                                     ),
-                                    child: ListTile(
-                                      title: Text(
-                                        '${order.game.name} · ${order.items.first.productName}',
-                                      ),
-                                      subtitle: Text(order.orderNumber),
-                                      trailing: OrderStatusBadge(
-                                        status: order.status,
-                                      ),
+                                    child: OrderCard(
+                                      order: order,
                                       onTap: () =>
                                           context.push('/orders/${order.id}'),
                                     ),

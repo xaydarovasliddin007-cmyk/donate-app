@@ -13,7 +13,7 @@ import { notifyAdmins } from '../../lib/telegram.js';
 import { sendEmail } from '../../lib/mailer.js';
 import { verificationCodeEmail } from '../../lib/email-templates.js';
 import { getWalletSummary } from '../wallet/wallet.service.js';
-import type { GoogleAuthInput, LoginInput, RegisterInput } from './auth.schemas.js';
+import type { GoogleAuthInput, LoginInput, RegisterCompleteInput, RegisterRequestCodeInput } from './auth.schemas.js';
 
 const VERIFICATION_CODE_TTL_MS = 15 * 60 * 1000;
 
@@ -100,35 +100,77 @@ async function issueTokenPair(
   return { accessToken, refreshToken };
 }
 
-export async function register(
-  ctx: AuthContext,
-  input: RegisterInput,
-  meta: { userAgent?: string; ipAddress?: string },
-) {
+/**
+ * Step 1 of registration: send a code to the email, but create nothing yet
+ * — no User row until the code is confirmed with a password in
+ * completeRegistration(). Calling this again for the same email (e.g. the
+ * user asks to resend) just overwrites the pending row with a fresh code.
+ */
+export async function requestRegistration(ctx: AuthContext, input: RegisterRequestCodeInput): Promise<void> {
   const existing = await ctx.prisma.user.findUnique({ where: { email: input.email } });
   if (existing) {
     throw new ConflictError('An account with this email already exists');
+  }
+
+  const { code, codeHash } = generateVerificationCode();
+  await ctx.prisma.pendingRegistration.upsert({
+    where: { email: input.email },
+    create: {
+      email: input.email,
+      codeHash,
+      displayName: input.displayName,
+      locale: input.locale,
+      expiresAt: new Date(Date.now() + VERIFICATION_CODE_TTL_MS),
+    },
+    update: {
+      codeHash,
+      displayName: input.displayName,
+      locale: input.locale,
+      expiresAt: new Date(Date.now() + VERIFICATION_CODE_TTL_MS),
+    },
+  });
+
+  // Fire-and-forget, matching issueVerificationCode()'s reasoning below.
+  void sendEmail({ to: input.email, ...verificationCodeEmail(code) });
+}
+
+/**
+ * Step 2: the code just proved the email is real, so the account is created
+ * already verified — no separate post-signup verification step needed.
+ */
+export async function completeRegistration(
+  ctx: AuthContext,
+  input: RegisterCompleteInput,
+  meta: { userAgent?: string; ipAddress?: string },
+) {
+  const pending = await ctx.prisma.pendingRegistration.findUnique({ where: { email: input.email } });
+  if (!pending || pending.expiresAt < new Date() || pending.codeHash !== hashVerificationCode(input.code)) {
+    throw new UnauthorizedError('Invalid or expired verification code');
   }
 
   const [passwordHash, publicId] = await Promise.all([
     hashPassword(input.password),
     generateUniquePublicId(ctx.prisma),
   ]);
-  const user = await ctx.prisma.user.create({
-    data: {
-      publicId,
-      email: input.email,
-      passwordHash,
-      displayName: input.displayName,
-      locale: input.locale,
-      // Every account gets exactly one wallet, created atomically with the
-      // account itself — nothing in this codebase should ever need to
-      // handle "a user with no wallet".
-      wallet: { create: {} },
-    },
-  });
 
-  await issueVerificationCode(ctx, user.id, user.email!);
+  const user = await ctx.prisma.$transaction(async (tx) => {
+    const created = await tx.user.create({
+      data: {
+        publicId,
+        email: pending.email,
+        passwordHash,
+        displayName: pending.displayName,
+        locale: pending.locale,
+        emailVerifiedAt: new Date(),
+        // Every account gets exactly one wallet, created atomically with
+        // the account itself — nothing in this codebase should ever need
+        // to handle "a user with no wallet".
+        wallet: { create: {} },
+      },
+    });
+    await tx.pendingRegistration.delete({ where: { email: pending.email } });
+    return created;
+  });
 
   const tokens = await issueTokenPair(ctx, user, meta);
   return { user: toPublicUser(user), ...tokens };

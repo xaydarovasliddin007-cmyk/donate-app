@@ -392,6 +392,18 @@ abstract class AppLocalizations {
   /// **'Parol'**
   String get authPasswordLabel;
 
+  /// No description provided for @authConfirmPasswordLabel.
+  ///
+  /// In uz, this message translates to:
+  /// **'Parolni tasdiqlang'**
+  String get authConfirmPasswordLabel;
+
+  /// No description provided for @authPasswordMismatch.
+  ///
+  /// In uz, this message translates to:
+  /// **'Parollar mos kelmadi'**
+  String get authPasswordMismatch;
+
   /// No description provided for @authDisplayNameLabel.
   ///
   /// In uz, this message translates to:
@@ -409,6 +421,18 @@ abstract class AppLocalizations {
   /// In uz, this message translates to:
   /// **'Ro\'yxatdan o\'tish'**
   String get authRegisterButton;
+
+  /// No description provided for @authRegisterCompleteButton.
+  ///
+  /// In uz, this message translates to:
+  /// **'Hisobni yaratish'**
+  String get authRegisterCompleteButton;
+
+  /// No description provided for @authRegisterCompleteSubtitle.
+  ///
+  /// In uz, this message translates to:
+  /// **'Kodni tasdiqlab, parolingizni tanlang'**
+  String get authRegisterCompleteSubtitle;
 
   /// No description provided for @authNoAccountPrompt.
   ///
@@ -535,12 +559,6 @@ abstract class AppLocalizations {
   /// In uz, this message translates to:
   /// **'Kod qayta yuborildi'**
   String get authVerifyEmailResendSuccess;
-
-  /// No description provided for @authVerifyEmailSkipButton.
-  ///
-  /// In uz, this message translates to:
-  /// **'Keyinroq'**
-  String get authVerifyEmailSkipButton;
 
   /// No description provided for @authVerifyEmailFailed.
   ///
@@ -1187,14 +1205,44 @@ abstract class AppLocalizations {
   /// No description provided for @topupInstructionsTitle.
   ///
   /// In uz, this message translates to:
-  /// **'Qanday to\'ldirish mumkin?'**
+  /// **'Balans qanday to\'ldiriladi?'**
   String get topupInstructionsTitle;
 
-  /// No description provided for @topupInstructions.
+  /// No description provided for @topupStep1Title.
   ///
   /// In uz, this message translates to:
-  /// **'1. Ko\'rsatilgan summani quyidagi kartaga o\'tkazing.\n2. \"To\'lovni tasdiqlash\" tugmasini bosing.\n3. Admin tekshiruvidan so\'ng balansingiz to\'ldiriladi.'**
-  String get topupInstructions;
+  /// **'Summani o\'tkazing'**
+  String get topupStep1Title;
+
+  /// No description provided for @topupStep1Message.
+  ///
+  /// In uz, this message translates to:
+  /// **'Tanlagan summangizni quyida ko\'rsatilgan kartaga o\'tkazing'**
+  String get topupStep1Message;
+
+  /// No description provided for @topupStep2Title.
+  ///
+  /// In uz, this message translates to:
+  /// **'Tasdiqlang'**
+  String get topupStep2Title;
+
+  /// No description provided for @topupStep2Message.
+  ///
+  /// In uz, this message translates to:
+  /// **'\"To\'lovni tasdiqlash\" tugmasini bosib, so\'rov yuboring'**
+  String get topupStep2Message;
+
+  /// No description provided for @topupStep3Title.
+  ///
+  /// In uz, this message translates to:
+  /// **'Kutib turing'**
+  String get topupStep3Title;
+
+  /// No description provided for @topupStep3Message.
+  ///
+  /// In uz, this message translates to:
+  /// **'Admin tekshiruvidan so\'ng balansingiz avtomatik to\'ldiriladi'**
+  String get topupStep3Message;
 
   /// No description provided for @topupUserReferenceLabel.
   ///

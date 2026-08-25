@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/money_formatter.dart';
 import '../../../../core/widgets/pressable_scale.dart';
@@ -17,7 +18,11 @@ class ProductCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final localeName = Localizations.localeOf(context).toString();
+    final gradient = isDark
+        ? AppColors.heroGradientDark
+        : AppColors.heroGradientLight;
 
     return PressableScale(
       onTap: onTap,
@@ -26,7 +31,18 @@ class ProductCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(AppRadius.md),
-          border: Border.all(color: theme.colorScheme.outlineVariant),
+          border: Border.all(
+            color: theme.colorScheme.outlineVariant.withValues(
+              alpha: isDark ? 0.4 : 0.7,
+            ),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.24 : 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -38,13 +54,24 @@ class ProductCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.primaryContainer,
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: gradient,
+                    ),
                     borderRadius: BorderRadius.circular(AppRadius.sm),
+                    boxShadow: [
+                      BoxShadow(
+                        color: gradient.first.withValues(alpha: 0.4),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
-                  child: Icon(
+                  child: const Icon(
                     Icons.diamond_rounded,
                     size: 16,
-                    color: theme.colorScheme.onPrimaryContainer,
+                    color: Colors.white,
                   ),
                 ),
                 if (product.isTest)
@@ -79,7 +106,7 @@ class ProductCard extends StatelessWidget {
               formatMoney(product.amountMinor, product.currency, localeName),
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.primary,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w800,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,

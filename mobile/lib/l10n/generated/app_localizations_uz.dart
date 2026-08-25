@@ -164,6 +164,12 @@ class AppLocalizationsUz extends AppLocalizations {
   String get authPasswordLabel => 'Parol';
 
   @override
+  String get authConfirmPasswordLabel => 'Parolni tasdiqlang';
+
+  @override
+  String get authPasswordMismatch => 'Parollar mos kelmadi';
+
+  @override
   String get authDisplayNameLabel => 'Ismingiz (ixtiyoriy)';
 
   @override
@@ -171,6 +177,13 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get authRegisterButton => 'Ro\'yxatdan o\'tish';
+
+  @override
+  String get authRegisterCompleteButton => 'Hisobni yaratish';
+
+  @override
+  String get authRegisterCompleteSubtitle =>
+      'Kodni tasdiqlab, parolingizni tanlang';
 
   @override
   String get authNoAccountPrompt => 'Hisobingiz yo\'qmi?';
@@ -242,9 +255,6 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get authVerifyEmailResendSuccess => 'Kod qayta yuborildi';
-
-  @override
-  String get authVerifyEmailSkipButton => 'Keyinroq';
 
   @override
   String get authVerifyEmailFailed => 'Kod noto\'g\'ri yoki eskirgan';
@@ -585,11 +595,28 @@ class AppLocalizationsUz extends AppLocalizations {
   String get topupSubmitButton => 'To\'lovni tasdiqlash';
 
   @override
-  String get topupInstructionsTitle => 'Qanday to\'ldirish mumkin?';
+  String get topupInstructionsTitle => 'Balans qanday to\'ldiriladi?';
 
   @override
-  String get topupInstructions =>
-      '1. Ko\'rsatilgan summani quyidagi kartaga o\'tkazing.\n2. \"To\'lovni tasdiqlash\" tugmasini bosing.\n3. Admin tekshiruvidan so\'ng balansingiz to\'ldiriladi.';
+  String get topupStep1Title => 'Summani o\'tkazing';
+
+  @override
+  String get topupStep1Message =>
+      'Tanlagan summangizni quyida ko\'rsatilgan kartaga o\'tkazing';
+
+  @override
+  String get topupStep2Title => 'Tasdiqlang';
+
+  @override
+  String get topupStep2Message =>
+      '\"To\'lovni tasdiqlash\" tugmasini bosib, so\'rov yuboring';
+
+  @override
+  String get topupStep3Title => 'Kutib turing';
+
+  @override
+  String get topupStep3Message =>
+      'Admin tekshiruvidan so\'ng balansingiz avtomatik to\'ldiriladi';
 
   @override
   String get topupUserReferenceLabel => 'Izoh (ixtiyoriy)';

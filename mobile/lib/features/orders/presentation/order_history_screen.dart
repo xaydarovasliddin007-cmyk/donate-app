@@ -1,17 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 import '../../../core/errors/failure.dart';
 import '../../../core/theme/app_spacing.dart';
-import '../../../core/utils/money_formatter.dart';
 import '../../../core/widgets/empty_view.dart';
 import '../../../core/widgets/error_view.dart';
 import '../../../core/widgets/loading_view.dart';
+import '../../../core/widgets/staggered_entrance.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../auth/application/auth_controller.dart';
 import '../application/orders_providers.dart';
-import 'widgets/order_status_badge.dart';
+import 'widgets/order_card.dart';
 
 class OrderHistoryScreen extends ConsumerWidget {
   const OrderHistoryScreen({super.key});
@@ -80,36 +79,12 @@ class OrderHistoryScreen extends ConsumerWidget {
                             const SizedBox(height: AppSpacing.sm),
                         itemBuilder: (context, index) {
                           final order = orders[index];
-                          return Card(
-                            child: ListTile(
-                              title: Text(
-                                '${order.game.name} · ${order.items.first.productName}',
-                              ),
-                              subtitle: Text(
-                                '${order.orderNumber}\n${DateFormat.yMd().add_Hm().format(order.createdAt.toLocal())}',
-                              ),
-                              isThreeLine: true,
-                              trailing: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  OrderStatusBadge(status: order.status),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    formatMoney(
-                                      order.amountMinor,
-                                      order.currency,
-                                      Localizations.localeOf(
-                                        context,
-                                      ).toString(),
-                                    ),
-                                    style: Theme.of(
-                                      context,
-                                    ).textTheme.bodySmall,
-                                  ),
-                                ],
-                              ),
-                              onTap: () => context.push('/orders/${order.id}'),
+                          return StaggeredEntrance(
+                            index: index,
+                            child: OrderCard(
+                              order: order,
+                              onTap: () =>
+                                  context.push('/orders/${order.id}'),
                             ),
                           );
                         },
