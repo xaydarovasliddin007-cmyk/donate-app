@@ -4,12 +4,14 @@ import 'package:go_router/go_router.dart';
 import '../../../core/localization/locale_controller.dart';
 import '../../../core/notifications/notification_permission_controller.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_motion.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/reduce_motion_controller.dart';
 import '../../../core/theme/theme_controller.dart';
 import '../../../core/utils/support_launcher.dart';
 import '../../../core/widgets/animated_balance.dart';
 import '../../../core/widgets/pressable_scale.dart';
+import '../../../core/widgets/segmented_pill.dart';
 import '../../../core/widgets/skeleton_box.dart';
 import '../../../core/widgets/user_avatar.dart';
 import '../../../core/widgets/staggered_entrance.dart';
@@ -58,132 +60,125 @@ class ProfileScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.profileTitle)),
-      body: ListView(
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        children: [
-          if (isAuthenticated) ...[
-            _HeaderCard(user: authState!.user!),
-            const SizedBox(height: AppSpacing.md),
-            _StatsRow(),
-            const SizedBox(height: AppSpacing.lg),
-            _MenuSection(
-              children: [
-                _MenuRow(
-                  icon: Icons.account_balance_wallet_outlined,
-                  label: l10n.profileWallet,
-                  onTap: () => context.push('/wallet/history'),
-                ),
-                _MenuRow(
-                  icon: Icons.receipt_long_outlined,
-                  label: l10n.profileOrderHistory,
-                  onTap: () => context.go('/orders'),
-                ),
-                _MenuRow(
-                  icon: Icons.notifications_outlined,
-                  label: l10n.profileNotifications,
-                  onTap: () => context.push('/notifications'),
-                ),
-                _MenuRow(
-                  icon: Icons.shield_outlined,
-                  label: l10n.profileSecurityCenter,
-                  onTap: () => context.push('/security'),
-                ),
-                _MenuRow(
-                  icon: Icons.support_agent_rounded,
-                  label: l10n.profileSupport,
-                  onTap: () => launchSupportContact(
-                    subject: l10n.supportGeneralSubject,
-                    body: l10n.supportGeneralBody,
+      body: TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0, end: 1),
+        duration: reduceMotion ? Duration.zero : AppMotion.entrance,
+        curve: AppMotion.standard,
+        builder: (context, t, child) => Opacity(
+          opacity: t,
+          child: Transform.translate(
+            offset: Offset(0, (1 - t) * 12),
+            child: child,
+          ),
+        ),
+        child: ListView(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          children: [
+            if (isAuthenticated) ...[
+              _HeaderCard(user: authState!.user!),
+              const SizedBox(height: AppSpacing.md),
+              _StatsRow(),
+              const SizedBox(height: AppSpacing.lg),
+              _MenuSection(
+                children: [
+                  _MenuRow(
+                    icon: Icons.account_balance_wallet_outlined,
+                    label: l10n.profileWallet,
+                    onTap: () => context.push('/wallet/history'),
                   ),
-                ),
-              ],
-            ),
-          ] else ...[
-            _GuestCard(),
-          ],
-
-          const SizedBox(height: AppSpacing.xl),
-          Text(
-            l10n.settingsLanguage,
-            style: Theme.of(context).textTheme.labelLarge,
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          SegmentedButton<Locale>(
-            segments: [
-              ButtonSegment(
-                value: const Locale('uz'),
-                label: Text(l10n.languageUzbek),
+                  _MenuRow(
+                    icon: Icons.receipt_long_outlined,
+                    label: l10n.profileOrderHistory,
+                    onTap: () => context.go('/orders'),
+                  ),
+                  _MenuRow(
+                    icon: Icons.notifications_outlined,
+                    label: l10n.profileNotifications,
+                    onTap: () => context.push('/notifications'),
+                  ),
+                  _MenuRow(
+                    icon: Icons.shield_outlined,
+                    label: l10n.profileSecurityCenter,
+                    onTap: () => context.push('/security'),
+                  ),
+                  _MenuRow(
+                    icon: Icons.support_agent_rounded,
+                    label: l10n.profileSupport,
+                    onTap: () => launchSupportContact(
+                      subject: l10n.supportGeneralSubject,
+                      body: l10n.supportGeneralBody,
+                    ),
+                  ),
+                ],
               ),
-              ButtonSegment(
-                value: const Locale('ru'),
-                label: Text(l10n.languageRussian),
-              ),
+            ] else ...[
+              _GuestCard(),
             ],
-            selected: {locale},
-            onSelectionChanged: (selection) {
-              ref
-                  .read(localeControllerProvider.notifier)
-                  .setLocale(selection.first);
-            },
-          ),
 
-          const SizedBox(height: AppSpacing.lg),
-          Text(
-            l10n.settingsTheme,
-            style: Theme.of(context).textTheme.labelLarge,
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          SegmentedButton<ThemeMode>(
-            segments: [
-              ButtonSegment(
-                value: ThemeMode.light,
-                label: Text(l10n.settingsThemeLight),
-              ),
-              ButtonSegment(
-                value: ThemeMode.dark,
-                label: Text(l10n.settingsThemeDark),
-              ),
-              ButtonSegment(
-                value: ThemeMode.system,
-                label: Text(l10n.settingsThemeSystem),
-              ),
-            ],
-            selected: {themeMode},
-            onSelectionChanged: (selection) {
-              ref
-                  .read(themeModeControllerProvider.notifier)
-                  .setThemeMode(selection.first);
-            },
-          ),
-
-          const SizedBox(height: AppSpacing.lg),
-          _SwitchSettingRow(
-            title: l10n.settingsNotifications,
-            description: l10n.settingsNotificationsDescription,
-            value: ref.watch(notificationPermissionProvider).value ?? false,
-            onChanged: (wantEnabled) => ref
-                .read(notificationPermissionProvider.notifier)
-                .setEnabled(wantEnabled),
-          ),
-
-          const SizedBox(height: AppSpacing.sm),
-          _SwitchSettingRow(
-            title: l10n.settingsReduceMotion,
-            description: l10n.settingsReduceMotionDescription,
-            value: reduceMotion,
-            onChanged: (value) =>
-                ref.read(reduceMotionProvider.notifier).setReduceMotion(value),
-          ),
-
-          if (isAuthenticated) ...[
             const SizedBox(height: AppSpacing.xl),
-            OutlinedButton.icon(
-              onPressed: () => _confirmLogout(context, ref),
-              icon: const Icon(Icons.logout_rounded),
-              label: Text(l10n.profileLogoutButton),
+            Text(
+              l10n.settingsLanguage,
+              style: Theme.of(context).textTheme.labelLarge,
             ),
+            const SizedBox(height: AppSpacing.sm),
+            SegmentedPill<Locale>(
+              segments: [
+                (const Locale('uz'), l10n.languageUzbek),
+                (const Locale('ru'), l10n.languageRussian),
+              ],
+              selected: locale,
+              onChanged: (value) =>
+                  ref.read(localeControllerProvider.notifier).setLocale(value),
+            ),
+
+            const SizedBox(height: AppSpacing.lg),
+            Text(
+              l10n.settingsTheme,
+              style: Theme.of(context).textTheme.labelLarge,
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            SegmentedPill<ThemeMode>(
+              segments: [
+                (ThemeMode.light, l10n.settingsThemeLight),
+                (ThemeMode.dark, l10n.settingsThemeDark),
+                (ThemeMode.system, l10n.settingsThemeSystem),
+              ],
+              selected: themeMode,
+              onChanged: (value) => ref
+                  .read(themeModeControllerProvider.notifier)
+                  .setThemeMode(value),
+            ),
+
+            const SizedBox(height: AppSpacing.lg),
+            _SwitchSettingRow(
+              title: l10n.settingsNotifications,
+              description: l10n.settingsNotificationsDescription,
+              value: ref.watch(notificationPermissionProvider).value ?? false,
+              onChanged: (wantEnabled) => ref
+                  .read(notificationPermissionProvider.notifier)
+                  .setEnabled(wantEnabled),
+            ),
+
+            const SizedBox(height: AppSpacing.sm),
+            _SwitchSettingRow(
+              title: l10n.settingsReduceMotion,
+              description: l10n.settingsReduceMotionDescription,
+              value: reduceMotion,
+              onChanged: (value) => ref
+                  .read(reduceMotionProvider.notifier)
+                  .setReduceMotion(value),
+            ),
+
+            if (isAuthenticated) ...[
+              const SizedBox(height: AppSpacing.xl),
+              OutlinedButton.icon(
+                onPressed: () => _confirmLogout(context, ref),
+                icon: const Icon(Icons.logout_rounded),
+                label: Text(l10n.profileLogoutButton),
+              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }

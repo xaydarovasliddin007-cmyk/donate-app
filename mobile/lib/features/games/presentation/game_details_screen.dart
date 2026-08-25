@@ -8,6 +8,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/empty_view.dart';
 import '../../../core/widgets/error_view.dart';
 import '../../../core/widgets/loading_view.dart';
+import '../../../core/widgets/selectable_chip.dart';
 import '../../../core/widgets/staggered_entrance.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../auth/application/auth_controller.dart';
@@ -262,10 +263,10 @@ class _ServerPicker extends StatelessWidget {
               separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.sm),
               itemBuilder: (context, i) {
                 final server = servers[i];
-                return ChoiceChip(
-                  label: Text(server.name),
+                return SelectableChip(
+                  label: server.name,
                   selected: server.code == selectedCode,
-                  onSelected: (_) => onSelect(server.code),
+                  onTap: () => onSelect(server.code),
                 );
               },
             ),

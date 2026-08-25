@@ -175,6 +175,11 @@
   "orderHistoryTitle": "Buyurtmalar tarixi",
   "orderHistoryEmptyTitle": "Hali buyurtmalar yo'q",
   "orderHistoryEmptyMessage": "Birinchi xaridingizni amalga oshiring",
+  "orderHistoryEmptyFilteredTitle": "Bu holatda buyurtma yo'q",
+  "orderFilterAll": "Barchasi",
+  "orderFilterPending": "Jarayonda",
+  "orderFilterCompleted": "Bajarildi",
+  "orderFilterFailed": "Muvaffaqiyatsiz",
 
   "profileTitle": "Profil",
   "profileGuestTitle": "Mehmon sifatida ko'rmoqdasiz",

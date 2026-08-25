@@ -474,6 +474,21 @@ class AppLocalizationsRu extends AppLocalizations {
   String get orderHistoryEmptyMessage => 'Оформите свою первую покупку';
 
   @override
+  String get orderHistoryEmptyFilteredTitle => 'Нет заказов с этим статусом';
+
+  @override
+  String get orderFilterAll => 'Все';
+
+  @override
+  String get orderFilterPending => 'В процессе';
+
+  @override
+  String get orderFilterCompleted => 'Завершены';
+
+  @override
+  String get orderFilterFailed => 'Неудачные';
+
+  @override
   String get profileTitle => 'Профиль';
 
   @override

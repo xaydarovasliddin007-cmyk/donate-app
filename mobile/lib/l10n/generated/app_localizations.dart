@@ -980,6 +980,36 @@ abstract class AppLocalizations {
   /// **'Birinchi xaridingizni amalga oshiring'**
   String get orderHistoryEmptyMessage;
 
+  /// No description provided for @orderHistoryEmptyFilteredTitle.
+  ///
+  /// In uz, this message translates to:
+  /// **'Bu holatda buyurtma yo\'q'**
+  String get orderHistoryEmptyFilteredTitle;
+
+  /// No description provided for @orderFilterAll.
+  ///
+  /// In uz, this message translates to:
+  /// **'Barchasi'**
+  String get orderFilterAll;
+
+  /// No description provided for @orderFilterPending.
+  ///
+  /// In uz, this message translates to:
+  /// **'Jarayonda'**
+  String get orderFilterPending;
+
+  /// No description provided for @orderFilterCompleted.
+  ///
+  /// In uz, this message translates to:
+  /// **'Bajarildi'**
+  String get orderFilterCompleted;
+
+  /// No description provided for @orderFilterFailed.
+  ///
+  /// In uz, this message translates to:
+  /// **'Muvaffaqiyatsiz'**
+  String get orderFilterFailed;
+
   /// No description provided for @profileTitle.
   ///
   /// In uz, this message translates to:

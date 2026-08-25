@@ -5,6 +5,7 @@ import '../../../core/errors/failure.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/empty_view.dart';
 import '../../../core/widgets/error_view.dart';
+import '../../../core/widgets/selectable_chip.dart';
 import '../../../core/widgets/skeletons.dart';
 import '../../../core/widgets/staggered_entrance.dart';
 import '../../../l10n/generated/app_localizations.dart';
@@ -130,14 +131,15 @@ class _AllGamesScreenState extends ConsumerState<AllGamesScreen> {
                                 padding: const EdgeInsets.only(
                                   right: AppSpacing.sm,
                                 ),
-                                child: ChoiceChip(
-                                  label: Text(category),
+                                child: SelectableChip(
+                                  label: category,
                                   selected: _selectedCategory == category,
-                                  onSelected: (selected) {
+                                  onTap: () {
                                     setState(
-                                      () => _selectedCategory = selected
-                                          ? category
-                                          : null,
+                                      () => _selectedCategory =
+                                          _selectedCategory == category
+                                          ? null
+                                          : category,
                                     );
                                   },
                                 ),

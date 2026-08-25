@@ -10,6 +10,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/reduce_motion_controller.dart';
 import '../../../core/utils/money_formatter.dart';
 import '../../../core/widgets/pressable_scale.dart';
+import '../../../core/widgets/selectable_chip.dart';
 import '../../../core/widgets/success_checkmark.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../wallet/application/wallet_providers.dart';
@@ -235,14 +236,17 @@ class _AmountEntryView extends StatelessWidget {
           const SizedBox(height: AppSpacing.lg),
           Text(l10n.topupAmountLabel, style: theme.textTheme.titleSmall),
           const SizedBox(height: AppSpacing.sm),
-          _AmountField(controller: amountController, onChanged: onAmountChanged),
+          _AmountField(
+            controller: amountController,
+            onChanged: onAmountChanged,
+          ),
           const SizedBox(height: AppSpacing.sm),
           Wrap(
             spacing: AppSpacing.sm,
             runSpacing: AppSpacing.sm,
             children: [
               for (final preset in _presetAmounts)
-                _PresetChip(
+                SelectableChip(
                   label: formatMoney(
                     preset * 100,
                     'UZS',
@@ -255,7 +259,10 @@ class _AmountEntryView extends StatelessWidget {
           ),
           if (errorMessage != null) ...[
             const SizedBox(height: AppSpacing.md),
-            Text(errorMessage!, style: TextStyle(color: theme.colorScheme.error)),
+            Text(
+              errorMessage!,
+              style: TextStyle(color: theme.colorScheme.error),
+            ),
           ],
           const SizedBox(height: AppSpacing.lg),
           FilledButton(
@@ -368,8 +375,9 @@ class _ReservationView extends ConsumerWidget {
                       icon: const Icon(Icons.copy_rounded),
                       onPressed: () => Clipboard.setData(
                         ClipboardData(
-                          text: (reservation.amountMinor / 100)
-                              .toStringAsFixed(0),
+                          text: (reservation.amountMinor / 100).toStringAsFixed(
+                            0,
+                          ),
                         ),
                       ),
                     ),
@@ -492,55 +500,6 @@ class _AmountField extends StatelessWidget {
             color: theme.colorScheme.onSurfaceVariant,
           ),
           border: InputBorder.none,
-        ),
-      ),
-    );
-  }
-}
-
-class _PresetChip extends StatelessWidget {
-  const _PresetChip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final gradient = isDark
-        ? AppColors.heroGradientDark
-        : AppColors.heroGradientLight;
-
-    return PressableScale(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(AppRadius.pill),
-      child: AnimatedContainer(
-        duration: AppMotion.fast,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-        decoration: BoxDecoration(
-          gradient: selected ? LinearGradient(colors: gradient) : null,
-          color: selected
-              ? null
-              : theme.colorScheme.surfaceContainerHighest.withValues(
-                  alpha: 0.6,
-                ),
-          borderRadius: BorderRadius.circular(AppRadius.pill),
-          border: selected
-              ? null
-              : Border.all(color: theme.colorScheme.outlineVariant),
-        ),
-        child: Text(
-          label,
-          style: theme.textTheme.labelLarge?.copyWith(
-            color: selected ? Colors.white : theme.colorScheme.onSurface,
-            fontWeight: FontWeight.w700,
-          ),
         ),
       ),
     );

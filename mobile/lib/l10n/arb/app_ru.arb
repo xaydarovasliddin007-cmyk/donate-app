@@ -168,6 +168,11 @@
   "orderHistoryTitle": "История заказов",
   "orderHistoryEmptyTitle": "Пока нет заказов",
   "orderHistoryEmptyMessage": "Оформите свою первую покупку",
+  "orderHistoryEmptyFilteredTitle": "Нет заказов с этим статусом",
+  "orderFilterAll": "Все",
+  "orderFilterPending": "В процессе",
+  "orderFilterCompleted": "Завершены",
+  "orderFilterFailed": "Неудачные",
 
   "profileTitle": "Профиль",
   "profileGuestTitle": "Вы смотрите как гость",

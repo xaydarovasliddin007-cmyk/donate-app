@@ -477,6 +477,21 @@ class AppLocalizationsUz extends AppLocalizations {
       'Birinchi xaridingizni amalga oshiring';
 
   @override
+  String get orderHistoryEmptyFilteredTitle => 'Bu holatda buyurtma yo\'q';
+
+  @override
+  String get orderFilterAll => 'Barchasi';
+
+  @override
+  String get orderFilterPending => 'Jarayonda';
+
+  @override
+  String get orderFilterCompleted => 'Bajarildi';
+
+  @override
+  String get orderFilterFailed => 'Muvaffaqiyatsiz';
+
+  @override
   String get profileTitle => 'Profil';
 
   @override

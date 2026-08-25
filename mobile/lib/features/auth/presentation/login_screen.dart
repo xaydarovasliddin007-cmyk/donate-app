@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/branding/brand_mark.dart';
 import '../../../core/errors/failure.dart';
+import '../../../core/theme/app_motion.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/reduce_motion_controller.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../application/auth_controller.dart';
 import 'widgets/auth_identifier_field.dart';
@@ -22,6 +24,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _passwordController = TextEditingController();
   bool _submitting = false;
   bool _googleSubmitting = false;
+  bool _obscurePassword = true;
   String? _errorMessage;
   String? _googleErrorMessage;
 
@@ -91,101 +94,128 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final reduceMotion = ref.watch(reduceMotionProvider);
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.authLoginTitle)),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Center(child: BrandMark(size: 56)),
-              const SizedBox(height: AppSpacing.xl),
-              GoogleAuthButton(
-                label: l10n.authContinueWithGoogle,
-                loading: _googleSubmitting,
-                onPressed: _busy ? null : _submitGoogle,
-              ),
-              if (_googleErrorMessage != null) ...[
-                const SizedBox(height: AppSpacing.sm),
-                Text(
-                  _googleErrorMessage!,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: theme.colorScheme.error),
+        child: TweenAnimationBuilder<double>(
+          tween: Tween(begin: 0, end: 1),
+          duration: reduceMotion ? Duration.zero : AppMotion.entrance,
+          curve: AppMotion.standard,
+          builder: (context, t, child) => Opacity(
+            opacity: t,
+            child: Transform.translate(
+              offset: Offset(0, (1 - t) * 12),
+              child: child,
+            ),
+          ),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Center(child: BrandMark(size: 56)),
+                const SizedBox(height: AppSpacing.xl),
+                GoogleAuthButton(
+                  label: l10n.authContinueWithGoogle,
+                  loading: _googleSubmitting,
+                  onPressed: _busy ? null : _submitGoogle,
                 ),
-              ],
-              const SizedBox(height: AppSpacing.lg),
-              Row(
-                children: [
-                  Expanded(
-                    child: Divider(color: theme.colorScheme.outlineVariant),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.sm,
-                    ),
-                    child: Text(
-                      l10n.authOrDivider,
-                      style: theme.textTheme.bodySmall,
-                    ),
-                  ),
-                  Expanded(
-                    child: Divider(color: theme.colorScheme.outlineVariant),
+                if (_googleErrorMessage != null) ...[
+                  const SizedBox(height: AppSpacing.sm),
+                  Text(
+                    _googleErrorMessage!,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: theme.colorScheme.error),
                   ),
                 ],
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                const SizedBox(height: AppSpacing.lg),
+                Row(
                   children: [
-                    AuthIdentifierField(controller: _identifierController),
-                    const SizedBox(height: AppSpacing.md),
-                    TextFormField(
-                      controller: _passwordController,
-                      obscureText: true,
-                      textInputAction: TextInputAction.done,
-                      onFieldSubmitted: (_) => _submit(),
-                      decoration: InputDecoration(
-                        labelText: l10n.authPasswordLabel,
-                      ),
-                      validator: (value) => (value == null || value.length < 8)
-                          ? l10n.authPasswordTooShort
-                          : null,
+                    Expanded(
+                      child: Divider(color: theme.colorScheme.outlineVariant),
                     ),
-                    if (_errorMessage != null) ...[
-                      const SizedBox(height: AppSpacing.md),
-                      Text(
-                        _errorMessage!,
-                        style: TextStyle(color: theme.colorScheme.error),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.sm,
                       ),
-                    ],
-                    const SizedBox(height: AppSpacing.lg),
-                    FilledButton(
-                      onPressed: _busy ? null : _submit,
-                      child: _submitting
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : Text(l10n.authLoginButton),
+                      child: Text(
+                        l10n.authOrDivider,
+                        style: theme.textTheme.bodySmall,
+                      ),
+                    ),
+                    Expanded(
+                      child: Divider(color: theme.colorScheme.outlineVariant),
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(height: AppSpacing.md),
-              Center(
-                child: TextButton(
-                  onPressed: _busy ? null : () => context.push('/register'),
-                  child: Text(
-                    '${l10n.authNoAccountPrompt} ${l10n.authSwitchToRegister}',
+                const SizedBox(height: AppSpacing.lg),
+                Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      AuthIdentifierField(controller: _identifierController),
+                      const SizedBox(height: AppSpacing.md),
+                      TextFormField(
+                        controller: _passwordController,
+                        obscureText: _obscurePassword,
+                        textInputAction: TextInputAction.done,
+                        onFieldSubmitted: (_) => _submit(),
+                        decoration: InputDecoration(
+                          labelText: l10n.authPasswordLabel,
+                          prefixIcon: const Icon(Icons.lock_outline_rounded),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscurePassword
+                                  ? Icons.visibility_outlined
+                                  : Icons.visibility_off_outlined,
+                            ),
+                            onPressed: () => setState(
+                              () => _obscurePassword = !_obscurePassword,
+                            ),
+                          ),
+                        ),
+                        validator: (value) =>
+                            (value == null || value.length < 8)
+                            ? l10n.authPasswordTooShort
+                            : null,
+                      ),
+                      if (_errorMessage != null) ...[
+                        const SizedBox(height: AppSpacing.md),
+                        Text(
+                          _errorMessage!,
+                          style: TextStyle(color: theme.colorScheme.error),
+                        ),
+                      ],
+                      const SizedBox(height: AppSpacing.lg),
+                      FilledButton(
+                        onPressed: _busy ? null : _submit,
+                        child: _submitting
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : Text(l10n.authLoginButton),
+                      ),
+                    ],
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: AppSpacing.md),
+                Center(
+                  child: TextButton(
+                    onPressed: _busy ? null : () => context.push('/register'),
+                    child: Text(
+                      '${l10n.authNoAccountPrompt} ${l10n.authSwitchToRegister}',
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
