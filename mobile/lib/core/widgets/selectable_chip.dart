@@ -31,7 +31,6 @@ class SelectableChip extends StatelessWidget {
 
     return PressableScale(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(AppRadius.pill),
       child: AnimatedContainer(
         duration: AppMotion.fast,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),

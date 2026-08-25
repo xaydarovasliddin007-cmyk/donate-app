@@ -620,6 +620,54 @@ abstract class AppLocalizations {
   /// **'Tezkor xarid'**
   String get homeQuickBuyButton;
 
+  /// No description provided for @homeHeroTitle.
+  ///
+  /// In uz, this message translates to:
+  /// **'O\'yin balansingizni bir zumda to\'ldiring'**
+  String get homeHeroTitle;
+
+  /// No description provided for @homeHeroSubtitle.
+  ///
+  /// In uz, this message translates to:
+  /// **'Mashhur o\'yinlar, xavfsiz to\'lov va buyurtma holatini kuzatish bitta ilovada.'**
+  String get homeHeroSubtitle;
+
+  /// No description provided for @homeHeroPrimaryCta.
+  ///
+  /// In uz, this message translates to:
+  /// **'O\'yin tanlash'**
+  String get homeHeroPrimaryCta;
+
+  /// No description provided for @homeHeroSecondaryCta.
+  ///
+  /// In uz, this message translates to:
+  /// **'Hisob yaratish'**
+  String get homeHeroSecondaryCta;
+
+  /// No description provided for @homeQuickCategoriesTitle.
+  ///
+  /// In uz, this message translates to:
+  /// **'Tezkor yo\'nalishlar'**
+  String get homeQuickCategoriesTitle;
+
+  /// No description provided for @allGamesClearSearch.
+  ///
+  /// In uz, this message translates to:
+  /// **'Qidiruvni tozalash'**
+  String get allGamesClearSearch;
+
+  /// No description provided for @allGamesAllCategories.
+  ///
+  /// In uz, this message translates to:
+  /// **'Barcha turlar'**
+  String get allGamesAllCategories;
+
+  /// No description provided for @allGamesResultsCount.
+  ///
+  /// In uz, this message translates to:
+  /// **'{count} ta o\'yin'**
+  String allGamesResultsCount(int count);
+
   /// No description provided for @gameComingSoonBadge.
   ///
   /// In uz, this message translates to:
@@ -631,6 +679,12 @@ abstract class AppLocalizations {
   /// In uz, this message translates to:
   /// **'To\'ldirish'**
   String get gameDetailsTopupTitle;
+
+  /// No description provided for @gameDetailsProductsSubtitle.
+  ///
+  /// In uz, this message translates to:
+  /// **'Paketni tanlang, keyingi bosqichda Player ID kiritasiz'**
+  String get gameDetailsProductsSubtitle;
 
   /// No description provided for @gameProductsEmptyTitle.
   ///

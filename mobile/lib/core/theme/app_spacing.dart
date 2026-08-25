@@ -1,5 +1,3 @@
-/// Spacing scale used across the app for padding/gaps, so layouts stay
-/// visually consistent without every screen inventing its own numbers.
 abstract final class AppSpacing {
   static const double xs = 4;
   static const double sm = 8;
@@ -11,8 +9,8 @@ abstract final class AppSpacing {
 
 abstract final class AppRadius {
   static const double sm = 8;
-  static const double md = 12;
-  static const double lg = 16;
-  static const double xl = 20;
+  static const double md = 8;
+  static const double lg = 8;
+  static const double xl = 8;
   static const double pill = 999;
 }

@@ -15,6 +15,7 @@ abstract final class AppTheme {
       brightness: brightness,
       primary: isDark ? AppColors.brandPrimaryDark : AppColors.brandPrimary,
       secondary: isDark ? AppColors.brandAccentDark : AppColors.brandAccent,
+      tertiary: AppColors.brandWarm,
       error: AppColors.danger,
       surface: isDark ? AppColors.darkSurface : AppColors.lightSurface,
       onSurface: isDark ? AppColors.darkOnSurface : AppColors.lightOnSurface,
@@ -46,6 +47,13 @@ abstract final class AppTheme {
         titleTextStyle: textTheme.titleLarge,
       ),
 
+      iconButtonTheme: IconButtonThemeData(
+        style: IconButton.styleFrom(
+          foregroundColor: colorScheme.onSurface,
+          shape: RoundedRectangleBorder(borderRadius: radiusMd),
+        ),
+      ),
+
       cardTheme: CardThemeData(
         elevation: 0,
         color: colorScheme.surface,
@@ -67,6 +75,8 @@ abstract final class AppTheme {
           shape: RoundedRectangleBorder(borderRadius: radiusMd),
           textStyle: textTheme.labelLarge,
           elevation: 0,
+          backgroundColor: colorScheme.primary,
+          foregroundColor: colorScheme.onPrimary,
         ),
       ),
 
@@ -91,7 +101,7 @@ abstract final class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: isDark
-            ? AppColors.darkSurface
+            ? AppColors.surfaceCardDark
             : colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.md,
@@ -107,7 +117,7 @@ abstract final class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: radiusMd,
-          borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
+          borderSide: BorderSide(color: colorScheme.primary, width: 1.4),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: radiusMd,
@@ -161,7 +171,7 @@ abstract final class AppTheme {
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: colorScheme.surface,
         surfaceTintColor: Colors.transparent,
-        indicatorColor: colorScheme.primary.withValues(alpha: 0.14),
+        indicatorColor: colorScheme.primary.withValues(alpha: 0.12),
         elevation: 0,
         labelTextStyle: WidgetStateProperty.resolveWith(
           (states) => textTheme.labelSmall?.copyWith(
@@ -181,6 +191,19 @@ abstract final class AppTheme {
         backgroundColor: isDark
             ? colorScheme.surfaceContainerHighest
             : colorScheme.inverseSurface,
+      ),
+
+      switchTheme: SwitchThemeData(
+        thumbColor: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.selected)
+              ? colorScheme.primary
+              : colorScheme.outline,
+        ),
+        trackColor: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.selected)
+              ? colorScheme.primary.withValues(alpha: 0.28)
+              : colorScheme.surfaceContainerHighest,
+        ),
       ),
     );
   }

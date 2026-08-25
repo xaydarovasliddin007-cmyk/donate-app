@@ -287,10 +287,41 @@ class AppLocalizationsUz extends AppLocalizations {
   String get homeQuickBuyButton => 'Tezkor xarid';
 
   @override
+  String get homeHeroTitle => 'O\'yin balansingizni bir zumda to\'ldiring';
+
+  @override
+  String get homeHeroSubtitle =>
+      'Mashhur o\'yinlar, xavfsiz to\'lov va buyurtma holatini kuzatish bitta ilovada.';
+
+  @override
+  String get homeHeroPrimaryCta => 'O\'yin tanlash';
+
+  @override
+  String get homeHeroSecondaryCta => 'Hisob yaratish';
+
+  @override
+  String get homeQuickCategoriesTitle => 'Tezkor yo\'nalishlar';
+
+  @override
+  String get allGamesClearSearch => 'Qidiruvni tozalash';
+
+  @override
+  String get allGamesAllCategories => 'Barcha turlar';
+
+  @override
+  String allGamesResultsCount(int count) {
+    return '$count ta o\'yin';
+  }
+
+  @override
   String get gameComingSoonBadge => 'Tez kunda';
 
   @override
   String get gameDetailsTopupTitle => 'To\'ldirish';
+
+  @override
+  String get gameDetailsProductsSubtitle =>
+      'Paketni tanlang, keyingi bosqichda Player ID kiritasiz';
 
   @override
   String get gameProductsEmptyTitle => 'Hozircha mahsulotlar mavjud emas';

@@ -5,7 +5,6 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_motion.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/reduce_motion_controller.dart';
-import '../../../../core/utils/support_launcher.dart';
 import '../../../../core/widgets/animated_balance.dart';
 import '../../../../core/widgets/card_sheen.dart';
 import '../../../../core/widgets/pressable_scale.dart';
@@ -13,11 +12,8 @@ import '../../../../core/widgets/skeleton_box.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 import '../../../auth/application/auth_controller.dart';
 import '../../application/wallet_providers.dart';
+import 'promo_code_sheet.dart';
 
-/// The home screen's centerpiece for signed-in users — the very first thing
-/// authenticated users see: their own UZDONATE balance, rendered as a real
-/// virtual card (brand mark, public ID, holder name) rather than a plain
-/// balance figure, with one-tap actions below it.
 class WalletBalanceCard extends ConsumerStatefulWidget {
   const WalletBalanceCard({super.key});
 
@@ -26,9 +22,6 @@ class WalletBalanceCard extends ConsumerStatefulWidget {
 }
 
 class _WalletBalanceCardState extends ConsumerState<WalletBalanceCard> {
-  // Session-only (not persisted) — a fintech-app staple: hide the balance
-  // from over-the-shoulder glances without it needing to survive app
-  // restarts, since it always starts visible again next launch.
   bool _hidden = false;
 
   @override
@@ -101,7 +94,7 @@ class _WalletBalanceCardState extends ConsumerState<WalletBalanceCard> {
                               style: theme.textTheme.labelLarge?.copyWith(
                                 color: Colors.white,
                                 fontWeight: FontWeight.w800,
-                                letterSpacing: 1,
+                                letterSpacing: 0,
                               ),
                             ),
                             const Spacer(),
@@ -178,7 +171,7 @@ class _WalletBalanceCardState extends ConsumerState<WalletBalanceCard> {
                               user?.publicId ?? '',
                               style: theme.textTheme.bodyMedium?.copyWith(
                                 color: Colors.white,
-                                letterSpacing: 1.2,
+                                letterSpacing: 0,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -218,13 +211,19 @@ class _WalletBalanceCardState extends ConsumerState<WalletBalanceCard> {
                 const SizedBox(width: AppSpacing.sm),
                 Expanded(
                   child: _QuickActionPill(
-                    icon: Icons.support_agent_rounded,
-                    label: l10n.walletSupportButton,
+                    icon: Icons.local_offer_outlined,
+                    label: l10n.promoCodeButton,
                     filled: false,
-                    onTap: () => launchSupportContact(
-                      subject: l10n.supportGeneralSubject,
-                      body: l10n.supportGeneralBody,
-                    ),
+                    onTap: () => showPromoCodeSheet(context, ref),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: _QuickActionPill(
+                    icon: Icons.history_rounded,
+                    label: l10n.walletHistoryButton,
+                    filled: false,
+                    onTap: () => context.push('/wallet/history'),
                   ),
                 ),
               ],
@@ -247,10 +246,6 @@ class _QuickActionPill extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
-  // One emphasized ("filled", brand gradient) action and one quiet/neutral
-  // action — not a different accent color per pill. A row of pills each in
-  // their own hue was the "too many mismatched colors" complaint; a single
-  // gradient used once, deliberately, reads as a considered choice instead.
   final bool filled;
 
   @override
@@ -263,7 +258,6 @@ class _QuickActionPill extends StatelessWidget {
 
     return PressableScale(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(AppRadius.pill),
       child: Container(
         decoration: BoxDecoration(
           gradient: filled

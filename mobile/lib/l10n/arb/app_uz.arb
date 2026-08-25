@@ -103,9 +103,22 @@
   "homeRecentOrders": "So'nggi buyurtmalar",
   "homeMyGames": "Mening o'yinlarim",
   "homeQuickBuyButton": "Tezkor xarid",
+  "homeHeroTitle": "O'yin balansingizni bir zumda to'ldiring",
+  "homeHeroSubtitle": "Mashhur o'yinlar, xavfsiz to'lov va buyurtma holatini kuzatish bitta ilovada.",
+  "homeHeroPrimaryCta": "O'yin tanlash",
+  "homeHeroSecondaryCta": "Hisob yaratish",
+  "homeQuickCategoriesTitle": "Tezkor yo'nalishlar",
+
+  "allGamesClearSearch": "Qidiruvni tozalash",
+  "allGamesAllCategories": "Barcha turlar",
+  "allGamesResultsCount": "{count} ta o'yin",
+  "@allGamesResultsCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
 
   "gameComingSoonBadge": "Tez kunda",
   "gameDetailsTopupTitle": "To'ldirish",
+  "gameDetailsProductsSubtitle": "Paketni tanlang, keyingi bosqichda Player ID kiritasiz",
   "gameProductsEmptyTitle": "Hozircha mahsulotlar mavjud emas",
   "gameNotAvailableMessage": "Bu o'yin hali ulanmagan. Tez orada qo'shamiz!",
   "gameServerPickerLabel": "Serverni tanlang",

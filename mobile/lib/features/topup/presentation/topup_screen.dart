@@ -722,7 +722,6 @@ class _ReceivingMethodTile extends StatelessWidget {
 
     return PressableScale(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(AppRadius.md),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         width: double.infinity,

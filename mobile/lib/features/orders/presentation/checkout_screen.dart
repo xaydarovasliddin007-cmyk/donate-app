@@ -400,7 +400,6 @@ class _PaymentMethodTile extends StatelessWidget {
 
     return PressableScale(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(AppRadius.md),
       child: AnimatedContainer(
         duration: AppMotion.fast,
         padding: const EdgeInsets.all(AppSpacing.md),

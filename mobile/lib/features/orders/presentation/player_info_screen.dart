@@ -362,7 +362,6 @@ class _GradientContinueButton extends StatelessWidget {
 
     return PressableScale(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(AppRadius.md),
       child: Container(
         height: 52,
         alignment: Alignment.center,

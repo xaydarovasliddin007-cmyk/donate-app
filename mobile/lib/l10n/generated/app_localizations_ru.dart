@@ -286,10 +286,41 @@ class AppLocalizationsRu extends AppLocalizations {
   String get homeQuickBuyButton => 'Быстрая покупка';
 
   @override
+  String get homeHeroTitle => 'Пополняйте игровой баланс за мгновение';
+
+  @override
+  String get homeHeroSubtitle =>
+      'Популярные игры, безопасная оплата и отслеживание заказов в одном приложении.';
+
+  @override
+  String get homeHeroPrimaryCta => 'Выбрать игру';
+
+  @override
+  String get homeHeroSecondaryCta => 'Создать аккаунт';
+
+  @override
+  String get homeQuickCategoriesTitle => 'Быстрые направления';
+
+  @override
+  String get allGamesClearSearch => 'Очистить поиск';
+
+  @override
+  String get allGamesAllCategories => 'Все жанры';
+
+  @override
+  String allGamesResultsCount(int count) {
+    return '$count игр';
+  }
+
+  @override
   String get gameComingSoonBadge => 'Скоро';
 
   @override
   String get gameDetailsTopupTitle => 'Пополнение';
+
+  @override
+  String get gameDetailsProductsSubtitle =>
+      'Выберите пакет, Player ID укажете на следующем шаге';
 
   @override
   String get gameProductsEmptyTitle => 'Пока нет доступных товаров';

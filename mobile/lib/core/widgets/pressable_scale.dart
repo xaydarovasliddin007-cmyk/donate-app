@@ -4,25 +4,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../theme/app_motion.dart';
 import '../theme/reduce_motion_controller.dart';
 
-/// Wraps [child] with a subtle press-down scale (1.0 → 0.97) plus a light
-/// haptic tick — the tactile feedback that makes cards feel like real,
-/// physical buttons instead of static Material containers. Cheap: purely
-/// an implicit [AnimatedScale], no controller to manage/dispose. Honors the
-/// user's "reduce animations" setting by collapsing the duration to
-/// near-zero instead of skipping the scale outright (still gives instant,
-/// non-jarring press feedback); haptics stay on regardless since they're
-/// felt, not seen, and cost nothing extra on a "reduce motion" device.
 class PressableScale extends ConsumerStatefulWidget {
   const PressableScale({
     super.key,
     required this.child,
     this.onTap,
-    this.borderRadius,
   });
 
   final Widget child;
   final VoidCallback? onTap;
-  final BorderRadius? borderRadius;
 
   @override
   ConsumerState<PressableScale> createState() => _PressableScaleState();

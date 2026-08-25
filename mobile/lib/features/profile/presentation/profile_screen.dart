@@ -360,7 +360,6 @@ class _MenuRow extends StatelessWidget {
 
     return PressableScale(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(AppRadius.md),
       child: Container(
         padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.md,

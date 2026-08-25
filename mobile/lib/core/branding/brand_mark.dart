@@ -2,10 +2,6 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import 'app_branding.dart';
 
-/// The UZDONATE mark: a rounded gradient monogram (a bolt — instant top-up)
-/// plus an optional wordmark. Vector-only by design: no image asset, no
-/// emoji, no network dependency, so it always renders identically and
-/// instantly everywhere it's used (splash, login, home header).
 class BrandMark extends StatelessWidget {
   const BrandMark({super.key, this.size = 40, this.showWordmark = false});
 
@@ -22,7 +18,7 @@ class BrandMark extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [AppColors.brandPrimary, AppColors.brandPrimaryDark],
+          colors: AppColors.heroGradientLight,
         ),
       ),
       alignment: Alignment.center,
@@ -44,7 +40,7 @@ class BrandMark extends StatelessWidget {
           style: TextStyle(
             fontSize: size * 0.46,
             fontWeight: FontWeight.w800,
-            letterSpacing: 0.4,
+            letterSpacing: 0,
             color: Theme.of(context).colorScheme.onSurface,
           ),
         ),

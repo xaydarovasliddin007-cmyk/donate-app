@@ -99,9 +99,22 @@
   "homeRecentOrders": "Последние заказы",
   "homeMyGames": "Мои игры",
   "homeQuickBuyButton": "Быстрая покупка",
+  "homeHeroTitle": "Пополняйте игровой баланс за мгновение",
+  "homeHeroSubtitle": "Популярные игры, безопасная оплата и отслеживание заказов в одном приложении.",
+  "homeHeroPrimaryCta": "Выбрать игру",
+  "homeHeroSecondaryCta": "Создать аккаунт",
+  "homeQuickCategoriesTitle": "Быстрые направления",
+
+  "allGamesClearSearch": "Очистить поиск",
+  "allGamesAllCategories": "Все жанры",
+  "allGamesResultsCount": "{count} игр",
+  "@allGamesResultsCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
 
   "gameComingSoonBadge": "Скоро",
   "gameDetailsTopupTitle": "Пополнение",
+  "gameDetailsProductsSubtitle": "Выберите пакет, Player ID укажете на следующем шаге",
   "gameProductsEmptyTitle": "Пока нет доступных товаров",
   "gameNotAvailableMessage": "Эта игра пока не подключена. Скоро добавим!",
   "gameServerPickerLabel": "Выберите сервер",

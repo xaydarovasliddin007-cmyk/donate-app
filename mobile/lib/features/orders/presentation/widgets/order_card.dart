@@ -23,7 +23,6 @@ class OrderCard extends StatelessWidget {
 
     return PressableScale(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(AppRadius.lg),
       child: Container(
         decoration: BoxDecoration(
           color: theme.colorScheme.surface,
