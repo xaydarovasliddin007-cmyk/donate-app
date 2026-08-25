@@ -3,6 +3,8 @@ import { Link, useParams } from 'react-router-dom';
 import { api, ApiError } from '../api/client';
 import type { Game, GameServer } from '../api/types';
 import { useAsync } from '../lib/useAsync';
+import { ActiveBadge } from '../components/ActiveBadge';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 import { SkeletonRows } from '../components/SkeletonRows';
 import { useToast } from '../components/Toast';
 import { useLocale } from '../i18n/LocaleContext';
@@ -25,6 +27,7 @@ export function GameServersPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [confirmingDeactivate, setConfirmingDeactivate] = useState<GameServer | null>(null);
 
   async function createServer(event: FormEvent) {
     event.preventDefault();
@@ -46,10 +49,11 @@ export function GameServersPage() {
     }
   }
 
-  async function toggleActive(server: GameServer) {
+  async function setActive(server: GameServer, isActive: boolean) {
     setTogglingId(server.id);
     try {
-      await api.patch(`/admin/game-servers/${server.id}`, { isActive: !server.isActive });
+      await api.patch(`/admin/game-servers/${server.id}`, { isActive });
+      setConfirmingDeactivate(null);
       reload();
     } catch (err) {
       showError(err instanceof ApiError ? err.message : t('gameServers.updateFailed'));
@@ -110,9 +114,15 @@ export function GameServersPage() {
               <tr key={server.id}>
                 <td>{server.name}</td>
                 <td className="muted">{server.code}</td>
-                <td>{server.isActive ? t('common.active') : t('common.inactive')}</td>
                 <td>
-                  <button className="btn btn-secondary" disabled={togglingId === server.id} onClick={() => toggleActive(server)}>
+                  <ActiveBadge active={server.isActive} />
+                </td>
+                <td>
+                  <button
+                    className="btn btn-secondary"
+                    disabled={togglingId === server.id}
+                    onClick={() => (server.isActive ? setConfirmingDeactivate(server) : setActive(server, true))}
+                  >
                     {server.isActive ? t('common.deactivate') : t('common.activate')}
                   </button>
                 </td>
@@ -128,6 +138,17 @@ export function GameServersPage() {
           </tbody>
         </table>
       )}
+
+      <ConfirmDialog
+        open={confirmingDeactivate !== null}
+        title={t('gameServers.confirmDeactivateTitle')}
+        message={confirmingDeactivate ? t('gameServers.confirmDeactivateMessage', { name: confirmingDeactivate.name }) : ''}
+        confirmLabel={t('common.deactivate')}
+        danger
+        busy={togglingId !== null}
+        onConfirm={() => confirmingDeactivate && setActive(confirmingDeactivate, false)}
+        onCancel={() => setConfirmingDeactivate(null)}
+      />
     </div>
   );
 }

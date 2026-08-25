@@ -5,6 +5,7 @@ import type { AdminRole, AdminUserRow } from '../api/types';
 import { useAsync } from '../lib/useAsync';
 import { formatDate } from '../lib/money';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { ActiveBadge } from '../components/ActiveBadge';
 import { useToast } from '../components/Toast';
 import { SkeletonRows } from '../components/SkeletonRows';
 import { useLocale } from '../i18n/LocaleContext';
@@ -148,7 +149,9 @@ export function AdminsPage() {
                     ))}
                   </select>
                 </td>
-                <td>{row.isActive ? t('common.active') : t('common.inactive')}</td>
+                <td>
+                  <ActiveBadge active={row.isActive} />
+                </td>
                 <td>{formatDate(row.createdAt)}</td>
                 <td>
                   <button

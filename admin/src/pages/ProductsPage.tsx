@@ -4,15 +4,26 @@ import type { Game, GameServer, Product } from '../api/types';
 import { useAsync } from '../lib/useAsync';
 import { formatMinor } from '../lib/money';
 import { useToast } from '../components/Toast';
+import { ActiveBadge } from '../components/ActiveBadge';
 import { SkeletonRows } from '../components/SkeletonRows';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 import { useLocale } from '../i18n/LocaleContext';
 
-function ProductRow({ product, onChanged }: { product: Product; onChanged: () => void }) {
+function ProductRow({
+  product,
+  onChanged,
+  toggling,
+  onRequestToggle,
+}: {
+  product: Product;
+  onChanged: () => void;
+  toggling: boolean;
+  onRequestToggle: (product: Product) => void;
+}) {
   const { t } = useLocale();
   const { showError } = useToast();
   const [amount, setAmount] = useState(String(product.amountMinor / 100));
   const [saving, setSaving] = useState(false);
-  const [toggling, setToggling] = useState(false);
 
   async function saveAmount() {
     const amountMajor = Number(amount);
@@ -25,18 +36,6 @@ function ProductRow({ product, onChanged }: { product: Product; onChanged: () =>
       showError(err instanceof ApiError ? err.message : t('products.priceFailed'));
     } finally {
       setSaving(false);
-    }
-  }
-
-  async function toggleActive() {
-    setToggling(true);
-    try {
-      await api.patch(`/admin/products/${product.id}`, { isActive: !product.isActive });
-      onChanged();
-    } catch (err) {
-      showError(err instanceof ApiError ? err.message : t('products.statusFailed'));
-    } finally {
-      setToggling(false);
     }
   }
 
@@ -65,9 +64,11 @@ function ProductRow({ product, onChanged }: { product: Product; onChanged: () =>
         </div>
       </td>
       <td>{formatMinor(product.amountMinor, product.currency)}</td>
-      <td>{product.isActive ? t('common.active') : t('common.inactive')}</td>
       <td>
-        <button className="btn btn-secondary" disabled={toggling} onClick={toggleActive}>
+        <ActiveBadge active={product.isActive} />
+      </td>
+      <td>
+        <button className="btn btn-secondary" disabled={toggling} onClick={() => onRequestToggle(product)}>
           {product.isActive ? t('common.deactivate') : t('common.activate')}
         </button>
       </td>
@@ -187,8 +188,24 @@ function CreateProductForm({ games, onCreated }: { games: Game[]; onCreated: () 
 
 export function ProductsPage() {
   const { t } = useLocale();
+  const { showError } = useToast();
   const { data, loading, error, reload } = useAsync(() => api.get<{ products: Product[] }>('/admin/products'), []);
   const { data: gamesData } = useAsync(() => api.get<{ games: Game[] }>('/admin/games'), []);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [confirmingDeactivate, setConfirmingDeactivate] = useState<Product | null>(null);
+
+  async function setActive(product: Product, isActive: boolean) {
+    setTogglingId(product.id);
+    try {
+      await api.patch(`/admin/products/${product.id}`, { isActive });
+      setConfirmingDeactivate(null);
+      reload();
+    } catch (err) {
+      showError(err instanceof ApiError ? err.message : t('products.statusFailed'));
+    } finally {
+      setTogglingId(null);
+    }
+  }
 
   return (
     <div>
@@ -230,7 +247,13 @@ export function ProductsPage() {
           </thead>
           <tbody>
             {data.products.map((product) => (
-              <ProductRow key={product.id} product={product} onChanged={reload} />
+              <ProductRow
+                key={product.id}
+                product={product}
+                onChanged={reload}
+                toggling={togglingId === product.id}
+                onRequestToggle={(p) => (p.isActive ? setConfirmingDeactivate(p) : setActive(p, true))}
+              />
             ))}
             {data.products.length === 0 && (
               <tr>
@@ -242,6 +265,17 @@ export function ProductsPage() {
           </tbody>
         </table>
       )}
+
+      <ConfirmDialog
+        open={confirmingDeactivate !== null}
+        title={t('products.confirmDeactivateTitle')}
+        message={confirmingDeactivate ? t('products.confirmDeactivateMessage', { name: confirmingDeactivate.name }) : ''}
+        confirmLabel={t('common.deactivate')}
+        danger
+        busy={togglingId !== null}
+        onConfirm={() => confirmingDeactivate && setActive(confirmingDeactivate, false)}
+        onCancel={() => setConfirmingDeactivate(null)}
+      />
     </div>
   );
 }

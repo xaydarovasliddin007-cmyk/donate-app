@@ -4,6 +4,8 @@ import type { Provider } from '../api/types';
 import { useAsync } from '../lib/useAsync';
 import { formatDate } from '../lib/money';
 import { StatusBadge } from '../components/StatusBadge';
+import { ActiveBadge } from '../components/ActiveBadge';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 import { SkeletonRows } from '../components/SkeletonRows';
 import { useToast } from '../components/Toast';
 import { useLocale } from '../i18n/LocaleContext';
@@ -13,16 +15,18 @@ export function ProvidersPage() {
   const { showError } = useToast();
   const { data, loading, error, reload } = useAsync(() => api.get<{ providers: Provider[] }>('/admin/providers'), []);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [confirmingDeactivate, setConfirmingDeactivate] = useState<Provider | null>(null);
 
   function successRateLabel(rate: number | null): string {
     if (rate === null) return t('providers.noAttempts');
     return `${(rate * 100).toFixed(1)}%`;
   }
 
-  async function toggleActive(provider: Provider) {
+  async function setActive(provider: Provider, isActive: boolean) {
     setTogglingId(provider.id);
     try {
-      await api.patch(`/admin/providers/${provider.id}`, { isActive: !provider.isActive });
+      await api.patch(`/admin/providers/${provider.id}`, { isActive });
+      setConfirmingDeactivate(null);
       reload();
     } catch (err) {
       showError(err instanceof ApiError ? err.message : t('providers.statusFailed'));
@@ -77,7 +81,9 @@ export function ProvidersPage() {
                 <td>{provider.code}</td>
                 <td>{provider.name}</td>
                 <td>{provider.type}</td>
-                <td>{provider.isActive ? t('common.active') : t('common.inactive')}</td>
+                <td>
+                  <ActiveBadge active={provider.isActive} />
+                </td>
                 <td>
                   <StatusBadge status={provider.healthStatus} />
                 </td>
@@ -94,7 +100,7 @@ export function ProvidersPage() {
                   <button
                     className="btn btn-secondary"
                     disabled={togglingId === provider.id}
-                    onClick={() => toggleActive(provider)}
+                    onClick={() => (provider.isActive ? setConfirmingDeactivate(provider) : setActive(provider, true))}
                   >
                     {provider.isActive ? t('common.deactivate') : t('common.activate')}
                   </button>
@@ -111,6 +117,17 @@ export function ProvidersPage() {
           </tbody>
         </table>
       )}
+
+      <ConfirmDialog
+        open={confirmingDeactivate !== null}
+        title={t('providers.confirmDeactivateTitle')}
+        message={confirmingDeactivate ? t('providers.confirmDeactivateMessage', { name: confirmingDeactivate.name }) : ''}
+        confirmLabel={t('common.deactivate')}
+        danger
+        busy={togglingId !== null}
+        onConfirm={() => confirmingDeactivate && setActive(confirmingDeactivate, false)}
+        onCancel={() => setConfirmingDeactivate(null)}
+      />
     </div>
   );
 }

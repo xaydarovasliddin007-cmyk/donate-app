@@ -4,6 +4,7 @@ import { api } from '../api/client';
 import type { UserListItem } from '../api/types';
 import { useAsync } from '../lib/useAsync';
 import { formatDate } from '../lib/money';
+import { StatusBadge } from '../components/StatusBadge';
 import { SkeletonRows } from '../components/SkeletonRows';
 import { useLocale } from '../i18n/LocaleContext';
 
@@ -90,7 +91,9 @@ export function UsersPage() {
                   <td>{user.email ?? user.phone ?? '—'}</td>
                   <td>{user.displayName ?? '—'}</td>
                   <td>{user.role}</td>
-                  <td>{user.status}</td>
+                  <td>
+                    <StatusBadge status={user.status} />
+                  </td>
                   <td>{user._count.orders}</td>
                   <td>{formatDate(user.createdAt)}</td>
                 </tr>

@@ -109,6 +109,8 @@ const en: Dict = {
   'gameServers.fieldsRequired': 'Name and code are required',
   'gameServers.createFailed': 'Could not create server',
   'gameServers.updateFailed': 'Could not update server',
+  'gameServers.confirmDeactivateTitle': 'Deactivate this server?',
+  'gameServers.confirmDeactivateMessage': '{name} will no longer be selectable when buyers check out.',
 
   // users
   'users.title': 'Users',
@@ -241,6 +243,8 @@ const en: Dict = {
   'products.createFailed': 'Could not create product',
   'products.priceFailed': 'Could not update price',
   'products.statusFailed': 'Could not update product status',
+  'products.confirmDeactivateTitle': 'Deactivate this product?',
+  'products.confirmDeactivateMessage': '{name} will no longer be purchasable.',
 
   // providers
   'providers.title': 'Providers',
@@ -258,6 +262,8 @@ const en: Dict = {
   'providers.attemptsSummary': '{ok} ok / {failed} failed / {total} total',
   'providers.empty': 'No providers configured',
   'providers.statusFailed': 'Could not update provider status',
+  'providers.confirmDeactivateTitle': 'Deactivate this provider?',
+  'providers.confirmDeactivateMessage': '{name} will stop receiving new orders.',
 
   // receiving methods
   'receivingMethods.title': 'Receiving methods',
@@ -277,6 +283,9 @@ const en: Dict = {
   'receivingMethods.fieldsRequired': 'Card number and holder name are required',
   'receivingMethods.createFailed': 'Could not create receiving method',
   'receivingMethods.updateFailed': 'Could not update receiving method',
+  'receivingMethods.confirmDeactivateTitle': 'Deactivate this receiving card?',
+  'receivingMethods.confirmDeactivateMessage':
+    '{card} will stop being assigned to new top-up requests. Any pending request already using it keeps working until it expires.',
 
   // admins
   'admins.title': 'Admins',
@@ -415,6 +424,8 @@ const uz: Dict = {
   'gameServers.fieldsRequired': 'Nomi va kodi talab qilinadi',
   'gameServers.createFailed': "Serverni yaratib bo'lmadi",
   'gameServers.updateFailed': "Serverni yangilab bo'lmadi",
+  'gameServers.confirmDeactivateTitle': 'Bu serverni faolsizlantirasizmi?',
+  'gameServers.confirmDeactivateMessage': "{name} endi xaridorlar uchun tanlab bo'lmaydi.",
 
   'users.title': 'Foydalanuvchilar',
   'users.searchPlaceholder': "UZDONATE ID, email, telefon yoki ism bo'yicha qidiring",
@@ -540,6 +551,8 @@ const uz: Dict = {
   'products.createFailed': "Mahsulotni yaratib bo'lmadi",
   'products.priceFailed': "Narxni yangilab bo'lmadi",
   'products.statusFailed': "Mahsulot holatini yangilab bo'lmadi",
+  'products.confirmDeactivateTitle': 'Bu mahsulotni faolsizlantirasizmi?',
+  'products.confirmDeactivateMessage': "{name} endi sotib olinmaydi.",
 
   'providers.title': 'Provayderlar',
   'providers.blurb':
@@ -556,6 +569,8 @@ const uz: Dict = {
   'providers.attemptsSummary': '{ok} muvaffaqiyatli / {failed} xato / {total} jami',
   'providers.empty': 'Provayderlar sozlanmagan',
   'providers.statusFailed': "Provayder holatini yangilab bo'lmadi",
+  'providers.confirmDeactivateTitle': 'Bu provayderni faolsizlantirasizmi?',
+  'providers.confirmDeactivateMessage': '{name} endi yangi buyurtmalar qabul qilmaydi.',
 
   'receivingMethods.title': 'Qabul usullari',
   'receivingMethods.blurb':
@@ -574,6 +589,9 @@ const uz: Dict = {
   'receivingMethods.fieldsRequired': "Karta raqami va egasining ismi shart",
   'receivingMethods.createFailed': "Qabul usulini yaratib bo'lmadi",
   'receivingMethods.updateFailed': "Qabul usulini yangilab bo'lmadi",
+  'receivingMethods.confirmDeactivateTitle': 'Bu qabul kartasini faolsizlantirasizmi?',
+  'receivingMethods.confirmDeactivateMessage':
+    "{card} endi yangi to'ldirish so'rovlariga tayinlanmaydi. Hozir shu kartada turgan so'rovlar muddati tugagunicha ishlashda davom etadi.",
 
   'admins.title': 'Adminlar',
   'admins.blurb': "Faqat SUPER_ADMIN uchun. Bu yerdagi har bir o'zgarish audit jurnaliga yoziladi.",
@@ -710,6 +728,8 @@ const ru: Dict = {
   'gameServers.fieldsRequired': 'Название и код обязательны',
   'gameServers.createFailed': 'Не удалось создать сервер',
   'gameServers.updateFailed': 'Не удалось обновить сервер',
+  'gameServers.confirmDeactivateTitle': 'Деактивировать этот сервер?',
+  'gameServers.confirmDeactivateMessage': '{name} больше нельзя будет выбрать при оформлении заказа.',
 
   'users.title': 'Пользователи',
   'users.searchPlaceholder': 'Поиск по UZDONATE ID, email, телефону или имени',
@@ -835,6 +855,8 @@ const ru: Dict = {
   'products.createFailed': 'Не удалось создать товар',
   'products.priceFailed': 'Не удалось обновить цену',
   'products.statusFailed': 'Не удалось обновить статус товара',
+  'products.confirmDeactivateTitle': 'Деактивировать этот товар?',
+  'products.confirmDeactivateMessage': '{name} больше нельзя будет купить.',
 
   'providers.title': 'Провайдеры',
   'providers.blurb':
@@ -851,6 +873,8 @@ const ru: Dict = {
   'providers.attemptsSummary': '{ok} успешно / {failed} ошибок / {total} всего',
   'providers.empty': 'Провайдеры не настроены',
   'providers.statusFailed': 'Не удалось обновить статус провайдера',
+  'providers.confirmDeactivateTitle': 'Деактивировать этого провайдера?',
+  'providers.confirmDeactivateMessage': '{name} перестанет получать новые заказы.',
 
   'receivingMethods.title': 'Способы приёма',
   'receivingMethods.blurb':
@@ -869,6 +893,9 @@ const ru: Dict = {
   'receivingMethods.fieldsRequired': 'Номер карты и имя владельца обязательны',
   'receivingMethods.createFailed': 'Не удалось создать способ приёма',
   'receivingMethods.updateFailed': 'Не удалось обновить способ приёма',
+  'receivingMethods.confirmDeactivateTitle': 'Деактивировать эту карту приёма?',
+  'receivingMethods.confirmDeactivateMessage':
+    '{card} больше не будет назначаться на новые заявки пополнения. Уже назначенные на неё заявки продолжат работать до истечения срока.',
 
   'admins.title': 'Администраторы',
   'admins.blurb': 'Только для SUPER_ADMIN. Каждое изменение здесь записывается в журнал аудита.',

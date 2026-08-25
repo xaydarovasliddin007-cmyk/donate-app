@@ -3,6 +3,8 @@ import { api, ApiError } from '../api/client';
 import type { ReceivingMethod } from '../api/types';
 import { useAsync } from '../lib/useAsync';
 import { useToast } from '../components/Toast';
+import { ActiveBadge } from '../components/ActiveBadge';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 import { SkeletonRows } from '../components/SkeletonRows';
 import { useLocale } from '../i18n/LocaleContext';
 
@@ -46,11 +48,13 @@ export function ReceivingMethodsPage() {
   }
 
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [confirmingDeactivate, setConfirmingDeactivate] = useState<ReceivingMethod | null>(null);
 
-  async function toggleActive(method: ReceivingMethod) {
+  async function setActive(method: ReceivingMethod, isActive: boolean) {
     setTogglingId(method.id);
     try {
-      await api.patch(`/admin/receiving-methods/${method.id}`, { isActive: !method.isActive });
+      await api.patch(`/admin/receiving-methods/${method.id}`, { isActive });
+      setConfirmingDeactivate(null);
       reload();
     } catch (err) {
       showError(err instanceof ApiError ? err.message : t('receivingMethods.updateFailed'));
@@ -125,12 +129,14 @@ export function ReceivingMethodsPage() {
                 <td>{method.cardNumberMasked}</td>
                 <td>{method.cardHolderName}</td>
                 <td>{method.bankName ?? '—'}</td>
-                <td>{method.isActive ? t('common.active') : t('common.inactive')}</td>
+                <td>
+                  <ActiveBadge active={method.isActive} />
+                </td>
                 <td>
                   <button
                     className="btn btn-secondary"
                     disabled={togglingId === method.id}
-                    onClick={() => toggleActive(method)}
+                    onClick={() => (method.isActive ? setConfirmingDeactivate(method) : setActive(method, true))}
                   >
                     {method.isActive ? t('common.deactivate') : t('common.activate')}
                   </button>
@@ -147,6 +153,21 @@ export function ReceivingMethodsPage() {
           </tbody>
         </table>
       )}
+
+      <ConfirmDialog
+        open={confirmingDeactivate !== null}
+        title={t('receivingMethods.confirmDeactivateTitle')}
+        message={
+          confirmingDeactivate
+            ? t('receivingMethods.confirmDeactivateMessage', { card: confirmingDeactivate.cardNumberMasked })
+            : ''
+        }
+        confirmLabel={t('common.deactivate')}
+        danger
+        busy={togglingId !== null}
+        onConfirm={() => confirmingDeactivate && setActive(confirmingDeactivate, false)}
+        onCancel={() => setConfirmingDeactivate(null)}
+      />
     </div>
   );
 }
