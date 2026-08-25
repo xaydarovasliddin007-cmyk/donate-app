@@ -793,6 +793,21 @@ class AppLocalizationsRu extends AppLocalizations {
   String get securitySessionRevokeButton => 'Выйти';
 
   @override
+  String get securityDeviceAndroid => 'Android устройство';
+
+  @override
+  String get securityDeviceIphone => 'iPhone';
+
+  @override
+  String get securityDeviceWindows => 'Windows';
+
+  @override
+  String get securityDeviceMac => 'Mac';
+
+  @override
+  String get securityDeviceUnknown => 'Неизвестное устройство';
+
+  @override
   String get securityLogoutAllButton => 'Выйти со всех устройств';
 
   @override

@@ -2,10 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/errors/failure.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_motion.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/reduce_motion_controller.dart';
 import '../../../core/widgets/empty_view.dart';
 import '../../../core/widgets/error_view.dart';
 import '../../../core/widgets/skeletons.dart';
+import '../../../core/widgets/staggered_entrance.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../application/notifications_providers.dart';
 import '../domain/app_notification.dart';
@@ -17,6 +21,7 @@ class NotificationsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final resultAsync = ref.watch(notificationsProvider);
+    final reduceMotion = ref.watch(reduceMotionProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -60,12 +65,29 @@ class NotificationsScreen extends ConsumerWidget {
             if (result.notifications.isEmpty) {
               return EmptyView(title: l10n.notificationsEmpty);
             }
-            return ListView.separated(
-              padding: const EdgeInsets.all(AppSpacing.lg),
-              itemCount: result.notifications.length,
-              separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
-              itemBuilder: (context, index) =>
-                  _NotificationTile(notification: result.notifications[index]),
+            return TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0, end: 1),
+              duration: reduceMotion ? Duration.zero : AppMotion.entrance,
+              curve: AppMotion.standard,
+              builder: (context, t, child) => Opacity(
+                opacity: t,
+                child: Transform.translate(
+                  offset: Offset(0, (1 - t) * 12),
+                  child: child,
+                ),
+              ),
+              child: ListView.separated(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                itemCount: result.notifications.length,
+                separatorBuilder: (_, _) =>
+                    const SizedBox(height: AppSpacing.sm),
+                itemBuilder: (context, index) => StaggeredEntrance(
+                  index: index,
+                  child: _NotificationTile(
+                    notification: result.notifications[index],
+                  ),
+                ),
+              ),
             );
           },
         ),
@@ -89,9 +111,23 @@ class _NotificationTile extends ConsumerWidget {
     NotificationKind.promotion => Icons.campaign_outlined,
   };
 
+  /// A semantic tone per notification kind (success/failure/neutral) rather
+  /// than one flat grey icon for everything — makes the list scannable at a
+  /// glance instead of needing to read every title to tell good news from
+  /// bad.
+  Color _iconColor(ThemeData theme) => switch (notification.type) {
+    NotificationKind.orderSuccess ||
+    NotificationKind.paymentSuccess ||
+    NotificationKind.topupSuccess => AppColors.success,
+    NotificationKind.orderFailed => AppColors.danger,
+    NotificationKind.refund || NotificationKind.security => AppColors.warning,
+    NotificationKind.promotion => theme.colorScheme.primary,
+  };
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final iconColor = _iconColor(theme);
 
     return InkWell(
       borderRadius: BorderRadius.circular(AppRadius.md),
@@ -115,7 +151,16 @@ class _NotificationTile extends ConsumerWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(_icon, color: theme.colorScheme.onSurfaceVariant),
+            Container(
+              width: 36,
+              height: 36,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: iconColor.withValues(alpha: 0.14),
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+              ),
+              child: Icon(_icon, size: 18, color: iconColor),
+            ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
               child: Column(

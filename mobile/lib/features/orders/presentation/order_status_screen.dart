@@ -1,10 +1,13 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../core/errors/failure.dart';
+import '../../../core/theme/app_motion.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/reduce_motion_controller.dart';
 import '../../../core/utils/money_formatter.dart';
 import '../../../core/utils/support_launcher.dart';
 import '../../../core/widgets/error_view.dart';
@@ -68,6 +71,7 @@ class _OrderStatusScreenState extends ConsumerState<OrderStatusScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final orderAsync = ref.watch(orderByIdProvider(widget.orderId));
+    final reduceMotion = ref.watch(reduceMotionProvider);
 
     ref.listen(orderByIdProvider(widget.orderId), (previous, next) {
       next.whenData((order) => _schedulePoll(order.status));
@@ -93,72 +97,42 @@ class _OrderStatusScreenState extends ConsumerState<OrderStatusScreen> {
         data: (order) => RefreshIndicator(
           onRefresh: () async =>
               ref.invalidate(orderByIdProvider(widget.orderId)),
-          child: ListView(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            children: [
-              if (order.status == OrderStatus.completed) ...[
-                const Center(child: SuccessCheckmark(size: 56)),
-                const SizedBox(height: AppSpacing.md),
-              ],
-              OrderProgressTimeline(status: order.status),
-              const SizedBox(height: AppSpacing.lg),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(AppSpacing.md),
-                  child: Column(
-                    children: [
-                      _Row(
-                        label: l10n.orderNumberLabel,
-                        value: order.orderNumber,
-                      ),
-                      _Row(
-                        label: l10n.checkoutGameLabel,
-                        value: order.game.name,
-                      ),
-                      _Row(
-                        label: l10n.checkoutProductLabel,
-                        value: order.items.first.productName,
-                      ),
-                      _Row(
-                        label: l10n.orderPlayerIdLabel,
-                        value: order.playerId,
-                      ),
-                      _Row(
-                        label: l10n.orderAmountLabel,
-                        value: formatMoney(
-                          order.amountMinor,
-                          order.currency,
-                          Localizations.localeOf(context).toString(),
-                        ),
-                      ),
-                      _Row(
-                        label: l10n.orderCreatedAtLabel,
-                        value: DateFormat.yMd().add_Hm().format(
-                          order.createdAt.toLocal(),
-                        ),
-                      ),
-                      if (order.failureReason != null)
-                        _Row(
-                          label: l10n.orderFailureReasonLabel,
-                          value: order.failureReason!,
-                        ),
-                    ],
+          child: TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0, end: 1),
+            duration: reduceMotion ? Duration.zero : AppMotion.entrance,
+            curve: AppMotion.standard,
+            builder: (context, t, child) => Opacity(
+              opacity: t,
+              child: Transform.translate(
+                offset: Offset(0, (1 - t) * 12),
+                child: child,
+              ),
+            ),
+            child: ListView(
+              padding: const EdgeInsets.all(AppSpacing.lg),
+              children: [
+                if (order.status == OrderStatus.completed) ...[
+                  const Center(child: SuccessCheckmark(size: 56)),
+                  const SizedBox(height: AppSpacing.md),
+                ],
+                OrderProgressTimeline(status: order.status),
+                const SizedBox(height: AppSpacing.lg),
+                _OrderDetailCard(order: order),
+                if (kDebugMode &&
+                    order.status == OrderStatus.pending &&
+                    order.latestPaymentId != null)
+                  _DevPaymentSimulator(
+                    orderId: order.id,
+                    paymentId: order.latestPaymentId!,
                   ),
+                const SizedBox(height: AppSpacing.lg),
+                OutlinedButton.icon(
+                  onPressed: () => _contactSupport(order),
+                  icon: const Icon(Icons.support_agent_outlined),
+                  label: Text(l10n.orderContactSupportButton),
                 ),
-              ),
-              if (order.status == OrderStatus.pending &&
-                  order.latestPaymentId != null)
-                _DevPaymentSimulator(
-                  orderId: order.id,
-                  paymentId: order.latestPaymentId!,
-                ),
-              const SizedBox(height: AppSpacing.lg),
-              OutlinedButton.icon(
-                onPressed: () => _contactSupport(order),
-                icon: const Icon(Icons.support_agent_outlined),
-                label: Text(l10n.orderContactSupportButton),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -166,29 +140,131 @@ class _OrderStatusScreenState extends ConsumerState<OrderStatusScreen> {
   }
 }
 
+/// Bordered/shadowed detail card matching the rest of the app's card
+/// language (order summary at checkout, saved games, etc.) — replaces a
+/// plain Material [Card] that looked flat and generic next to everything
+/// else on this screen.
+class _OrderDetailCard extends StatelessWidget {
+  const _OrderDetailCard({required this.order});
+
+  final Order order;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withValues(
+            alpha: isDark ? 0.4 : 0.7,
+          ),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.28 : 0.06),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          _Row(label: l10n.orderNumberLabel, value: order.orderNumber),
+          _Row(label: l10n.checkoutGameLabel, value: order.game.name),
+          _Row(
+            label: l10n.checkoutProductLabel,
+            value: order.items.first.productName,
+          ),
+          _Row(label: l10n.orderPlayerIdLabel, value: order.playerId),
+          _Row(
+            label: l10n.orderAmountLabel,
+            value: formatMoney(
+              order.amountMinor,
+              order.currency,
+              Localizations.localeOf(context).toString(),
+            ),
+            emphasize: true,
+          ),
+          _Row(
+            label: l10n.orderCreatedAtLabel,
+            value: DateFormat.yMd().add_Hm().format(order.createdAt.toLocal()),
+            showDivider: order.failureReason == null,
+          ),
+          if (order.failureReason != null)
+            _Row(
+              label: l10n.orderFailureReasonLabel,
+              value: order.failureReason!,
+              valueColor: theme.colorScheme.error,
+              showDivider: false,
+            ),
+        ],
+      ),
+    );
+  }
+}
+
 class _Row extends StatelessWidget {
-  const _Row({required this.label, required this.value});
+  const _Row({
+    required this.label,
+    required this.value,
+    this.emphasize = false,
+    this.valueColor,
+    this.showDivider = true,
+  });
 
   final String label;
   final String value;
+  final bool emphasize;
+  final Color? valueColor;
+  final bool showDivider;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                label,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              Flexible(
+                child: Text(
+                  value,
+                  textAlign: TextAlign.end,
+                  style:
+                      (emphasize
+                              ? theme.textTheme.titleSmall
+                              : theme.textTheme.bodyMedium)
+                          ?.copyWith(
+                            fontWeight: emphasize
+                                ? FontWeight.w800
+                                : FontWeight.w600,
+                            color: valueColor,
+                          ),
+                ),
+              ),
+            ],
           ),
-          Flexible(child: Text(value, textAlign: TextAlign.end)),
-        ],
-      ),
+        ),
+        if (showDivider)
+          Divider(
+            height: 1,
+            color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
+          ),
+      ],
     );
   }
 }

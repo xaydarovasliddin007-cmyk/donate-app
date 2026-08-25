@@ -798,6 +798,21 @@ class AppLocalizationsUz extends AppLocalizations {
   String get securitySessionRevokeButton => 'Chiqish';
 
   @override
+  String get securityDeviceAndroid => 'Android qurilma';
+
+  @override
+  String get securityDeviceIphone => 'iPhone';
+
+  @override
+  String get securityDeviceWindows => 'Windows';
+
+  @override
+  String get securityDeviceMac => 'Mac';
+
+  @override
+  String get securityDeviceUnknown => 'Noma\'lum qurilma';
+
+  @override
   String get securityLogoutAllButton => 'Barcha qurilmalardan chiqish';
 
   @override

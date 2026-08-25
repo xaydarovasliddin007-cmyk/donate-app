@@ -1580,6 +1580,36 @@ abstract class AppLocalizations {
   /// **'Chiqish'**
   String get securitySessionRevokeButton;
 
+  /// No description provided for @securityDeviceAndroid.
+  ///
+  /// In uz, this message translates to:
+  /// **'Android qurilma'**
+  String get securityDeviceAndroid;
+
+  /// No description provided for @securityDeviceIphone.
+  ///
+  /// In uz, this message translates to:
+  /// **'iPhone'**
+  String get securityDeviceIphone;
+
+  /// No description provided for @securityDeviceWindows.
+  ///
+  /// In uz, this message translates to:
+  /// **'Windows'**
+  String get securityDeviceWindows;
+
+  /// No description provided for @securityDeviceMac.
+  ///
+  /// In uz, this message translates to:
+  /// **'Mac'**
+  String get securityDeviceMac;
+
+  /// No description provided for @securityDeviceUnknown.
+  ///
+  /// In uz, this message translates to:
+  /// **'Noma\'lum qurilma'**
+  String get securityDeviceUnknown;
+
   /// No description provided for @securityLogoutAllButton.
   ///
   /// In uz, this message translates to:
