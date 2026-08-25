@@ -341,9 +341,15 @@ class _SessionTile extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
+        color: session.isCurrent
+            ? theme.colorScheme.primary.withValues(alpha: 0.06)
+            : theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: theme.colorScheme.outlineVariant),
+        border: Border.all(
+          color: session.isCurrent
+              ? theme.colorScheme.primary.withValues(alpha: 0.4)
+              : theme.colorScheme.outlineVariant,
+        ),
       ),
       child: Row(
         children: [
@@ -352,15 +358,19 @@ class _SessionTile extends ConsumerWidget {
             height: 36,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHighest.withValues(
-                alpha: 0.6,
-              ),
+              color: session.isCurrent
+                  ? theme.colorScheme.primary.withValues(alpha: 0.16)
+                  : theme.colorScheme.surfaceContainerHighest.withValues(
+                      alpha: 0.6,
+                    ),
               borderRadius: BorderRadius.circular(AppRadius.sm),
             ),
             child: Icon(
               Icons.devices_rounded,
               size: 18,
-              color: theme.colorScheme.onSurfaceVariant,
+              color: session.isCurrent
+                  ? theme.colorScheme.primary
+                  : theme.colorScheme.onSurfaceVariant,
             ),
           ),
           const SizedBox(width: AppSpacing.md),
@@ -369,9 +379,37 @@ class _SessionTile extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  _deviceLabel(l10n, session.userAgent),
-                  style: theme.textTheme.titleSmall,
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        _deviceLabel(l10n, session.userAgent),
+                        style: theme.textTheme.titleSmall,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (session.isCurrent) ...[
+                      const SizedBox(width: AppSpacing.xs),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.primary,
+                          borderRadius: BorderRadius.circular(AppRadius.pill),
+                        ),
+                        child: Text(
+                          l10n.securitySessionCurrentBadge,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: theme.colorScheme.onPrimary,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -383,13 +421,19 @@ class _SessionTile extends ConsumerWidget {
               ],
             ),
           ),
-          TextButton(
-            onPressed: () async {
-              await ref.read(authApiProvider).revokeSession(session.id);
-              ref.invalidate(sessionsProvider);
-            },
-            child: Text(l10n.securitySessionRevokeButton),
-          ),
+          // Revoking your own current session here — rather than the
+          // dedicated "Log out" action — would silently break the app the
+          // moment its access token expires, with no warning at the point
+          // of the tap. Simplest safe behavior: only offer it for every
+          // *other* session.
+          if (!session.isCurrent)
+            TextButton(
+              onPressed: () async {
+                await ref.read(authApiProvider).revokeSession(session.id);
+                ref.invalidate(sessionsProvider);
+              },
+              child: Text(l10n.securitySessionRevokeButton),
+            ),
         ],
       ),
     );

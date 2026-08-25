@@ -96,7 +96,7 @@ export async function authRoutes(app: FastifyInstance) {
   });
 
   app.get('/auth/sessions', { preHandler: authenticate }, async (request) => {
-    const sessions = await authService.listSessions(ctx, request.currentUser!.id);
+    const sessions = await authService.listSessions(ctx, request.currentUser!.id, request.currentUser!.sid);
     return { sessions };
   });
 

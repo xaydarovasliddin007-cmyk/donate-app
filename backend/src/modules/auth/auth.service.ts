@@ -83,11 +83,10 @@ async function issueTokenPair(
   user: { id: string; role: string },
   meta: { userAgent?: string; ipAddress?: string },
 ): Promise<TokenPair> {
-  const accessToken = ctx.signAccessToken({ sub: user.id, role: user.role });
   const { token: refreshToken, tokenHash } = generateRefreshToken();
   const expiresAt = new Date(Date.now() + parseDurationMs(env.JWT_REFRESH_TTL));
 
-  await ctx.prisma.refreshToken.create({
+  const session = await ctx.prisma.refreshToken.create({
     data: {
       userId: user.id,
       tokenHash,
@@ -96,6 +95,13 @@ async function issueTokenPair(
       ipAddress: meta.ipAddress,
     },
   });
+
+  // Embedding the refresh token row's own id as `sid` is what lets the
+  // security center mark "this is the device you're looking at right now"
+  // — refresh rotates to a new row (and a new access token carrying its
+  // id) every time, so the client's latest access token always carries
+  // the sid of its latest, still-live refresh token row.
+  const accessToken = ctx.signAccessToken({ sub: user.id, role: user.role, sid: session.id });
 
   return { accessToken, refreshToken };
 }
@@ -358,13 +364,13 @@ export async function logout(ctx: AuthContext, refreshTokenValue: string) {
  * already carries the device fingerprint (`userAgent`/`ipAddress`) captured
  * at login/refresh time. The raw token hash is never returned.
  */
-export async function listSessions(ctx: AuthContext, userId: string) {
+export async function listSessions(ctx: AuthContext, userId: string, currentSessionId?: string) {
   const sessions = await ctx.prisma.refreshToken.findMany({
     where: { userId, revokedAt: null, expiresAt: { gt: new Date() } },
     orderBy: { createdAt: 'desc' },
     select: { id: true, userAgent: true, ipAddress: true, createdAt: true, expiresAt: true },
   });
-  return sessions;
+  return sessions.map((s) => ({ ...s, isCurrent: s.id === currentSessionId }));
 }
 
 export async function revokeSession(ctx: AuthContext, userId: string, sessionId: string) {
