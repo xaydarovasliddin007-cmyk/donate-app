@@ -10,7 +10,6 @@ import '../../../../core/widgets/card_sheen.dart';
 import '../../../../core/widgets/pressable_scale.dart';
 import '../../../../core/widgets/skeleton_box.dart';
 import '../../../../l10n/generated/app_localizations.dart';
-import '../../../auth/application/auth_controller.dart';
 import '../../application/wallet_providers.dart';
 
 class WalletBalanceCard extends ConsumerStatefulWidget {
@@ -30,7 +29,6 @@ class _WalletBalanceCardState extends ConsumerState<WalletBalanceCard> {
     final isDark = theme.brightness == Brightness.dark;
     final localeName = Localizations.localeOf(context).toString();
     final walletAsync = ref.watch(walletProvider);
-    final user = ref.watch(authControllerProvider).value?.user;
     final gradient = isDark
         ? AppColors.heroGradientDark
         : AppColors.heroGradientLight;
@@ -162,33 +160,6 @@ class _WalletBalanceCardState extends ConsumerState<WalletBalanceCard> {
                                         ),
                                   ),
                                 ),
-                        ),
-                        const SizedBox(height: AppSpacing.md),
-                        Row(
-                          children: [
-                            Text(
-                              user?.publicId ?? '',
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: Colors.white,
-                                letterSpacing: 0,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            if (user?.displayName != null) ...[
-                              const SizedBox(width: AppSpacing.sm),
-                              Expanded(
-                                child: Text(
-                                  user!.displayName!,
-                                  textAlign: TextAlign.end,
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: Colors.white70,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
-                          ],
                         ),
                       ],
                     ),
