@@ -159,6 +159,18 @@
   "checkoutInsufficientBalanceMessage": "Hamyoningizda mablag' yetarli emas",
   "checkoutTopUpNowButton": "Hamyonni to'ldirish",
 
+  "purchaseScreenTitle": "Sotib olish",
+  "purchaseStepData": "Ma'lumotlar",
+  "purchaseStepPayment": "To'lov",
+  "purchaseStepConfirmation": "Tasdiqlash",
+  "purchaseValidatingMessage": "Tekshirilmoqda…",
+  "purchaseFoundMessage": "Topildi: {name}",
+  "@purchaseFoundMessage": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "purchaseAmountToPayLabel": "To'lanadigan summa",
+  "purchasePayButton": "To'lash",
+
   "paymentDevSimulateTitle": "Test to'lovi (faqat dasturchilar uchun)",
   "paymentDevSimulateMessage": "Haqiqiy to'lov provayderi hali ulanmagan. To'lov natijasini qo'lda tanlang:",
   "paymentDevSimulateSuccessButton": "Muvaffaqiyatli deb belgilash",

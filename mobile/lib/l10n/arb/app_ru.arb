@@ -155,6 +155,18 @@
   "checkoutInsufficientBalanceMessage": "Недостаточно средств на кошельке",
   "checkoutTopUpNowButton": "Пополнить кошелёк",
 
+  "purchaseScreenTitle": "Купить",
+  "purchaseStepData": "Данные",
+  "purchaseStepPayment": "Оплата",
+  "purchaseStepConfirmation": "Подтверждение",
+  "purchaseValidatingMessage": "Проверяем…",
+  "purchaseFoundMessage": "Найдено: {name}",
+  "@purchaseFoundMessage": {
+    "placeholders": { "name": { "type": "String" } }
+  },
+  "purchaseAmountToPayLabel": "К оплате",
+  "purchasePayButton": "Оплатить",
+
   "paymentDevSimulateTitle": "Тестовый платёж (только для разработки)",
   "paymentDevSimulateMessage": "Реальный платёжный провайдер ещё не подключён. Выберите результат оплаты вручную:",
   "paymentDevSimulateSuccessButton": "Отметить как успешный",

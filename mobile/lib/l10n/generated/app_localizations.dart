@@ -890,6 +890,54 @@ abstract class AppLocalizations {
   /// **'Hamyonni to\'ldirish'**
   String get checkoutTopUpNowButton;
 
+  /// No description provided for @purchaseScreenTitle.
+  ///
+  /// In uz, this message translates to:
+  /// **'Sotib olish'**
+  String get purchaseScreenTitle;
+
+  /// No description provided for @purchaseStepData.
+  ///
+  /// In uz, this message translates to:
+  /// **'Ma\'lumotlar'**
+  String get purchaseStepData;
+
+  /// No description provided for @purchaseStepPayment.
+  ///
+  /// In uz, this message translates to:
+  /// **'To\'lov'**
+  String get purchaseStepPayment;
+
+  /// No description provided for @purchaseStepConfirmation.
+  ///
+  /// In uz, this message translates to:
+  /// **'Tasdiqlash'**
+  String get purchaseStepConfirmation;
+
+  /// No description provided for @purchaseValidatingMessage.
+  ///
+  /// In uz, this message translates to:
+  /// **'Tekshirilmoqda…'**
+  String get purchaseValidatingMessage;
+
+  /// No description provided for @purchaseFoundMessage.
+  ///
+  /// In uz, this message translates to:
+  /// **'Topildi: {name}'**
+  String purchaseFoundMessage(String name);
+
+  /// No description provided for @purchaseAmountToPayLabel.
+  ///
+  /// In uz, this message translates to:
+  /// **'To\'lanadigan summa'**
+  String get purchaseAmountToPayLabel;
+
+  /// No description provided for @purchasePayButton.
+  ///
+  /// In uz, this message translates to:
+  /// **'To\'lash'**
+  String get purchasePayButton;
+
   /// No description provided for @paymentDevSimulateTitle.
   ///
   /// In uz, this message translates to:

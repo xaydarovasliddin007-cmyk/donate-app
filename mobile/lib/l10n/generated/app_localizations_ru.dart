@@ -429,6 +429,32 @@ class AppLocalizationsRu extends AppLocalizations {
   String get checkoutTopUpNowButton => 'Пополнить кошелёк';
 
   @override
+  String get purchaseScreenTitle => 'Купить';
+
+  @override
+  String get purchaseStepData => 'Данные';
+
+  @override
+  String get purchaseStepPayment => 'Оплата';
+
+  @override
+  String get purchaseStepConfirmation => 'Подтверждение';
+
+  @override
+  String get purchaseValidatingMessage => 'Проверяем…';
+
+  @override
+  String purchaseFoundMessage(String name) {
+    return 'Найдено: $name';
+  }
+
+  @override
+  String get purchaseAmountToPayLabel => 'К оплате';
+
+  @override
+  String get purchasePayButton => 'Оплатить';
+
+  @override
   String get paymentDevSimulateTitle =>
       'Тестовый платёж (только для разработки)';
 

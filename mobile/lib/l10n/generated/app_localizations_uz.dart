@@ -430,6 +430,32 @@ class AppLocalizationsUz extends AppLocalizations {
   String get checkoutTopUpNowButton => 'Hamyonni to\'ldirish';
 
   @override
+  String get purchaseScreenTitle => 'Sotib olish';
+
+  @override
+  String get purchaseStepData => 'Ma\'lumotlar';
+
+  @override
+  String get purchaseStepPayment => 'To\'lov';
+
+  @override
+  String get purchaseStepConfirmation => 'Tasdiqlash';
+
+  @override
+  String get purchaseValidatingMessage => 'Tekshirilmoqda…';
+
+  @override
+  String purchaseFoundMessage(String name) {
+    return 'Topildi: $name';
+  }
+
+  @override
+  String get purchaseAmountToPayLabel => 'To\'lanadigan summa';
+
+  @override
+  String get purchasePayButton => 'To\'lash';
+
+  @override
   String get paymentDevSimulateTitle =>
       'Test to\'lovi (faqat dasturchilar uchun)';
 

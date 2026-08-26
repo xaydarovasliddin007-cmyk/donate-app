@@ -12,9 +12,9 @@ import '../../features/home/presentation/home_screen.dart';
 import '../../features/notifications/presentation/notifications_screen.dart';
 import '../../features/onboarding/presentation/onboarding_screen.dart';
 import '../../features/orders/presentation/checkout_screen.dart';
+import '../../features/orders/presentation/purchase_flow_screen.dart';
 import '../../features/orders/presentation/order_history_screen.dart';
 import '../../features/orders/presentation/order_status_screen.dart';
-import '../../features/orders/presentation/player_info_screen.dart';
 import '../../features/profile/presentation/profile_screen.dart';
 import '../../features/profile/presentation/security_center_screen.dart';
 import '../../features/splash/presentation/splash_screen.dart';
@@ -112,7 +112,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           final extra = state.extra! as Map<String, Object?>;
           return _fadeSlidePage(
             state,
-            PlayerInfoScreen(
+            PurchaseFlowScreen(
               game: extra['game']! as Game,
               product: extra['product']! as Product,
               serverCode: extra['serverCode'] as String?,

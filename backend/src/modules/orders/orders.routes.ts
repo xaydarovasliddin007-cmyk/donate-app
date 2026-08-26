@@ -1,9 +1,9 @@
 import type { FastifyInstance } from 'fastify';
 import { authenticate } from '../../middleware/authenticate.js';
 import { validateBody, validateQuery } from '../../lib/validate.js';
-import { createOrderSchema, listOrdersQuerySchema } from './orders.schemas.js';
+import { createOrderSchema, listOrdersQuerySchema, validatePlayerSchema } from './orders.schemas.js';
 import * as ordersService from './orders.service.js';
-import type { CreateOrderInput, ListOrdersQuery } from './orders.schemas.js';
+import type { CreateOrderInput, ListOrdersQuery, ValidatePlayerInput } from './orders.schemas.js';
 
 export async function ordersRoutes(app: FastifyInstance) {
   const ctx = { prisma: app.prisma };
@@ -15,6 +15,15 @@ export async function ordersRoutes(app: FastifyInstance) {
       const body = request.body as CreateOrderInput;
       const order = await ordersService.createOrder(ctx, request.currentUser!.id, body);
       return reply.status(201).send(order);
+    },
+  );
+
+  app.post(
+    '/orders/validate-player',
+    { preHandler: [authenticate, validateBody(validatePlayerSchema)] },
+    async (request) => {
+      const body = request.body as ValidatePlayerInput;
+      return ordersService.validatePlayer(ctx, body);
     },
   );
 

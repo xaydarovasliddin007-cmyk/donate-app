@@ -8,7 +8,7 @@ import { createNotification } from '../notifications/notifications.service.js';
 import { recordPlayerProfileFromOrder } from '../saved-games/saved-games.service.js';
 import * as walletService from '../wallet/wallet.service.js';
 import { assertTransition } from './order-state-machine.js';
-import type { CreateOrderInput } from './orders.schemas.js';
+import type { CreateOrderInput, ValidatePlayerInput } from './orders.schemas.js';
 
 interface OrderContext {
   prisma: PrismaClient;
@@ -171,6 +171,61 @@ export async function createOrder(ctx: OrderContext, userId: string, input: Crea
   );
 
   return toPublicOrder(order);
+}
+
+/**
+ * Pre-checkout "does this player ID exist" check for the purchase flow's
+ * Data step. Deliberately read-only — never creates or reserves anything —
+ * and uses the exact same game/server/product/provider resolution as
+ * createOrder() above so it's checking against the same adapter the real
+ * order would use. Callers should treat a thrown error (unknown game/
+ * server/product, no provider configured) the same as an inconclusive
+ * check rather than a hard block — the real gate is still validatePlayer()
+ * inside createOrder() itself, this is advisory UI feedback only.
+ */
+export async function validatePlayer(ctx: OrderContext, input: ValidatePlayerInput) {
+  const game = await ctx.prisma.game.findUnique({ where: { id: input.gameId } });
+  if (!game || game.availability !== 'ACTIVE') {
+    throw new NotFoundError('Game is not available for purchase');
+  }
+
+  const gameServerCount = await ctx.prisma.gameServer.count({ where: { gameId: game.id } });
+  let resolvedGameServerId: string | null = null;
+  if (gameServerCount > 0) {
+    if (!input.serverId) {
+      throw new ValidationError('serverId is required for this game');
+    }
+    const server = await ctx.prisma.gameServer.findUnique({
+      where: { gameId_code: { gameId: game.id, code: input.serverId } },
+    });
+    if (!server || !server.isActive) {
+      throw new ValidationError('Unknown or inactive server for this game');
+    }
+    resolvedGameServerId = server.id;
+  }
+
+  const product = await ctx.prisma.product.findFirst({
+    where: { id: input.productId, gameId: input.gameId, isActive: true, serverId: resolvedGameServerId },
+  });
+  if (!product) {
+    throw new NotFoundError('Product not found or unavailable');
+  }
+
+  const providerProduct = await ctx.prisma.providerProduct.findFirst({
+    where: { productId: product.id, isActive: true, provider: { isActive: true, type: 'TOPUP' } },
+    orderBy: { priority: 'asc' },
+    include: { provider: true },
+  });
+  if (!providerProduct) {
+    throw new NotFoundError('No fulfillment provider is currently configured for this product');
+  }
+
+  const adapter = getTopupProvider(providerProduct.provider.code);
+  return adapter.validatePlayer({
+    providerProductCode: providerProduct.providerProductCode,
+    playerId: input.playerId,
+    serverId: input.serverId,
+  });
 }
 
 export async function listOrders(ctx: OrderContext, userId: string, limit: number) {
