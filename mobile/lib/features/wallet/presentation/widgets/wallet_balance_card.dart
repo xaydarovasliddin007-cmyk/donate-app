@@ -53,7 +53,7 @@ class _WalletBalanceCardState extends ConsumerState<WalletBalanceCard> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             AspectRatio(
-              aspectRatio: 1.7,
+              aspectRatio: 2.4,
               child: DecoratedBox(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(AppRadius.xl),
