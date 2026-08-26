@@ -7,6 +7,7 @@ import {
   adminCreateGameServerSchema,
   adminCreateProductSchema,
   adminCreatePromoCodeSchema,
+  adminCreateProviderProductSchema,
   adminCreateReceivingMethodSchema,
   adminListAuditLogsQuerySchema,
   adminListGamesQuerySchema,
@@ -23,6 +24,7 @@ import {
   adminUpdateGameServerSchema,
   adminUpdateProductSchema,
   adminUpdatePromoCodeSchema,
+  adminUpdateProviderProductSchema,
   adminUpdateProviderSchema,
   adminUpdateReceivingMethodSchema,
   adminWalletAdjustSchema,
@@ -34,6 +36,7 @@ import type {
   AdminCreateGameServerInput,
   AdminCreateProductInput,
   AdminCreatePromoCodeInput,
+  AdminCreateProviderProductInput,
   AdminCreateReceivingMethodInput,
   AdminListAuditLogsQuery,
   AdminListGamesQuery,
@@ -51,6 +54,7 @@ import type {
   AdminUpdateProductInput,
   AdminUpdatePromoCodeInput,
   AdminUpdateProviderInput,
+  AdminUpdateProviderProductInput,
   AdminUpdateReceivingMethodInput,
   AdminWalletAdjustInput,
 } from './admin.schemas.js';
@@ -300,6 +304,42 @@ export async function adminBusinessRoutes(app: FastifyInstance) {
     async (request) => {
       const body = request.body as AdminUpdateProviderInput;
       return adminService.updateProviderAdmin(ctx, request.currentAdmin!.id, request.params.id, body);
+    },
+  );
+
+  // Which provider(s) actually fulfill a given product — a product only
+  // gets real nickname-checks/fulfillment once one of these points at a
+  // credentialed, active provider (see providers/registry.ts).
+  app.get<{ Params: { id: string } }>('/products/:id/provider-mappings', async (request) => {
+    const mappings = await adminService.listProviderProductsForProductAdmin(ctx, request.params.id);
+    return { mappings };
+  });
+
+  app.post<{ Params: { id: string } }>(
+    '/products/:id/provider-mappings',
+    { preHandler: [requireAdminRole(...CATALOG_ROLES), validateBody(adminCreateProviderProductSchema)] },
+    async (request, reply) => {
+      const body = request.body as AdminCreateProviderProductInput;
+      const created = await adminService.createProviderProductAdmin(ctx, request.currentAdmin!.id, request.params.id, body);
+      return reply.status(201).send(created);
+    },
+  );
+
+  app.patch<{ Params: { id: string } }>(
+    '/provider-mappings/:id',
+    { preHandler: [requireAdminRole(...CATALOG_ROLES), validateBody(adminUpdateProviderProductSchema)] },
+    async (request) => {
+      const body = request.body as AdminUpdateProviderProductInput;
+      return adminService.updateProviderProductAdmin(ctx, request.currentAdmin!.id, request.params.id, body);
+    },
+  );
+
+  app.delete<{ Params: { id: string } }>(
+    '/provider-mappings/:id',
+    { preHandler: requireAdminRole(...CATALOG_ROLES) },
+    async (request, reply) => {
+      await adminService.deleteProviderProductAdmin(ctx, request.currentAdmin!.id, request.params.id);
+      return reply.status(204).send();
     },
   );
 

@@ -4,7 +4,11 @@ export const createOrderSchema = z.object({
   gameId: z.string().uuid(),
   productId: z.string().uuid(),
   playerId: z.string().trim().min(1).max(64),
+  // Pricing region (GameServer.code) — which Product/price applies.
   serverId: z.string().trim().min(1).max(64).optional(),
+  // The player's real in-game server/zone (e.g. Mobile Legends' numeric
+  // Zone ID), sent to the fulfillment provider to identify the account.
+  zoneId: z.string().trim().min(1).max(32).optional(),
   // Client generates one UUID per checkout attempt (kept stable across
   // retries of the same tap) so a flaky connection can never double-charge.
   idempotencyKey: z.string().trim().min(8).max(128),
@@ -23,6 +27,7 @@ export const validatePlayerSchema = z.object({
   productId: z.string().uuid(),
   playerId: z.string().trim().min(1).max(64),
   serverId: z.string().trim().min(1).max(64).optional(),
+  zoneId: z.string().trim().min(1).max(32).optional(),
 });
 
 export type CreateOrderInput = z.infer<typeof createOrderSchema>;

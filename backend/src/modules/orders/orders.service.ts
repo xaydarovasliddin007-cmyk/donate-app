@@ -29,6 +29,7 @@ function toPublicOrder(
     game: order.game,
     playerId: order.playerId,
     serverId: order.serverId,
+    zoneId: order.zoneId,
     amountMinor: order.amountMinor,
     currency: order.currency,
     failureReason: order.failureReason,
@@ -125,7 +126,9 @@ export async function createOrder(ctx: OrderContext, userId: string, input: Crea
   const validation = await adapter.validatePlayer({
     providerProductCode: providerProduct.providerProductCode,
     playerId: input.playerId,
-    serverId: input.serverId,
+    // The adapter's serverId means "real identity", not pricing region —
+    // see the zoneId comment on the Order model.
+    serverId: input.zoneId,
   });
   if (!validation.valid) {
     throw new ConflictError(validation.reason ?? 'Player ID could not be validated');
@@ -139,6 +142,7 @@ export async function createOrder(ctx: OrderContext, userId: string, input: Crea
         gameId: game.id,
         playerId: input.playerId,
         serverId: input.serverId,
+        zoneId: input.zoneId,
         amountMinor: product.amountMinor,
         currency: product.currency,
         status: 'PENDING',
@@ -224,7 +228,9 @@ export async function validatePlayer(ctx: OrderContext, input: ValidatePlayerInp
   return adapter.validatePlayer({
     providerProductCode: providerProduct.providerProductCode,
     playerId: input.playerId,
-    serverId: input.serverId,
+    // The adapter's serverId means "real identity", not pricing region —
+    // see the zoneId comment on the Order model.
+    serverId: input.zoneId,
   });
 }
 
@@ -298,7 +304,7 @@ export async function fulfillPaidOrder(ctx: OrderContext, orderId: string): Prom
 
   await runFulfillmentAttempt(
     ctx,
-    { id: order.id, orderNumber: order.orderNumber, userId: order.userId, status, playerId: order.playerId, serverId: order.serverId },
+    { id: order.id, orderNumber: order.orderNumber, userId: order.userId, status, playerId: order.playerId, zoneId: order.zoneId },
     providerProduct,
   );
 }
@@ -332,7 +338,7 @@ export async function retryFulfillment(ctx: OrderContext, orderId: string): Prom
   );
   await runFulfillmentAttempt(
     ctx,
-    { id: order.id, orderNumber: order.orderNumber, userId: order.userId, status, playerId: order.playerId, serverId: order.serverId },
+    { id: order.id, orderNumber: order.orderNumber, userId: order.userId, status, playerId: order.playerId, zoneId: order.zoneId },
     providerProduct,
   );
 }
@@ -345,7 +351,7 @@ async function runFulfillmentAttempt(
     userId: string;
     status: OrderStatus;
     playerId: string;
-    serverId: string | null;
+    zoneId: string | null;
   },
   providerProduct: { providerId: string; providerProductCode: string; provider: { code: string } },
 ): Promise<void> {
@@ -356,7 +362,9 @@ async function runFulfillmentAttempt(
   const result = await adapter.createTopup({
     providerProductCode: providerProduct.providerProductCode,
     playerId: order.playerId,
-    serverId: order.serverId ?? undefined,
+    // The adapter's serverId means "real identity", not pricing region —
+    // see the zoneId comment on the Order model.
+    serverId: order.zoneId ?? undefined,
     referenceId: order.id,
   });
 

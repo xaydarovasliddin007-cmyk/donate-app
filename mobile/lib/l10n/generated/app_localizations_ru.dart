@@ -354,10 +354,14 @@ class AppLocalizationsRu extends AppLocalizations {
   String get playerInfoUsernameHint => 'Например: ВашеИмя';
 
   @override
-  String get playerInfoServerIdLabel => 'Server ID';
+  String get playerInfoServerIdLabel => 'Server ID (Zone)';
 
   @override
   String get playerInfoServerIdHint => 'Например: 2001';
+
+  @override
+  String get playerInfoServerIdValidationError =>
+      'Пожалуйста, введите Server ID';
 
   @override
   String get playerInfoContinueButton => 'Продолжить';
@@ -367,6 +371,9 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get playerInfoExampleLabel => 'Где найти?';
+
+  @override
+  String get purchaseRegionLabel => 'Регион';
 
   @override
   String get checkoutTitle => 'Подтверждение заказа';

@@ -51,7 +51,10 @@ function buildUrl(path: string, query?: Record<string, string | number | undefin
 }
 
 async function rawRequest<T>(path: string, options: RequestOptions): Promise<T> {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  const headers: Record<string, string> = {};
+  // A Content-Type: application/json header on a bodyless request (e.g. a
+  // plain DELETE) makes Fastify's JSON parser reject it as an empty body.
+  if (options.body !== undefined) headers['Content-Type'] = 'application/json';
   if (options.auth !== false) {
     const token = tokenStore.getAccessToken();
     if (token) headers.Authorization = `Bearer ${token}`;
@@ -109,6 +112,7 @@ export const api = {
     request<T>(path, { method: 'GET', query }),
   post: <T>(path: string, body?: unknown) => request<T>(path, { method: 'POST', body }),
   patch: <T>(path: string, body?: unknown) => request<T>(path, { method: 'PATCH', body }),
+  delete: <T>(path: string) => request<T>(path, { method: 'DELETE' }),
   /** Login itself must never attach/refresh a token — there isn't one yet. */
   postPublic: <T>(path: string, body?: unknown) => request<T>(path, { method: 'POST', body, auth: false }),
 };

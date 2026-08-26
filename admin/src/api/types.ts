@@ -225,6 +225,18 @@ export interface Provider {
   successRate: number | null;
 }
 
+/** Which provider(s) actually fulfill a product, and the provider's own SKU/code for it (opaque to us). */
+export interface ProviderProduct {
+  id: string;
+  providerId: string;
+  productId: string;
+  providerProductCode: string;
+  priority: number;
+  isActive: boolean;
+  createdAt: string;
+  provider: { id: string; code: string; name: string; type: ProviderType; isActive: boolean };
+}
+
 export interface RefundEntry {
   id: string;
   amountMinor: number;

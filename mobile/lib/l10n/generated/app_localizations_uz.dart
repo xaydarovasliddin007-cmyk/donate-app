@@ -355,10 +355,14 @@ class AppLocalizationsUz extends AppLocalizations {
   String get playerInfoUsernameHint => 'Masalan: SizningNomingiz';
 
   @override
-  String get playerInfoServerIdLabel => 'Server ID';
+  String get playerInfoServerIdLabel => 'Server ID (Zone)';
 
   @override
   String get playerInfoServerIdHint => 'Masalan: 2001';
+
+  @override
+  String get playerInfoServerIdValidationError =>
+      'Iltimos, Server ID ni kiriting';
 
   @override
   String get playerInfoContinueButton => 'Davom etish';
@@ -368,6 +372,9 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get playerInfoExampleLabel => 'Qayerdan topaman?';
+
+  @override
+  String get purchaseRegionLabel => 'Hudud';
 
   @override
   String get checkoutTitle => 'Buyurtmani tasdiqlash';

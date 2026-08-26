@@ -408,7 +408,13 @@ model Order {
   gameId         String      @map("game_id") @db.Uuid
   game           Game        @relation(fields: [gameId], references: [id])
   playerId       String      @map("player_id")
+  // The pricing region (see GameServer) — which Product row/price applies.
+  // Distinct from zoneId below: a game can have both, one, or neither.
   serverId       String?     @map("server_id")
+  // The player's real in-game server/zone (e.g. Mobile Legends' numeric
+  // Zone ID) — sent to the fulfillment provider to identify the account.
+  // Unrelated to serverId/GameServer, which is about pricing, not identity.
+  zoneId         String?     @map("zone_id")
   amountMinor    Int         @map("amount_minor")
   currency       String      @default("UZS")
   status         OrderStatus @default(PENDING)

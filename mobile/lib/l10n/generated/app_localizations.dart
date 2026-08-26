@@ -749,7 +749,7 @@ abstract class AppLocalizations {
   /// No description provided for @playerInfoServerIdLabel.
   ///
   /// In uz, this message translates to:
-  /// **'Server ID'**
+  /// **'Server ID (Zone)'**
   String get playerInfoServerIdLabel;
 
   /// No description provided for @playerInfoServerIdHint.
@@ -757,6 +757,12 @@ abstract class AppLocalizations {
   /// In uz, this message translates to:
   /// **'Masalan: 2001'**
   String get playerInfoServerIdHint;
+
+  /// No description provided for @playerInfoServerIdValidationError.
+  ///
+  /// In uz, this message translates to:
+  /// **'Iltimos, Server ID ni kiriting'**
+  String get playerInfoServerIdValidationError;
 
   /// No description provided for @playerInfoContinueButton.
   ///
@@ -775,6 +781,12 @@ abstract class AppLocalizations {
   /// In uz, this message translates to:
   /// **'Qayerdan topaman?'**
   String get playerInfoExampleLabel;
+
+  /// No description provided for @purchaseRegionLabel.
+  ///
+  /// In uz, this message translates to:
+  /// **'Hudud'**
+  String get purchaseRegionLabel;
 
   /// No description provided for @checkoutTitle.
   ///

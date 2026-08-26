@@ -114,6 +114,25 @@ export const adminUpdateProviderSchema = z.object({
   isActive: z.boolean(),
 });
 
+export const adminCreateProviderProductSchema = z.object({
+  providerId: z.string().uuid(),
+  // The provider's own SKU/code for this exact product (e.g. Apigames'
+  // `kode_produk`) — opaque to us, comes from the provider's catalog.
+  providerProductCode: z.string().trim().min(1).max(120),
+  // Lower priority is tried first, so a real provider can be added at 0
+  // ahead of the dev mock without deleting the mock mapping.
+  priority: z.number().int().min(0).default(0),
+  isActive: z.boolean().default(true),
+});
+
+export const adminUpdateProviderProductSchema = z
+  .object({
+    providerProductCode: z.string().trim().min(1).max(120).optional(),
+    priority: z.number().int().min(0).optional(),
+    isActive: z.boolean().optional(),
+  })
+  .refine((data) => Object.keys(data).length > 0, { message: 'At least one field must be provided' });
+
 export const adminListTopUpsQuerySchema = z.object({
   status: z.enum(topUpStatusValues).optional(),
   limit: z.coerce.number().int().positive().max(100).default(50),
@@ -223,3 +242,5 @@ export type AdminCreateGameServerInput = z.infer<typeof adminCreateGameServerSch
 export type AdminUpdateGameServerInput = z.infer<typeof adminUpdateGameServerSchema>;
 export type AdminCreateProductInput = z.infer<typeof adminCreateProductSchema>;
 export type AdminUpdateProviderInput = z.infer<typeof adminUpdateProviderSchema>;
+export type AdminCreateProviderProductInput = z.infer<typeof adminCreateProviderProductSchema>;
+export type AdminUpdateProviderProductInput = z.infer<typeof adminUpdateProviderProductSchema>;

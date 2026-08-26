@@ -12,11 +12,13 @@ import type {
   AdminCreateGameServerInput,
   AdminCreateProductInput,
   AdminCreatePromoCodeInput,
+  AdminCreateProviderProductInput,
   AdminUpdateAdminInput,
   AdminUpdateGameInput,
   AdminUpdateGameServerInput,
   AdminUpdatePromoCodeInput,
   AdminUpdateProviderInput,
+  AdminUpdateProviderProductInput,
 } from './admin.schemas.js';
 
 interface AdminContext {
@@ -431,6 +433,126 @@ export async function updateProviderAdmin(
   });
 
   return updated;
+}
+
+// --- Provider products (per-product provider/SKU mapping) --------------------
+//
+// A Product only ever gets real fulfillment/nickname-checks once at least one
+// active ProviderProduct row points it at a real, credentialed provider (see
+// providers/registry.ts) — until then it only ever resolves to whichever
+// provider a mapping already exists for, typically DEV_MOCK_TOPUP from the
+// seed. This is that mapping's admin surface.
+
+const providerInclude = {
+  provider: { select: { id: true, code: true, name: true, type: true, isActive: true } },
+} as const;
+
+export async function listProviderProductsForProductAdmin(ctx: AdminContext, productId: string) {
+  const product = await ctx.prisma.product.findUnique({ where: { id: productId } });
+  if (!product) {
+    throw new NotFoundError('Product not found');
+  }
+  return ctx.prisma.providerProduct.findMany({
+    where: { productId },
+    include: providerInclude,
+    orderBy: { priority: 'asc' },
+  });
+}
+
+export async function createProviderProductAdmin(
+  ctx: AdminContext,
+  adminId: string,
+  productId: string,
+  input: AdminCreateProviderProductInput,
+) {
+  const [product, provider] = await Promise.all([
+    ctx.prisma.product.findUnique({ where: { id: productId } }),
+    ctx.prisma.provider.findUnique({ where: { id: input.providerId } }),
+  ]);
+  if (!product) {
+    throw new NotFoundError('Product not found');
+  }
+  if (!provider) {
+    throw new NotFoundError('Provider not found');
+  }
+  if (provider.type !== 'TOPUP') {
+    throw new ValidationError('Only TOPUP providers can be mapped to a product');
+  }
+  const existing = await ctx.prisma.providerProduct.findUnique({
+    where: { providerId_productId: { providerId: input.providerId, productId } },
+  });
+  if (existing) {
+    throw new ConflictError('This provider is already mapped to this product');
+  }
+
+  const created = await ctx.prisma.providerProduct.create({
+    data: {
+      productId,
+      providerId: input.providerId,
+      providerProductCode: input.providerProductCode,
+      priority: input.priority,
+      isActive: input.isActive,
+    },
+    include: providerInclude,
+  });
+
+  await writeAuditLog(ctx.prisma, {
+    actorId: adminId,
+    action: 'provider_product.create',
+    entityType: 'ProviderProduct',
+    entityId: created.id,
+    metadata: { productId, providerId: input.providerId, providerProductCode: input.providerProductCode },
+  });
+
+  return created;
+}
+
+export async function updateProviderProductAdmin(
+  ctx: AdminContext,
+  adminId: string,
+  id: string,
+  changes: AdminUpdateProviderProductInput,
+) {
+  const existing = await ctx.prisma.providerProduct.findUnique({ where: { id } });
+  if (!existing) {
+    throw new NotFoundError('Provider mapping not found');
+  }
+
+  const updated = await ctx.prisma.providerProduct.update({
+    where: { id },
+    data: changes,
+    include: providerInclude,
+  });
+
+  await writeAuditLog(ctx.prisma, {
+    actorId: adminId,
+    action: 'provider_product.update',
+    entityType: 'ProviderProduct',
+    entityId: id,
+    metadata: {
+      before: { providerProductCode: existing.providerProductCode, priority: existing.priority, isActive: existing.isActive },
+      after: changes,
+    },
+  });
+
+  return updated;
+}
+
+export async function deleteProviderProductAdmin(ctx: AdminContext, adminId: string, id: string) {
+  const existing = await ctx.prisma.providerProduct.findUnique({ where: { id } });
+  if (!existing) {
+    throw new NotFoundError('Provider mapping not found');
+  }
+
+  await ctx.prisma.providerProduct.delete({ where: { id } });
+
+  await writeAuditLog(ctx.prisma, {
+    actorId: adminId,
+    action: 'provider_product.delete',
+    entityType: 'ProviderProduct',
+    entityId: id,
+    metadata: { productId: existing.productId, providerId: existing.providerId },
+  });
 }
 
 // --- Payments -----------------------------------------------------------------

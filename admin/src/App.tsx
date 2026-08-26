@@ -14,6 +14,7 @@ import { TopUpsPage } from './pages/TopUpsPage';
 import { RefundsPage } from './pages/RefundsPage';
 import { ReceivingMethodsPage } from './pages/ReceivingMethodsPage';
 import { ProductsPage } from './pages/ProductsPage';
+import { ProductProviderMappingsPage } from './pages/ProductProviderMappingsPage';
 import { ProvidersPage } from './pages/ProvidersPage';
 import { AdminsPage } from './pages/AdminsPage';
 import { AuditLogsPage } from './pages/AuditLogsPage';
@@ -47,6 +48,7 @@ function AppRoutes() {
         <Route path="/refunds" element={<RefundsPage />} />
         <Route path="/receiving-methods" element={<ReceivingMethodsPage />} />
         <Route path="/products" element={<ProductsPage />} />
+        <Route path="/products/:productId/providers" element={<ProductProviderMappingsPage />} />
         <Route path="/providers" element={<ProvidersPage />} />
         <Route path="/audit-logs" element={<AuditLogsPage />} />
         <Route path="/admins" element={<AdminsPage />} />

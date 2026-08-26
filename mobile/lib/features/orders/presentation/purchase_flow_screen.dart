@@ -56,6 +56,7 @@ class PurchaseFlowScreen extends ConsumerStatefulWidget {
 class _PurchaseFlowScreenState extends ConsumerState<PurchaseFlowScreen> {
   final _formKey = GlobalKey<FormState>();
   final _playerIdController = TextEditingController();
+  final _zoneIdController = TextEditingController();
   Timer? _debounce;
 
   _Step _step = _Step.data;
@@ -88,7 +89,7 @@ class _PurchaseFlowScreenState extends ConsumerState<PurchaseFlowScreen> {
     }
     if (match != null) {
       _playerIdController.text = match.playerId;
-      _scheduleValidate(match.playerId);
+      _scheduleValidate();
     }
   }
 
@@ -96,21 +97,24 @@ class _PurchaseFlowScreenState extends ConsumerState<PurchaseFlowScreen> {
   void dispose() {
     _debounce?.cancel();
     _playerIdController.dispose();
+    _zoneIdController.dispose();
     super.dispose();
   }
 
-  void _onPlayerIdChanged(String value) {
+  void _onIdentityChanged(String _) {
     setState(() => _validation = null);
     _debounce?.cancel();
-    final trimmed = value.trim();
-    if (trimmed.isEmpty) return;
-    _debounce = Timer(
-      const Duration(milliseconds: 600),
-      () => _scheduleValidate(trimmed),
-    );
+    final playerId = _playerIdController.text.trim();
+    if (playerId.isEmpty) return;
+    if (_fieldSpec.requiresZoneId && _zoneIdController.text.trim().isEmpty) {
+      return;
+    }
+    _debounce = Timer(const Duration(milliseconds: 600), _scheduleValidate);
   }
 
-  Future<void> _scheduleValidate(String playerId) async {
+  Future<void> _scheduleValidate() async {
+    final playerId = _playerIdController.text.trim();
+    final zoneId = _zoneIdController.text.trim();
     setState(() => _validating = true);
     try {
       final result = await ref
@@ -120,6 +124,7 @@ class _PurchaseFlowScreenState extends ConsumerState<PurchaseFlowScreen> {
             productId: widget.product.id,
             playerId: playerId,
             serverId: widget.serverCode,
+            zoneId: zoneId.isEmpty ? null : zoneId,
           );
       if (!mounted) return;
       setState(() => _validation = result);
@@ -136,7 +141,7 @@ class _PurchaseFlowScreenState extends ConsumerState<PurchaseFlowScreen> {
 
   void _selectRecent(String playerId) {
     _playerIdController.text = playerId;
-    _onPlayerIdChanged(playerId);
+    _onIdentityChanged(playerId);
   }
 
   void _continueFromData() {
@@ -161,6 +166,9 @@ class _PurchaseFlowScreenState extends ConsumerState<PurchaseFlowScreen> {
             productId: widget.product.id,
             playerId: _playerIdController.text.trim(),
             serverId: widget.serverCode,
+            zoneId: _zoneIdController.text.trim().isEmpty
+                ? null
+                : _zoneIdController.text.trim(),
             idempotencyKey: _idempotencyKey,
           );
 
@@ -261,6 +269,7 @@ class _PurchaseFlowScreenState extends ConsumerState<PurchaseFlowScreen> {
                     _Step.data => _DataStep(
                       formKey: _formKey,
                       controller: _playerIdController,
+                      zoneIdController: _zoneIdController,
                       fieldSpec: _fieldSpec,
                       hasFixedServer: _hasFixedServer,
                       serverLabel: widget.serverName ?? widget.serverCode,
@@ -268,7 +277,7 @@ class _PurchaseFlowScreenState extends ConsumerState<PurchaseFlowScreen> {
                       onRecentTap: _selectRecent,
                       onRecentDismiss: (id) =>
                           setState(() => _dismissedRecentIds.add(id)),
-                      onChanged: _onPlayerIdChanged,
+                      onChanged: _onIdentityChanged,
                       validating: _validating,
                       validation: _validation,
                       onContinue: _continueFromData,
@@ -416,6 +425,7 @@ class _DataStep extends StatelessWidget {
   const _DataStep({
     required this.formKey,
     required this.controller,
+    required this.zoneIdController,
     required this.fieldSpec,
     required this.hasFixedServer,
     required this.serverLabel,
@@ -430,6 +440,7 @@ class _DataStep extends StatelessWidget {
 
   final GlobalKey<FormState> formKey;
   final TextEditingController controller;
+  final TextEditingController zoneIdController;
   final PlayerIdFieldSpec fieldSpec;
   final bool hasFixedServer;
   final String? serverLabel;
@@ -524,6 +535,40 @@ class _DataStep extends StatelessWidget {
                   ? l10n.playerInfoValidationError
                   : null,
             ),
+            if (fieldSpec.requiresZoneId) ...[
+              const SizedBox(height: AppSpacing.md),
+              TextFormField(
+                controller: zoneIdController,
+                onChanged: onChanged,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  labelText: l10n.playerInfoServerIdLabel,
+                  hintText: l10n.playerInfoServerIdHint,
+                  prefixIcon: Container(
+                    margin: const EdgeInsets.all(10),
+                    width: 24,
+                    height: 24,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: isDark
+                            ? AppColors.heroGradientDark
+                            : AppColors.heroGradientLight,
+                      ),
+                      borderRadius: BorderRadius.circular(AppRadius.sm),
+                    ),
+                    child: const Icon(
+                      Icons.dns_rounded,
+                      size: 14,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+                validator: (value) => (value == null || value.trim().isEmpty)
+                    ? l10n.playerInfoServerIdValidationError
+                    : null,
+              ),
+            ],
             if (hasFixedServer) ...[
               const SizedBox(height: AppSpacing.md),
               Container(
@@ -560,7 +605,7 @@ class _DataStep extends StatelessWidget {
                     ),
                     const SizedBox(width: AppSpacing.sm),
                     Text(
-                      l10n.playerInfoServerIdLabel,
+                      l10n.purchaseRegionLabel,
                       style: theme.textTheme.bodyMedium,
                     ),
                     const Spacer(),

@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
+import { Link } from 'react-router-dom';
 import { api, ApiError } from '../api/client';
 import type { Game, GameServer, Product } from '../api/types';
 import { useAsync } from '../lib/useAsync';
@@ -66,6 +67,9 @@ function ProductRow({
       <td>{formatMinor(product.amountMinor, product.currency)}</td>
       <td>
         <ActiveBadge active={product.isActive} />
+      </td>
+      <td>
+        <Link to={`/products/${product.id}/providers`}>{t('products.manageProviders')}</Link>
       </td>
       <td>
         <button className="btn btn-secondary" disabled={toggling} onClick={() => onRequestToggle(product)}>
@@ -223,11 +227,12 @@ export function ProductsPage() {
               <th>{t('products.colSetPrice')}</th>
               <th>{t('products.colCurrentPrice')}</th>
               <th>{t('products.colStatus')}</th>
+              <th>{t('products.colFulfillment')}</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
-            <SkeletonRows columns={7} />
+            <SkeletonRows columns={8} />
           </tbody>
         </table>
       )}
@@ -242,6 +247,7 @@ export function ProductsPage() {
               <th>{t('products.colSetPrice')}</th>
               <th>{t('products.colCurrentPrice')}</th>
               <th>{t('products.colStatus')}</th>
+              <th>{t('products.colFulfillment')}</th>
               <th></th>
             </tr>
           </thead>
@@ -257,7 +263,7 @@ export function ProductsPage() {
             ))}
             {data.products.length === 0 && (
               <tr>
-                <td colSpan={7} className="muted">
+                <td colSpan={8} className="muted">
                   {t('products.empty')}
                 </td>
               </tr>

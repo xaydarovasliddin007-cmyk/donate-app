@@ -12,6 +12,7 @@ class OrdersApi {
     required String productId,
     required String playerId,
     String? serverId,
+    String? zoneId,
   }) async {
     final json = await _client.post(
       '/orders/validate-player',
@@ -20,6 +21,7 @@ class OrdersApi {
         'productId': productId,
         'playerId': playerId,
         if (serverId != null && serverId.isNotEmpty) 'serverId': serverId,
+        if (zoneId != null && zoneId.isNotEmpty) 'zoneId': zoneId,
       },
     );
     return PlayerValidation.fromJson(json);
@@ -30,6 +32,7 @@ class OrdersApi {
     required String productId,
     required String playerId,
     String? serverId,
+    String? zoneId,
     required String idempotencyKey,
   }) async {
     final json = await _client.post(
@@ -39,6 +42,7 @@ class OrdersApi {
         'productId': productId,
         'playerId': playerId,
         if (serverId != null && serverId.isNotEmpty) 'serverId': serverId,
+        if (zoneId != null && zoneId.isNotEmpty) 'zoneId': zoneId,
         'idempotencyKey': idempotencyKey,
       },
     );

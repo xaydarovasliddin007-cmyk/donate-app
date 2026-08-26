@@ -68,7 +68,12 @@ export async function buildApp() {
   });
 
   await app.register(helmet);
-  await app.register(cors, { origin: env.CORS_ORIGIN.split(',').map((o) => o.trim()) });
+  await app.register(cors, {
+    origin: env.CORS_ORIGIN.split(',').map((o) => o.trim()),
+    // @fastify/cors defaults to GET,HEAD,POST only — every admin PATCH/DELETE
+    // and mobile PATCH call would otherwise fail CORS preflight silently.
+    methods: ['GET', 'HEAD', 'POST', 'PATCH', 'PUT', 'DELETE'],
+  });
   await app.register(rateLimit, {
     max: env.RATE_LIMIT_MAX,
     timeWindow: env.RATE_LIMIT_WINDOW_MS,
