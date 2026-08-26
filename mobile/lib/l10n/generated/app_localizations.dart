@@ -152,6 +152,24 @@ abstract class AppLocalizations {
   /// **'Nusxalash'**
   String get commonCopy;
 
+  /// No description provided for @commonCopied.
+  ///
+  /// In uz, this message translates to:
+  /// **'Nusxalandi'**
+  String get commonCopied;
+
+  /// No description provided for @topupCardNumberCopied.
+  ///
+  /// In uz, this message translates to:
+  /// **'Karta raqami nusxalandi'**
+  String get topupCardNumberCopied;
+
+  /// No description provided for @topupAmountCopied.
+  ///
+  /// In uz, this message translates to:
+  /// **'Summa nusxalandi'**
+  String get topupAmountCopied;
+
   /// No description provided for @commonConfirm.
   ///
   /// In uz, this message translates to:

@@ -37,6 +37,15 @@ class AppLocalizationsUz extends AppLocalizations {
   String get commonCopy => 'Nusxalash';
 
   @override
+  String get commonCopied => 'Nusxalandi';
+
+  @override
+  String get topupCardNumberCopied => 'Karta raqami nusxalandi';
+
+  @override
+  String get topupAmountCopied => 'Summa nusxalandi';
+
+  @override
   String get commonConfirm => 'Tasdiqlash';
 
   @override

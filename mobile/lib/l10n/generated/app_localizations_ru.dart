@@ -37,6 +37,15 @@ class AppLocalizationsRu extends AppLocalizations {
   String get commonCopy => 'Копировать';
 
   @override
+  String get commonCopied => 'Скопировано';
+
+  @override
+  String get topupCardNumberCopied => 'Номер карты скопирован';
+
+  @override
+  String get topupAmountCopied => 'Сумма скопирована';
+
+  @override
   String get commonConfirm => 'Подтвердить';
 
   @override

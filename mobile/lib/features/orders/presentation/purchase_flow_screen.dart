@@ -622,6 +622,22 @@ class _DataStep extends StatelessWidget {
             const SizedBox(height: AppSpacing.md),
             AnimatedSwitcher(
               duration: AppMotion.fast,
+              switchInCurve: AppMotion.emphasized,
+              switchOutCurve: Curves.easeIn,
+              transitionBuilder: (child, animation) => FadeTransition(
+                opacity: animation,
+                child: SizeTransition(
+                  sizeFactor: animation,
+                  alignment: Alignment.topCenter,
+                  child: SlideTransition(
+                    position: Tween<Offset>(
+                      begin: const Offset(0, -0.12),
+                      end: Offset.zero,
+                    ).animate(animation),
+                    child: child,
+                  ),
+                ),
+              ),
               child: validating
                   ? Row(
                       key: const ValueKey('validating'),
@@ -731,10 +747,19 @@ class _ValidationBanner extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(
-            validation.valid ? Icons.check_circle_rounded : Icons.error_rounded,
-            size: 18,
-            color: color,
+          TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0, end: 1),
+            duration: AppMotion.medium,
+            curve: Curves.elasticOut,
+            builder: (context, t, child) =>
+                Transform.scale(scale: t.clamp(0.0, 1.15), child: child),
+            child: Icon(
+              validation.valid
+                  ? Icons.check_circle_rounded
+                  : Icons.error_rounded,
+              size: 18,
+              color: color,
+            ),
           ),
           const SizedBox(width: AppSpacing.sm),
           Expanded(

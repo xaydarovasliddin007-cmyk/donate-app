@@ -9,6 +9,7 @@ import '../../../core/theme/app_motion.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/reduce_motion_controller.dart';
 import '../../../core/utils/money_formatter.dart';
+import '../../../core/widgets/copied_toast.dart';
 import '../../../core/widgets/pressable_scale.dart';
 import '../../../core/widgets/selectable_chip.dart';
 import '../../../core/widgets/success_checkmark.dart';
@@ -355,8 +356,14 @@ class _ReservationViewState extends ConsumerState<_ReservationView> {
                 method: method,
                 selected: (_selectedMethodId ?? methods.first.id) == method.id,
                 onTap: () => setState(() => _selectedMethodId = method.id),
-                onCopy: () =>
-                    Clipboard.setData(ClipboardData(text: method.cardNumber)),
+                onCopy: () {
+                  Clipboard.setData(ClipboardData(text: method.cardNumber));
+                  showCopiedToast(
+                    context,
+                    message: l10n.topupCardNumberCopied,
+                    reduceMotion: reduceMotion,
+                  );
+                },
               ),
             ),
           const SizedBox(height: AppSpacing.sm),
@@ -417,7 +424,7 @@ class _ReservationViewState extends ConsumerState<_ReservationView> {
                   children: [
                     Expanded(
                       child: Text(
-                        formatMoney(
+                        formatExactAmount(
                           reservation.amountMinor,
                           reservation.currency,
                           locale,
@@ -430,13 +437,18 @@ class _ReservationViewState extends ConsumerState<_ReservationView> {
                     IconButton(
                       tooltip: l10n.commonCopy,
                       icon: const Icon(Icons.copy_rounded),
-                      onPressed: () => Clipboard.setData(
-                        ClipboardData(
-                          text: (reservation.amountMinor / 100).toStringAsFixed(
-                            0,
+                      onPressed: () {
+                        Clipboard.setData(
+                          ClipboardData(
+                            text: exactAmountCopyValue(reservation.amountMinor),
                           ),
-                        ),
-                      ),
+                        );
+                        showCopiedToast(
+                          context,
+                          message: l10n.topupAmountCopied,
+                          reduceMotion: reduceMotion,
+                        );
+                      },
                     ),
                   ],
                 ),
