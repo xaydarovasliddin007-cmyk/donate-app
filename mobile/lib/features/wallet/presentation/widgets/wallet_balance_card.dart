@@ -127,7 +127,7 @@ class _WalletBalanceCardState extends ConsumerState<WalletBalanceCard> {
                               ? Text(
                                   '••••••',
                                   key: const ValueKey('hidden'),
-                                  style: theme.textTheme.headlineSmall
+                                  style: theme.textTheme.titleLarge
                                       ?.copyWith(
                                         fontWeight: FontWeight.w800,
                                         color: Colors.white,
@@ -136,8 +136,8 @@ class _WalletBalanceCardState extends ConsumerState<WalletBalanceCard> {
                               : walletAsync.when(
                                   loading: () => SkeletonBox(
                                     key: const ValueKey('loading'),
-                                    width: 140,
-                                    height: 26,
+                                    width: 110,
+                                    height: 20,
                                     borderRadius: BorderRadius.circular(
                                       AppRadius.sm,
                                     ),
@@ -145,7 +145,7 @@ class _WalletBalanceCardState extends ConsumerState<WalletBalanceCard> {
                                   error: (_, _) => Text(
                                     '—',
                                     key: const ValueKey('error'),
-                                    style: theme.textTheme.headlineSmall
+                                    style: theme.textTheme.titleLarge
                                         ?.copyWith(color: Colors.white),
                                   ),
                                   data: (wallet) => AnimatedBalance(
@@ -153,7 +153,7 @@ class _WalletBalanceCardState extends ConsumerState<WalletBalanceCard> {
                                     amountMinor: wallet.balanceMinor,
                                     currency: wallet.currency,
                                     localeName: localeName,
-                                    style: theme.textTheme.headlineSmall
+                                    style: theme.textTheme.titleLarge
                                         ?.copyWith(
                                           fontWeight: FontWeight.w800,
                                           color: Colors.white,
