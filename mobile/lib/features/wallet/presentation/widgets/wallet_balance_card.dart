@@ -12,7 +12,6 @@ import '../../../../core/widgets/skeleton_box.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 import '../../../auth/application/auth_controller.dart';
 import '../../application/wallet_providers.dart';
-import 'promo_code_sheet.dart';
 
 class WalletBalanceCard extends ConsumerStatefulWidget {
   const WalletBalanceCard({super.key});
@@ -208,15 +207,10 @@ class _WalletBalanceCardState extends ConsumerState<WalletBalanceCard> {
                     onTap: () => context.push('/wallet/topup'),
                   ),
                 ),
-                const SizedBox(width: AppSpacing.sm),
-                Expanded(
-                  child: _QuickActionPill(
-                    icon: Icons.local_offer_outlined,
-                    label: l10n.promoCodeButton,
-                    filled: false,
-                    onTap: () => showPromoCodeSheet(context, ref),
-                  ),
-                ),
+                // Promo codes: turned off for now per explicit request — the
+                // sheet/API are still fully built (see promo_code_sheet.dart),
+                // this just removes the only entry point to it. Re-add this
+                // pill (and the SizedBox separator after it) to bring it back.
                 const SizedBox(width: AppSpacing.sm),
                 Expanded(
                   child: _QuickActionPill(
