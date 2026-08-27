@@ -76,8 +76,8 @@ class ProfileScreen extends ConsumerWidget {
           children: [
             if (isAuthenticated) ...[
               _HeaderCard(user: authState!.user!),
-              const SizedBox(height: AppSpacing.md),
-              _StatsRow(),
+              const SizedBox(height: AppSpacing.sm),
+              PublicIdRow(publicId: authState.user!.publicId),
               const SizedBox(height: AppSpacing.lg),
               _MenuSection(
                 children: [
@@ -184,20 +184,44 @@ class ProfileScreen extends ConsumerWidget {
   }
 }
 
-class _HeaderCard extends StatelessWidget {
+/// A gradient hero card — avatar/name up top, balance and order-count as
+/// inline stat chips below — replacing the old plain bordered box plus a
+/// separate flat stats row with one cohesive unit, matching the gradient
+/// treatment already used for the wallet card and guest hero.
+class _HeaderCard extends ConsumerWidget {
   const _HeaderCard({required this.user});
 
   final AppUser user;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final gradient = isDark
+        ? AppColors.heroGradientDark
+        : AppColors.heroGradientLight;
+    final localeName = Localizations.localeOf(context).toString();
+    final walletAsync = ref.watch(walletProvider);
+    final ordersAsync = ref.watch(myOrdersProvider);
+
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        border: Border.all(color: theme.colorScheme.outlineVariant),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: gradient,
+        ),
+        borderRadius: BorderRadius.circular(AppRadius.xl),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
+        boxShadow: [
+          BoxShadow(
+            color: gradient.first.withValues(alpha: isDark ? 0.38 : 0.28),
+            blurRadius: 24,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -213,14 +237,17 @@ class _HeaderCard extends StatelessWidget {
                   children: [
                     Text(
                       user.displayName ?? user.email ?? user.phone ?? '',
-                      style: theme.textTheme.titleMedium,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                     Text(
                       user.email ?? user.phone ?? '',
                       style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
+                        color: Colors.white.withValues(alpha: 0.75),
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -230,86 +257,99 @@ class _HeaderCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.md),
-          PublicIdRow(publicId: user.publicId),
+          const SizedBox(height: AppSpacing.lg),
+          Row(
+            children: [
+              Expanded(
+                child: _HeroStatChip(
+                  icon: Icons.bolt_rounded,
+                  label: l10n.walletBalanceLabel,
+                  value: walletAsync.when(
+                    loading: () => const SkeletonBox(width: 70, height: 18),
+                    error: (_, _) => const Text(
+                      '—',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                    data: (wallet) => AnimatedBalance(
+                      amountMinor: wallet.balanceMinor,
+                      currency: wallet.currency,
+                      localeName: localeName,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: _HeroStatChip(
+                  icon: Icons.receipt_long_rounded,
+                  label: l10n.profileStatOrders,
+                  value: ordersAsync.when(
+                    loading: () => const SkeletonBox(width: 30, height: 18),
+                    error: (_, _) => const Text(
+                      '—',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                    data: (orders) => Text(
+                      '${orders.length}',
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
   }
 }
 
-class _StatsRow extends ConsumerWidget {
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context);
-    final localeName = Localizations.localeOf(context).toString();
-    final walletAsync = ref.watch(walletProvider);
-    final ordersAsync = ref.watch(myOrdersProvider);
+class _HeroStatChip extends StatelessWidget {
+  const _HeroStatChip({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
 
-    return Row(
-      children: [
-        Expanded(
-          child: _StatTile(
-            label: l10n.walletBalanceLabel,
-            value: walletAsync.when(
-              loading: () => const SkeletonBox(width: 70, height: 20),
-              error: (_, _) => const Text('—'),
-              data: (wallet) => AnimatedBalance(
-                amountMinor: wallet.balanceMinor,
-                currency: wallet.currency,
-                localeName: localeName,
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: AppSpacing.sm),
-        Expanded(
-          child: _StatTile(
-            label: l10n.profileStatOrders,
-            value: ordersAsync.when(
-              loading: () => const SkeletonBox(width: 30, height: 20),
-              error: (_, _) => const Text('—'),
-              data: (orders) => Text(
-                '${orders.length}',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _StatTile extends StatelessWidget {
-  const _StatTile({required this.label, required this.value});
-
+  final IconData icon;
   final String label;
   final Widget value;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
+      ),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        color: Colors.white.withValues(alpha: 0.14),
         borderRadius: BorderRadius.circular(AppRadius.md),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            label,
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
+          Row(
+            children: [
+              Icon(icon, size: 12, color: Colors.white70),
+              const SizedBox(width: 4),
+              Text(
+                label,
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: Colors.white70,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
           ),
           const SizedBox(height: 2),
           value,
@@ -319,6 +359,9 @@ class _StatTile extends StatelessWidget {
   }
 }
 
+/// A single grouped card housing every row, divided by hairlines instead of
+/// each row being its own separately-bordered box — denser, and reads as one
+/// settings list rather than a stack of unrelated cards.
 class _MenuSection extends StatelessWidget {
   const _MenuSection({required this.children});
 
@@ -326,13 +369,27 @@ class _MenuSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        for (final (index, child) in children.indexed) ...[
-          StaggeredEntrance(index: index, child: child),
-          const SizedBox(height: AppSpacing.sm),
+    final theme = Theme.of(context);
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: theme.colorScheme.outlineVariant),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          for (final (index, child) in children.indexed) ...[
+            if (index > 0)
+              Divider(
+                height: 1,
+                indent: AppSpacing.md + 36 + AppSpacing.md,
+                color: theme.colorScheme.outlineVariant,
+              ),
+            StaggeredEntrance(index: index, child: child),
+          ],
         ],
-      ],
+      ),
     );
   }
 }
@@ -360,15 +417,10 @@ class _MenuRow extends StatelessWidget {
 
     return PressableScale(
       onTap: onTap,
-      child: Container(
+      child: Padding(
         padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.md,
           vertical: AppSpacing.md,
-        ),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
-          borderRadius: BorderRadius.circular(AppRadius.md),
-          border: Border.all(color: theme.colorScheme.outlineVariant),
         ),
         child: Row(
           children: [
