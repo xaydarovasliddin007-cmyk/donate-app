@@ -276,6 +276,7 @@
   "topupStatusExpired": "Истёк срок",
   "topupValidationError": "Введите сумму",
   "topupReservedCardTitle": "Переведите на одну из этих карт",
+  "topupNoCommissionNote": "Перевод без комиссии на любую карту",
   "topupExactAmountLabel": "Переведите ровно эту сумму",
   "topupExactAmountWarning": "Переводите строго указанную сумму. Если сумма будет другой, деньги не зачислятся на баланс!",
   "topupTimeLeftLabel": "Осталось времени: {time}",

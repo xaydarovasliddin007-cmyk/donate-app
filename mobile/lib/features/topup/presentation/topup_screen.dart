@@ -348,7 +348,24 @@ class _ReservationViewState extends ConsumerState<_ReservationView> {
         padding: const EdgeInsets.all(AppSpacing.lg),
         children: [
           Text(l10n.topupReservedCardTitle, style: theme.textTheme.titleSmall),
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              Icon(
+                Icons.verified_rounded,
+                size: 14,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                l10n.topupNoCommissionNote,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
           for (final method in methods)
             Padding(
               padding: const EdgeInsets.only(bottom: AppSpacing.sm),
@@ -711,7 +728,8 @@ class _StepRow extends StatelessWidget {
 }
 
 /// A payment method rendered as a miniature bank-card mockup — gradient
-/// face, masked number, cardholder/bank — rather than a plain list row.
+/// face, chip glyph, masked number, cardholder/bank, and a card-network-style
+/// flourish — rather than a plain list row.
 class _ReceivingMethodTile extends StatelessWidget {
   const _ReceivingMethodTile({
     required this.method,
@@ -737,14 +755,14 @@ class _ReceivingMethodTile extends StatelessWidget {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         width: double.infinity,
-        padding: const EdgeInsets.all(AppSpacing.md),
+        clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: gradient,
           ),
-          borderRadius: BorderRadius.circular(AppRadius.md),
+          borderRadius: BorderRadius.circular(20),
           border: Border.all(
             color: selected ? Colors.white : Colors.transparent,
             width: selected ? 2 : 0,
@@ -759,75 +777,200 @@ class _ReceivingMethodTile extends StatelessWidget {
                 ]
               : null,
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
+        child: Stack(
           children: [
-            Row(
-              children: [
-                const Icon(
-                  Icons.credit_card_rounded,
-                  color: Colors.white70,
-                  size: 20,
-                ),
-                const Spacer(),
-                if (selected)
-                  Container(
-                    padding: const EdgeInsets.all(3),
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.check_rounded,
-                      size: 12,
-                      color: gradient.first,
+            // A generic dual-ring flourish in the corner — reads as "this is
+            // a card" the way a network mark would, without mimicking any
+            // real card network's actual logo.
+            Positioned(
+              right: -16,
+              bottom: -16,
+              child: Row(
+                children: [
+                  _NetworkRing(color: Colors.white.withValues(alpha: 0.14)),
+                  Transform.translate(
+                    offset: const Offset(-18, 0),
+                    child: _NetworkRing(
+                      color: Colors.white.withValues(alpha: 0.10),
                     ),
                   ),
-              ],
+                ],
+              ),
             ),
-            const SizedBox(height: AppSpacing.md),
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    method.cardNumber,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      color: Colors.white,
-                      letterSpacing: 0.5,
-                      fontWeight: FontWeight.w700,
+            Padding(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const _CardChipIcon(),
+                      const Spacer(),
+                      AnimatedSwitcher(
+                        duration: AppMotion.fast,
+                        child: selected
+                            ? Container(
+                                key: const ValueKey(true),
+                                padding: const EdgeInsets.all(3),
+                                decoration: const BoxDecoration(
+                                  color: Colors.white,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  Icons.check_rounded,
+                                  size: 12,
+                                  color: gradient.first,
+                                ),
+                              )
+                            : _BankBadge(
+                                key: const ValueKey(false),
+                                bankName: method.bankName,
+                              ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          method.cardNumber,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            color: Colors.white,
+                            letterSpacing: 1.4,
+                            fontWeight: FontWeight.w700,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (onCopy != null)
+                        InkWell(
+                          borderRadius: BorderRadius.circular(AppRadius.sm),
+                          onTap: onCopy,
+                          child: const Padding(
+                            padding: EdgeInsets.all(4),
+                            child: Icon(
+                              Icons.copy_rounded,
+                              size: 16,
+                              color: Colors.white70,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    method.bankName != null
+                        ? '${method.cardHolderName} · ${method.bankName}'
+                        : method.cardHolderName,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: Colors.white70,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                ),
-                if (onCopy != null)
-                  InkWell(
-                    borderRadius: BorderRadius.circular(AppRadius.sm),
-                    onTap: onCopy,
-                    child: const Padding(
-                      padding: EdgeInsets.all(4),
-                      child: Icon(
-                        Icons.copy_rounded,
-                        size: 16,
-                        color: Colors.white70,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 2),
-            Text(
-              method.bankName != null
-                  ? '${method.cardHolderName} · ${method.bankName}'
-                  : method.cardHolderName,
-              style: theme.textTheme.bodySmall?.copyWith(color: Colors.white70),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+                ],
+              ),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+/// The little gold contact-pad glyph every physical bank card has — sells
+/// the "this is a card" read at a glance, independent of any card network.
+class _CardChipIcon extends StatelessWidget {
+  const _CardChipIcon();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 26,
+      height: 19,
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFFFE8B0), AppColors.brandWarm],
+        ),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: Colors.black.withValues(alpha: 0.12)),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: List.generate(
+          2,
+          (_) => Container(
+            height: 1,
+            margin: const EdgeInsets.symmetric(horizontal: 4),
+            color: Colors.black.withValues(alpha: 0.18),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A compact circular badge holding the bank's initials — a stand-in for a
+/// real bank logo (none is on file) that still reads as "this card belongs
+/// to a specific bank" rather than a generic credit-card icon.
+class _BankBadge extends StatelessWidget {
+  const _BankBadge({super.key, required this.bankName});
+
+  final String? bankName;
+
+  @override
+  Widget build(BuildContext context) {
+    final initials = _initialsOf(bankName);
+    return Container(
+      width: 24,
+      height: 24,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.22),
+        shape: BoxShape.circle,
+      ),
+      child: initials != null
+          ? Text(
+              initials,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+              ),
+            )
+          : const Icon(
+              Icons.account_balance_rounded,
+              size: 13,
+              color: Colors.white,
+            ),
+    );
+  }
+
+  static String? _initialsOf(String? bankName) {
+    if (bankName == null || bankName.trim().isEmpty) return null;
+    final words = bankName.trim().split(RegExp(r'\s+'));
+    final letters = words.take(2).map((w) => w[0].toUpperCase()).join();
+    return letters;
+  }
+}
+
+class _NetworkRing extends StatelessWidget {
+  const _NetworkRing({required this.color});
+
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 56,
+      height: 56,
+      decoration: BoxDecoration(shape: BoxShape.circle, color: color),
     );
   }
 }

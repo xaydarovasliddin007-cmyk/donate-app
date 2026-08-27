@@ -1544,6 +1544,12 @@ abstract class AppLocalizations {
   /// **'Quyidagi kartalardan biriga o\'tkazing'**
   String get topupReservedCardTitle;
 
+  /// No description provided for @topupNoCommissionNote.
+  ///
+  /// In uz, this message translates to:
+  /// **'Barcha kartalar orqali komissiyasiz o\'tkazma'**
+  String get topupNoCommissionNote;
+
   /// No description provided for @topupExactAmountLabel.
   ///
   /// In uz, this message translates to:

@@ -776,6 +776,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get topupReservedCardTitle => 'Переведите на одну из этих карт';
 
   @override
+  String get topupNoCommissionNote => 'Перевод без комиссии на любую карту';
+
+  @override
   String get topupExactAmountLabel => 'Переведите ровно эту сумму';
 
   @override

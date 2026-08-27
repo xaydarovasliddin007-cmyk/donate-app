@@ -289,6 +289,7 @@
   "topupStatusExpired": "Muddati o'tgan",
   "topupValidationError": "Summani kiriting",
   "topupReservedCardTitle": "Quyidagi kartalardan biriga o'tkazing",
+  "topupNoCommissionNote": "Barcha kartalar orqali komissiyasiz o'tkazma",
   "topupExactAmountLabel": "Aynan shu summani o'tkazing",
   "topupExactAmountWarning": "Faqat aynan ko'rsatilgan summani o'tkazing. Boshqacha summa yuborilsa, mablag' hisobingizga tushmaydi!",
   "topupTimeLeftLabel": "Qolgan vaqt: {time}",

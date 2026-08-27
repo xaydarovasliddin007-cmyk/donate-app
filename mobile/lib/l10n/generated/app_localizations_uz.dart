@@ -781,6 +781,10 @@ class AppLocalizationsUz extends AppLocalizations {
   String get topupReservedCardTitle => 'Quyidagi kartalardan biriga o\'tkazing';
 
   @override
+  String get topupNoCommissionNote =>
+      'Barcha kartalar orqali komissiyasiz o\'tkazma';
+
+  @override
   String get topupExactAmountLabel => 'Aynan shu summani o\'tkazing';
 
   @override
