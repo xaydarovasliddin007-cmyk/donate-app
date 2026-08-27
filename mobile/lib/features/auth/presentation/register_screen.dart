@@ -8,6 +8,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../application/auth_controller.dart';
 import 'widgets/auth_identifier_field.dart';
+import 'widgets/google_auth_button.dart';
 
 /// Step 1 of registration: just email + optional display name. No password
 /// here — that's set on the next screen only after the emailed code is
@@ -25,7 +26,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _identifierController = TextEditingController();
   final _displayNameController = TextEditingController();
   bool _submitting = false;
+  bool _googleSubmitting = false;
   String? _errorMessage;
+  String? _googleErrorMessage;
+
+  bool get _busy => _submitting || _googleSubmitting;
 
   @override
   void dispose() {
@@ -74,6 +79,31 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     }
   }
 
+  Future<void> _submitGoogle() async {
+    final l10n = AppLocalizations.of(context);
+    setState(() {
+      _googleSubmitting = true;
+      _googleErrorMessage = null;
+    });
+
+    try {
+      final success = await ref
+          .read(authControllerProvider.notifier)
+          .signInWithGoogle();
+      if (success && mounted) context.pop();
+    } catch (error) {
+      final failure = Failure.from(error);
+      if (!mounted) return;
+      setState(() {
+        _googleErrorMessage = failure.code == 'GOOGLE_NOT_CONFIGURED'
+            ? l10n.authGoogleUnavailableMessage
+            : l10n.authGoogleSignInFailed;
+      });
+    } finally {
+      if (mounted) setState(() => _googleSubmitting = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -89,6 +119,40 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             children: [
               const Center(child: BrandMark(size: 52)),
               const SizedBox(height: AppSpacing.xl),
+              GoogleAuthButton(
+                label: l10n.authContinueWithGoogle,
+                loading: _googleSubmitting,
+                onPressed: _busy ? null : _submitGoogle,
+              ),
+              if (_googleErrorMessage != null) ...[
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  _googleErrorMessage!,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: theme.colorScheme.error),
+                ),
+              ],
+              const SizedBox(height: AppSpacing.lg),
+              Row(
+                children: [
+                  Expanded(
+                    child: Divider(color: theme.colorScheme.outlineVariant),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.sm,
+                    ),
+                    child: Text(
+                      l10n.authOrDivider,
+                      style: theme.textTheme.bodySmall,
+                    ),
+                  ),
+                  Expanded(
+                    child: Divider(color: theme.colorScheme.outlineVariant),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.lg),
               Form(
                 key: _formKey,
                 child: Column(
@@ -126,7 +190,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     ],
                     const SizedBox(height: AppSpacing.xl),
                     FilledButton(
-                      onPressed: _submitting ? null : _submit,
+                      onPressed: _busy ? null : _submit,
                       child: _submitting
                           ? const SizedBox(
                               height: 20,
@@ -141,7 +205,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               const SizedBox(height: AppSpacing.md),
               Center(
                 child: TextButton(
-                  onPressed: _submitting ? null : () => context.pop(),
+                  onPressed: _busy
+                      ? null
+                      : () => context.pushReplacement('/login'),
                   child: Text(
                     '${l10n.authHaveAccountPrompt} ${l10n.authSwitchToLogin}',
                   ),
