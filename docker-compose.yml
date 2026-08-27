@@ -17,5 +17,31 @@ services:
       timeout: 5s
       retries: 10
 
+  backend:
+    build:
+      context: ./backend
+    container_name: donate_app_backend
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    environment:
+      # Overrides the .env value (which points at localhost:5432 for
+      # running the backend directly on the host) — inside the compose
+      # network, Postgres is reachable at its service name instead.
+      DATABASE_URL: postgresql://donate:donate@postgres:5432/donate_app?schema=public
+    ports:
+      - '4000:4000'
+    volumes:
+      - ./backend:/app
+      # Shadows the bind mount above so the container's own Linux-built
+      # node_modules (with a real argon2 binary) is used instead of
+      # whatever is on the Windows host — the entire reason this service
+      # exists is to run outside the host's native-binary restrictions.
+      - donate_app_backend_node_modules:/app/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+
 volumes:
   donate_app_postgres_data:
+  donate_app_backend_node_modules:
