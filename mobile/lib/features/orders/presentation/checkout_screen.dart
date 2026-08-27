@@ -251,10 +251,12 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   }
 }
 
-/// Order summary as a bordered, softly-shadowed card matching the rest of
-/// the app's card language, with a gradient product icon up top — replaces
-/// a plain Material [Card] that looked flat next to everything else on this
-/// screen.
+/// A "receipt" card: a gradient header carrying the product identity and
+/// the total (the two things worth a glance), with the reference details
+/// (player ID, server, itemized price) as a plain list below — the same
+/// treatment as the order-status detail card, so the whole purchase→status
+/// flow reads as one consistent design instead of the checkout step looking
+/// like an older, flatter screen next to it.
 class _OrderSummaryCard extends StatelessWidget {
   const _OrderSummaryCard({
     required this.game,
@@ -280,7 +282,7 @@ class _OrderSummaryCard extends StatelessWidget {
         : AppColors.heroGradientLight;
 
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(AppRadius.lg),
@@ -298,76 +300,102 @@ class _OrderSummaryCard extends StatelessWidget {
         ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(colors: gradient),
-                  borderRadius: BorderRadius.circular(AppRadius.md),
-                  boxShadow: [
-                    BoxShadow(
-                      color: gradient.first.withValues(alpha: 0.4),
-                      blurRadius: 10,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
-                ),
-                child: const Icon(
-                  Icons.diamond_rounded,
-                  color: Colors.white,
-                  size: 20,
-                ),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(AppSpacing.md),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: gradient,
               ),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    Text(
-                      product.name,
-                      style: theme.textTheme.titleSmall,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    Container(
+                      width: 40,
+                      height: 40,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(AppRadius.sm),
+                      ),
+                      child: const Icon(
+                        Icons.diamond_rounded,
+                        color: Colors.white,
+                        size: 20,
+                      ),
                     ),
-                    Text(
-                      game.name,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            product.name,
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w800,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            game.name,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: Colors.white.withValues(alpha: 0.8),
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.md),
-          const Divider(height: 1),
-          const SizedBox(height: AppSpacing.sm),
-          _SummaryRow(label: l10n.checkoutPlayerIdLabel, value: playerId),
-          if (serverId.isNotEmpty)
-            _SummaryRow(label: l10n.checkoutServerIdLabel, value: serverId),
-          _SummaryRow(
-            label: l10n.checkoutPriceLabel,
-            value: formatMoney(
-              product.amountMinor,
-              product.currency,
-              localeName,
+                const SizedBox(height: AppSpacing.md),
+                Text(
+                  formatMoney(
+                    product.amountMinor,
+                    product.currency,
+                    localeName,
+                  ),
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
             ),
           ),
-          const Divider(height: AppSpacing.lg),
-          _SummaryRow(
-            label: l10n.checkoutTotalLabel,
-            value: formatMoney(
-              product.amountMinor,
-              product.currency,
-              localeName,
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.sm,
             ),
-            emphasize: true,
+            child: Column(
+              children: [
+                _SummaryRow(label: l10n.checkoutPlayerIdLabel, value: playerId),
+                if (serverId.isNotEmpty)
+                  _SummaryRow(
+                    label: l10n.checkoutServerIdLabel,
+                    value: serverId,
+                  ),
+                _SummaryRow(
+                  label: l10n.checkoutPriceLabel,
+                  value: formatMoney(
+                    product.amountMinor,
+                    product.currency,
+                    localeName,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -491,37 +519,30 @@ class _PaymentMethodTile extends StatelessWidget {
 }
 
 class _SummaryRow extends StatelessWidget {
-  const _SummaryRow({
-    required this.label,
-    required this.value,
-    this.emphasize = false,
-  });
+  const _SummaryRow({required this.label, required this.value});
 
   final String label;
   final String value;
-  final bool emphasize;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final style = emphasize
-        ? theme.textTheme.titleMedium
-        : theme.textTheme.bodyMedium?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          );
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: style),
+          Text(
+            label,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
           Flexible(
             child: Text(
               value,
-              style: emphasize
-                  ? theme.textTheme.titleMedium
-                  : theme.textTheme.bodyMedium,
+              style: theme.textTheme.bodyMedium,
               textAlign: TextAlign.end,
             ),
           ),
