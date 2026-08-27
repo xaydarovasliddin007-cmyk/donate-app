@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/money_formatter.dart';
 import '../../../../core/widgets/pressable_scale.dart';
+import '../../../../l10n/generated/app_localizations.dart';
 import '../../domain/order.dart';
 import 'order_status_badge.dart';
 
@@ -19,6 +21,7 @@ class OrderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
     return PressableScale(
@@ -43,6 +46,8 @@ class OrderCard extends StatelessWidget {
         padding: const EdgeInsets.all(AppSpacing.md),
         child: Row(
           children: [
+            _OrderGameIcon(gameName: order.game.name),
+            const SizedBox(width: AppSpacing.md),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -61,6 +66,16 @@ class OrderCard extends StatelessWidget {
                     style: theme.textTheme.bodySmall?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
+                  ),
+                  Text(
+                    order.serverId == null
+                        ? '${l10n.orderPlayerIdLabel}: ${order.playerId}'
+                        : '${l10n.orderPlayerIdLabel}: ${order.playerId} (${order.serverId})',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   Text(
                     DateFormat.yMd().add_Hm().format(
@@ -92,6 +107,49 @@ class OrderCard extends StatelessWidget {
               ],
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A gradient monogram badge (the game's first letter) — the order response
+/// carries no cover-art URL, so this gives each row a distinct splash of
+/// color instead of every order looking identical, matching the same
+/// "no real asset, derive a badge" treatment used for menu icons and
+/// receiving-card bank badges elsewhere in the app.
+class _OrderGameIcon extends StatelessWidget {
+  const _OrderGameIcon({required this.gameName});
+
+  final String gameName;
+
+  @override
+  Widget build(BuildContext context) {
+    final gradient =
+        AppColors.tileGradients[gameName.hashCode.abs() %
+            AppColors.tileGradients.length];
+    final initial = gameName.trim().isEmpty
+        ? '?'
+        : gameName.trim()[0].toUpperCase();
+
+    return Container(
+      width: 40,
+      height: 40,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: gradient,
+        ),
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+      ),
+      child: Text(
+        initial,
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w800,
+          fontSize: 16,
         ),
       ),
     );

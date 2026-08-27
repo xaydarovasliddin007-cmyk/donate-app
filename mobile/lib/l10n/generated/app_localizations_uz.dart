@@ -580,6 +580,9 @@ class AppLocalizationsUz extends AppLocalizations {
   String get orderHistoryTitle => 'Buyurtmalar tarixi';
 
   @override
+  String get orderHistoryStatSpent => 'Sarflandi';
+
+  @override
   String get orderHistoryEmptyTitle => 'Hali buyurtmalar yo\'q';
 
   @override

@@ -217,6 +217,7 @@
   "supportGeneralBody": "Salom! Yordam kerak edi.",
 
   "orderHistoryTitle": "Buyurtmalar tarixi",
+  "orderHistoryStatSpent": "Sarflandi",
   "orderHistoryEmptyTitle": "Hali buyurtmalar yo'q",
   "orderHistoryEmptyMessage": "Birinchi xaridingizni amalga oshiring",
   "orderHistoryEmptyFilteredTitle": "Bu holatda buyurtma yo'q",

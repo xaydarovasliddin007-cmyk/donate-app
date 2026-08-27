@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/errors/failure.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/utils/money_formatter.dart';
 import '../../../core/widgets/empty_view.dart';
 import '../../../core/widgets/error_view.dart';
 import '../../../core/widgets/loading_view.dart';
@@ -11,8 +13,22 @@ import '../../../core/widgets/staggered_entrance.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../auth/application/auth_controller.dart';
 import '../application/orders_providers.dart';
+import '../domain/order.dart';
 import '../domain/order_status.dart';
 import 'widgets/order_card.dart';
+
+/// Only orders where money was actually captured count as "spent" — pending
+/// (not yet paid) never captured anything, and failed/cancelled/refunded
+/// never kept it, so none of those should inflate the total.
+int _totalSpentMinor(List<Order> orders) => orders
+    .where(
+      (o) => switch (o.status) {
+        OrderStatus.paid || OrderStatus.processing || OrderStatus.completed =>
+          true,
+        _ => false,
+      },
+    )
+    .fold(0, (sum, o) => sum + o.amountMinor);
 
 /// Buckets the seven raw statuses into what a user actually scans a list
 /// for — mid-flight, done, or went wrong — rather than one filter chip per
@@ -112,6 +128,8 @@ class _OrderHistoryScreenState extends ConsumerState<OrderHistoryScreen> {
                           bottom: AppSpacing.lg,
                         ),
                         children: [
+                          _SummaryHeader(orders: orders),
+                          const SizedBox(height: AppSpacing.md),
                           SizedBox(
                             height: 40,
                             child: ListView(
@@ -186,6 +204,123 @@ class _OrderHistoryScreenState extends ConsumerState<OrderHistoryScreen> {
                 );
               },
             ),
+    );
+  }
+}
+
+/// A gradient glance strip — order count and total spent — above the filter
+/// chips, matching the stat-chip treatment already used on the profile
+/// header. Reflects the full order list regardless of the active filter, so
+/// switching filters never makes these numbers jump around.
+class _SummaryHeader extends StatelessWidget {
+  const _SummaryHeader({required this.orders});
+
+  final List<Order> orders;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final gradient = isDark
+        ? AppColors.heroGradientDark
+        : AppColors.heroGradientLight;
+    final localeName = Localizations.localeOf(context).toString();
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+      child: Container(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: gradient,
+          ),
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          boxShadow: [
+            BoxShadow(
+              color: gradient.first.withValues(alpha: isDark ? 0.35 : 0.25),
+              blurRadius: 18,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: _SummaryStat(
+                icon: Icons.receipt_long_rounded,
+                label: l10n.profileStatOrders,
+                value: '${orders.length}',
+              ),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Container(
+              width: 1,
+              height: 32,
+              color: Colors.white.withValues(alpha: 0.2),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: _SummaryStat(
+                icon: Icons.bolt_rounded,
+                label: l10n.orderHistoryStatSpent,
+                value: formatMoney(
+                  _totalSpentMinor(orders),
+                  orders.first.currency,
+                  localeName,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SummaryStat extends StatelessWidget {
+  const _SummaryStat({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          children: [
+            Icon(icon, size: 13, color: Colors.white70),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: Colors.white70,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 2),
+        Text(
+          value,
+          style: theme.textTheme.titleSmall?.copyWith(
+            color: Colors.white,
+            fontWeight: FontWeight.w800,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ],
     );
   }
 }

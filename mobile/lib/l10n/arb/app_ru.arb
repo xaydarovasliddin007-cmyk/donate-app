@@ -207,6 +207,7 @@
   "supportGeneralBody": "Здравствуйте! Нужна помощь.",
 
   "orderHistoryTitle": "История заказов",
+  "orderHistoryStatSpent": "Потрачено",
   "orderHistoryEmptyTitle": "Пока нет заказов",
   "orderHistoryEmptyMessage": "Оформите свою первую покупку",
   "orderHistoryEmptyFilteredTitle": "Нет заказов с этим статусом",

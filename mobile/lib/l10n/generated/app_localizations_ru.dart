@@ -578,6 +578,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get orderHistoryTitle => 'История заказов';
 
   @override
+  String get orderHistoryStatSpent => 'Потрачено';
+
+  @override
   String get orderHistoryEmptyTitle => 'Пока нет заказов';
 
   @override

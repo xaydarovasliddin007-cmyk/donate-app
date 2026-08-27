@@ -1166,6 +1166,12 @@ abstract class AppLocalizations {
   /// **'Buyurtmalar tarixi'**
   String get orderHistoryTitle;
 
+  /// No description provided for @orderHistoryStatSpent.
+  ///
+  /// In uz, this message translates to:
+  /// **'Sarflandi'**
+  String get orderHistoryStatSpent;
+
   /// No description provided for @orderHistoryEmptyTitle.
   ///
   /// In uz, this message translates to:
