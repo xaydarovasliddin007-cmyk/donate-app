@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../core/errors/failure.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_motion.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/reduce_motion_controller.dart';
@@ -140,10 +141,11 @@ class _OrderStatusScreenState extends ConsumerState<OrderStatusScreen> {
   }
 }
 
-/// Bordered/shadowed detail card matching the rest of the app's card
-/// language (order summary at checkout, saved games, etc.) — replaces a
-/// plain Material [Card] that looked flat and generic next to everything
-/// else on this screen.
+/// A "receipt" card: a gradient header carrying the game/product identity
+/// and the big-ticket amount (the two things worth a glance), with the
+/// reference details (order #, player ID, timestamp) as a plain list below
+/// — replacing a single flat, undifferentiated stack of label/value rows
+/// that gave the total no more visual weight than the order number.
 class _OrderDetailCard extends StatelessWidget {
   const _OrderDetailCard({required this.order});
 
@@ -154,9 +156,12 @@ class _OrderDetailCard extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final gradient = isDark
+        ? AppColors.heroGradientDark
+        : AppColors.heroGradientLight;
 
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(AppRadius.lg),
@@ -175,35 +180,123 @@ class _OrderDetailCard extends StatelessWidget {
       ),
       child: Column(
         children: [
-          _Row(label: l10n.orderNumberLabel, value: order.orderNumber),
-          _Row(label: l10n.checkoutGameLabel, value: order.game.name),
-          _Row(
-            label: l10n.checkoutProductLabel,
-            value: order.items.first.productName,
-          ),
-          _Row(label: l10n.orderPlayerIdLabel, value: order.playerId),
-          _Row(
-            label: l10n.orderAmountLabel,
-            value: formatMoney(
-              order.amountMinor,
-              order.currency,
-              Localizations.localeOf(context).toString(),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(AppSpacing.md),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: gradient,
+              ),
             ),
-            emphasize: true,
-          ),
-          _Row(
-            label: l10n.orderCreatedAtLabel,
-            value: DateFormat.yMd().add_Hm().format(order.createdAt.toLocal()),
-            showDivider: order.failureReason == null,
-          ),
-          if (order.failureReason != null)
-            _Row(
-              label: l10n.orderFailureReasonLabel,
-              value: order.failureReason!,
-              valueColor: theme.colorScheme.error,
-              showDivider: false,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    _OrderGameBadge(gameName: order.game.name),
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            order.game.name,
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w800,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            order.items.first.productName,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: Colors.white.withValues(alpha: 0.8),
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.md),
+                Text(
+                  formatMoney(
+                    order.amountMinor,
+                    order.currency,
+                    Localizations.localeOf(context).toString(),
+                  ),
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
             ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+            child: Column(
+              children: [
+                _Row(label: l10n.orderNumberLabel, value: order.orderNumber),
+                _Row(label: l10n.orderPlayerIdLabel, value: order.playerId),
+                _Row(
+                  label: l10n.orderCreatedAtLabel,
+                  value: DateFormat.yMd().add_Hm().format(
+                    order.createdAt.toLocal(),
+                  ),
+                  showDivider: order.failureReason == null,
+                ),
+                if (order.failureReason != null)
+                  _Row(
+                    label: l10n.orderFailureReasonLabel,
+                    value: order.failureReason!,
+                    valueColor: theme.colorScheme.error,
+                    showDivider: false,
+                  ),
+              ],
+            ),
+          ),
         ],
+      ),
+    );
+  }
+}
+
+/// A translucent-on-gradient monogram badge (the game's first letter) —
+/// same "no cover-art on hand" reasoning as [OrderCard]'s icon, styled to
+/// sit on top of a colored gradient instead of a plain surface.
+class _OrderGameBadge extends StatelessWidget {
+  const _OrderGameBadge({required this.gameName});
+
+  final String gameName;
+
+  @override
+  Widget build(BuildContext context) {
+    final initial = gameName.trim().isEmpty
+        ? '?'
+        : gameName.trim()[0].toUpperCase();
+
+    return Container(
+      width: 40,
+      height: 40,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+      ),
+      child: Text(
+        initial,
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w800,
+          fontSize: 16,
+        ),
       ),
     );
   }
@@ -213,14 +306,12 @@ class _Row extends StatelessWidget {
   const _Row({
     required this.label,
     required this.value,
-    this.emphasize = false,
     this.valueColor,
     this.showDivider = true,
   });
 
   final String label;
   final String value;
-  final bool emphasize;
   final Color? valueColor;
   final bool showDivider;
 
@@ -244,16 +335,10 @@ class _Row extends StatelessWidget {
                 child: Text(
                   value,
                   textAlign: TextAlign.end,
-                  style:
-                      (emphasize
-                              ? theme.textTheme.titleSmall
-                              : theme.textTheme.bodyMedium)
-                          ?.copyWith(
-                            fontWeight: emphasize
-                                ? FontWeight.w800
-                                : FontWeight.w600,
-                            color: valueColor,
-                          ),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: valueColor,
+                  ),
                 ),
               ),
             ],
