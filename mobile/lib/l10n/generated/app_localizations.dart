@@ -590,6 +590,48 @@ abstract class AppLocalizations {
   /// **'Kod noto\'g\'ri yoki eskirgan'**
   String get authVerifyEmailFailed;
 
+  /// No description provided for @authForgotPasswordLink.
+  ///
+  /// In uz, this message translates to:
+  /// **'Parolni unutdingizmi?'**
+  String get authForgotPasswordLink;
+
+  /// No description provided for @authForgotPasswordTitle.
+  ///
+  /// In uz, this message translates to:
+  /// **'Parolni tiklash'**
+  String get authForgotPasswordTitle;
+
+  /// No description provided for @authForgotPasswordSubtitle.
+  ///
+  /// In uz, this message translates to:
+  /// **'Ro\'yxatdan o\'tgan email manzilingizni kiriting — sizga tiklash kodini yuboramiz.'**
+  String get authForgotPasswordSubtitle;
+
+  /// No description provided for @authForgotPasswordButton.
+  ///
+  /// In uz, this message translates to:
+  /// **'Kod yuborish'**
+  String get authForgotPasswordButton;
+
+  /// No description provided for @authForgotPasswordSentMessage.
+  ///
+  /// In uz, this message translates to:
+  /// **'Agar {email} bilan hisob mavjud bo\'lsa, unga tiklash kodi yuborildi.'**
+  String authForgotPasswordSentMessage(String email);
+
+  /// No description provided for @authResetPasswordSubtitle.
+  ///
+  /// In uz, this message translates to:
+  /// **'Kodni tasdiqlab, yangi parolingizni tanlang'**
+  String get authResetPasswordSubtitle;
+
+  /// No description provided for @authResetPasswordButton.
+  ///
+  /// In uz, this message translates to:
+  /// **'Parolni yangilash'**
+  String get authResetPasswordButton;
+
   /// No description provided for @homeSearchHint.
   ///
   /// In uz, this message translates to:

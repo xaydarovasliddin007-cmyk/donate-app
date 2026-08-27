@@ -67,6 +67,7 @@ model User {
   topUpRequests           TopUpRequest[]
   notifications           Notification[]
   emailVerificationTokens EmailVerificationToken[]
+  passwordResetTokens     PasswordResetToken[]
   promoCodeRedemptions    PromoCodeRedemption[]
 
   @@map("users")
@@ -90,6 +91,23 @@ model EmailVerificationToken {
 
   @@index([userId])
   @@map("email_verification_tokens")
+}
+
+// A short numeric code (same shape/reasoning as EmailVerificationToken)
+// emailed to prove control of the account's inbox before letting a
+// forgotten password be replaced. Never blocks anything else — an account
+// with no pending reset just has no rows here.
+model PasswordResetToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  codeHash  String    @map("code_hash")
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@map("password_reset_tokens")
 }
 
 // A registration that hasn't been completed yet: email verified-code sent,

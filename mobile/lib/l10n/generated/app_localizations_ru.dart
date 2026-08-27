@@ -271,6 +271,31 @@ class AppLocalizationsRu extends AppLocalizations {
   String get authVerifyEmailFailed => 'Код неверен или истёк';
 
   @override
+  String get authForgotPasswordLink => 'Забыли пароль?';
+
+  @override
+  String get authForgotPasswordTitle => 'Восстановление пароля';
+
+  @override
+  String get authForgotPasswordSubtitle =>
+      'Введите email, указанный при регистрации — мы вышлем код для восстановления.';
+
+  @override
+  String get authForgotPasswordButton => 'Отправить код';
+
+  @override
+  String authForgotPasswordSentMessage(String email) {
+    return 'Если аккаунт с адресом $email существует, на него отправлен код восстановления.';
+  }
+
+  @override
+  String get authResetPasswordSubtitle =>
+      'Подтвердите код и придумайте новый пароль';
+
+  @override
+  String get authResetPasswordButton => 'Обновить пароль';
+
+  @override
   String get homeSearchHint => 'Поиск игры';
 
   @override

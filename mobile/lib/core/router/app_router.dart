@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/register_screen.dart';
 import '../../features/auth/presentation/complete_registration_screen.dart';
+import '../../features/auth/presentation/forgot_password_screen.dart';
+import '../../features/auth/presentation/reset_password_screen.dart';
 import '../../features/games/domain/game.dart';
 import '../../features/games/domain/product.dart';
 import '../../features/games/presentation/all_games_screen.dart';
@@ -29,6 +31,8 @@ abstract final class AppRoutes {
   static const login = '/login';
   static const register = '/register';
   static const registerComplete = '/register/complete';
+  static const forgotPassword = '/forgot-password';
+  static const resetPassword = '/forgot-password/reset';
   static const home = '/home';
   static const games = '/catalog';
   static const orders = '/orders';
@@ -97,6 +101,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             ),
           );
         },
+      ),
+      GoRoute(
+        path: AppRoutes.forgotPassword,
+        pageBuilder: (context, state) =>
+            _fadeSlidePage(state, const ForgotPasswordScreen()),
+      ),
+      GoRoute(
+        path: AppRoutes.resetPassword,
+        pageBuilder: (context, state) => _fadeSlidePage(
+          state,
+          ResetPasswordScreen(email: state.extra! as String),
+        ),
       ),
 
       GoRoute(

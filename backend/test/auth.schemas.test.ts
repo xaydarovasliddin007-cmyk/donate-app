@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   loginSchema,
+  passwordResetRequestSchema,
+  passwordResetSchema,
   registerCompleteSchema,
   registerRequestCodeSchema,
 } from '../src/modules/auth/auth.schemas.js';
@@ -61,6 +63,53 @@ describe('registerCompleteSchema', () => {
 describe('loginSchema', () => {
   it('requires a non-empty password', () => {
     const result = loginSchema.safeParse({ email: 'a@b.com', password: '' });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe('passwordResetRequestSchema', () => {
+  it('normalizes the email', () => {
+    const result = passwordResetRequestSchema.safeParse({ email: 'User@Example.com' });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.email).toBe('user@example.com');
+    }
+  });
+
+  it('rejects an invalid email', () => {
+    const result = passwordResetRequestSchema.safeParse({ email: 'not-an-email' });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe('passwordResetSchema', () => {
+  it('accepts a valid reset payload', () => {
+    const result = passwordResetSchema.safeParse({
+      email: 'User@Example.com',
+      code: '123456',
+      newPassword: 'supersecret123',
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.email).toBe('user@example.com');
+    }
+  });
+
+  it('rejects a new password shorter than 8 characters', () => {
+    const result = passwordResetSchema.safeParse({
+      email: 'a@b.com',
+      code: '123456',
+      newPassword: 'short',
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects a code that is not 6 digits', () => {
+    const result = passwordResetSchema.safeParse({
+      email: 'a@b.com',
+      code: '12',
+      newPassword: 'supersecret123',
+    });
     expect(result.success).toBe(false);
   });
 });

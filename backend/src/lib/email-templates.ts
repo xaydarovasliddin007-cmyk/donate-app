@@ -55,3 +55,29 @@ export function verificationCodeEmail(code: string): { subject: string; text: st
   `);
   return { subject, text, html };
 }
+
+export function passwordResetEmail(code: string): { subject: string; text: string; html: string } {
+  const subject = 'UZDONATE — parolni tiklash kodi';
+  const text = `Parolni tiklash kodingiz: ${code}\n\nBu kod 15 daqiqa amal qiladi. Agar bu so'rovni siz yubormagan bo'lsangiz, shunchaki e'tiborsiz qoldiring — parolingiz o'zgarmaydi.`;
+  const html = emailShell(`
+    <p style="margin:0 0 8px;color:#ffffff;font-size:18px;font-weight:700;">Parolni tiklash</p>
+    <p style="margin:0 0 24px;color:#9BA3B7;font-size:14px;line-height:20px;">
+      Yangi parol o'rnatish uchun UZDONATE ilovasiga quyidagi kodni kiriting:
+    </p>
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto 24px;">
+      <tr>
+        ${code
+          .split('')
+          .map(
+            (digit) =>
+              `<td style="width:40px;height:52px;background-color:#1F2740;border-radius:10px;text-align:center;vertical-align:middle;font-size:24px;font-weight:800;color:#ffffff;letter-spacing:0;">${digit}</td><td style="width:8px;"></td>`,
+          )
+          .join('')}
+      </tr>
+    </table>
+    <p style="margin:0;color:#5B6478;font-size:13px;line-height:18px;text-align:center;">
+      Kod 15 daqiqa amal qiladi. Bu so'rovni siz yubormagan bo'lsangiz, hech narsa qilmang.
+    </p>
+  `);
+  return { subject, text, html };
+}

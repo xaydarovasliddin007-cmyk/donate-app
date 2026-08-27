@@ -62,6 +62,26 @@ class AuthApi {
     return AuthResult.fromJson(json);
   }
 
+  /// Step 1 of password reset: sends a 6-digit code to [email] if an
+  /// account exists for it. Always resolves the same way regardless of
+  /// whether the account exists, so the caller can't probe for that.
+  Future<void> requestPasswordReset({required String email}) =>
+      _client.post('/auth/password/reset-request', body: {'email': email});
+
+  /// Step 2: confirms the code and sets [newPassword], logging the account
+  /// into this device.
+  Future<AuthResult> resetPassword({
+    required String email,
+    required String code,
+    required String newPassword,
+  }) async {
+    final json = await _client.post(
+      '/auth/password/reset',
+      body: {'email': email, 'code': code, 'newPassword': newPassword},
+    );
+    return AuthResult.fromJson(json);
+  }
+
   Future<AuthResult> googleAuth({
     required String idToken,
     required String locale,

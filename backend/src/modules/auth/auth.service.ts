@@ -11,9 +11,16 @@ import { generateUniquePublicId } from '../../lib/public-id.js';
 import { formatMinorAmount } from '../../lib/money.js';
 import { notifyAdmins } from '../../lib/telegram.js';
 import { sendEmail } from '../../lib/mailer.js';
-import { verificationCodeEmail } from '../../lib/email-templates.js';
+import { verificationCodeEmail, passwordResetEmail } from '../../lib/email-templates.js';
 import { getWalletSummary } from '../wallet/wallet.service.js';
-import type { GoogleAuthInput, LoginInput, RegisterCompleteInput, RegisterRequestCodeInput } from './auth.schemas.js';
+import type {
+  GoogleAuthInput,
+  LoginInput,
+  PasswordResetInput,
+  PasswordResetRequestInput,
+  RegisterCompleteInput,
+  RegisterRequestCodeInput,
+} from './auth.schemas.js';
 
 const VERIFICATION_CODE_TTL_MS = 15 * 60 * 1000;
 
@@ -201,6 +208,69 @@ export async function login(
   if (!user || !passwordMatches || user.status !== 'ACTIVE') {
     throw new UnauthorizedError('Invalid credentials');
   }
+
+  const tokens = await issueTokenPair(ctx, user, meta);
+  return { user: toPublicUser(user), ...tokens };
+}
+
+/**
+ * Sends a reset code if — and only behaviorally-identically-if-not — an
+ * account with this email exists: the caller always sees the same 204,
+ * whether or not the email is registered, so this can never be used to
+ * probe which emails have accounts.
+ */
+export async function requestPasswordReset(ctx: AuthContext, input: PasswordResetRequestInput): Promise<void> {
+  const user = await ctx.prisma.user.findUnique({ where: { email: input.email } });
+  if (!user || user.status !== 'ACTIVE') {
+    return;
+  }
+
+  const { code, codeHash } = generateVerificationCode();
+  await ctx.prisma.passwordResetToken.create({
+    data: { userId: user.id, codeHash, expiresAt: new Date(Date.now() + VERIFICATION_CODE_TTL_MS) },
+  });
+
+  // Fire-and-forget, matching issueVerificationCode()'s reasoning above.
+  void sendEmail({ to: input.email, ...passwordResetEmail(code) });
+}
+
+/**
+ * Confirms the emailed code and sets a new password — this doubles as a way
+ * for a Google-only account to add password login, since any account with
+ * this email can go through it, not just ones that already have a password.
+ * Every existing session is revoked before issuing a fresh one for this
+ * device: a forgotten/leaked password is exactly the scenario where an
+ * attacker may already be logged in elsewhere.
+ */
+export async function resetPassword(
+  ctx: AuthContext,
+  input: PasswordResetInput,
+  meta: { userAgent?: string; ipAddress?: string },
+) {
+  const user = await ctx.prisma.user.findUnique({ where: { email: input.email } });
+  if (!user || user.status !== 'ACTIVE') {
+    throw new UnauthorizedError('Invalid or expired code');
+  }
+
+  const token = await ctx.prisma.passwordResetToken.findFirst({
+    where: {
+      userId: user.id,
+      codeHash: hashVerificationCode(input.code),
+      usedAt: null,
+      expiresAt: { gt: new Date() },
+    },
+  });
+  if (!token) {
+    throw new UnauthorizedError('Invalid or expired code');
+  }
+
+  const passwordHash = await hashPassword(input.newPassword);
+
+  await ctx.prisma.$transaction([
+    ctx.prisma.passwordResetToken.update({ where: { id: token.id }, data: { usedAt: new Date() } }),
+    ctx.prisma.user.update({ where: { id: user.id }, data: { passwordHash } }),
+    ctx.prisma.refreshToken.updateMany({ where: { userId: user.id, revokedAt: null }, data: { revokedAt: new Date() } }),
+  ]);
 
   const tokens = await issueTokenPair(ctx, user, meta);
   return { user: toPublicUser(user), ...tokens };

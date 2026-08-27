@@ -4,6 +4,8 @@ import { authenticate } from '../../middleware/authenticate.js';
 import {
   googleAuthSchema,
   loginSchema,
+  passwordResetRequestSchema,
+  passwordResetSchema,
   refreshSchema,
   registerCompleteSchema,
   registerRequestCodeSchema,
@@ -13,6 +15,8 @@ import * as authService from './auth.service.js';
 import type {
   GoogleAuthInput,
   LoginInput,
+  PasswordResetInput,
+  PasswordResetRequestInput,
   RefreshInput,
   RegisterCompleteInput,
   RegisterRequestCodeInput,
@@ -52,6 +56,33 @@ export async function authRoutes(app: FastifyInstance) {
       ipAddress: request.ip,
     });
   });
+
+  app.post(
+    '/auth/password/reset-request',
+    {
+      // A tighter cap than the global default — this sends an email per
+      // call, so it's the cheapest endpoint in the API to abuse for spam.
+      config: { rateLimit: { max: 5, timeWindow: 60_000 } },
+      preHandler: validateBody(passwordResetRequestSchema),
+    },
+    async (request, reply) => {
+      const body = request.body as PasswordResetRequestInput;
+      await authService.requestPasswordReset(ctx, body);
+      return reply.status(204).send();
+    },
+  );
+
+  app.post(
+    '/auth/password/reset',
+    { preHandler: validateBody(passwordResetSchema) },
+    async (request) => {
+      const body = request.body as PasswordResetInput;
+      return authService.resetPassword(ctx, body, {
+        userAgent: request.headers['user-agent'],
+        ipAddress: request.ip,
+      });
+    },
+  );
 
   app.post('/auth/google', { preHandler: validateBody(googleAuthSchema) }, async (request) => {
     const body = request.body as GoogleAuthInput;

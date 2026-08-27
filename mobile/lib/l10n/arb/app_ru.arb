@@ -93,6 +93,13 @@
   "authVerifyEmailResendButton": "Отправить код повторно",
   "authVerifyEmailResendSuccess": "Код отправлен повторно",
   "authVerifyEmailFailed": "Код неверен или истёк",
+  "authForgotPasswordLink": "Забыли пароль?",
+  "authForgotPasswordTitle": "Восстановление пароля",
+  "authForgotPasswordSubtitle": "Введите email, указанный при регистрации — мы вышлем код для восстановления.",
+  "authForgotPasswordButton": "Отправить код",
+  "authForgotPasswordSentMessage": "Если аккаунт с адресом {email} существует, на него отправлен код восстановления.",
+  "authResetPasswordSubtitle": "Подтвердите код и придумайте новый пароль",
+  "authResetPasswordButton": "Обновить пароль",
 
   "homeSearchHint": "Поиск игры",
   "notificationsComingSoon": "Уведомления скоро",

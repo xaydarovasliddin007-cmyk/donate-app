@@ -182,6 +182,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ? l10n.authPasswordTooShort
                             : null,
                       ),
+                      Align(
+                        alignment: AlignmentDirectional.centerEnd,
+                        child: TextButton(
+                          onPressed: _busy
+                              ? null
+                              : () => context.push('/forgot-password'),
+                          child: Text(l10n.authForgotPasswordLink),
+                        ),
+                      ),
                       if (_errorMessage != null) ...[
                         const SizedBox(height: AppSpacing.md),
                         Text(

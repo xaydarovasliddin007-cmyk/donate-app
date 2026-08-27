@@ -272,6 +272,31 @@ class AppLocalizationsUz extends AppLocalizations {
   String get authVerifyEmailFailed => 'Kod noto\'g\'ri yoki eskirgan';
 
   @override
+  String get authForgotPasswordLink => 'Parolni unutdingizmi?';
+
+  @override
+  String get authForgotPasswordTitle => 'Parolni tiklash';
+
+  @override
+  String get authForgotPasswordSubtitle =>
+      'Ro\'yxatdan o\'tgan email manzilingizni kiriting — sizga tiklash kodini yuboramiz.';
+
+  @override
+  String get authForgotPasswordButton => 'Kod yuborish';
+
+  @override
+  String authForgotPasswordSentMessage(String email) {
+    return 'Agar $email bilan hisob mavjud bo\'lsa, unga tiklash kodi yuborildi.';
+  }
+
+  @override
+  String get authResetPasswordSubtitle =>
+      'Kodni tasdiqlab, yangi parolingizni tanlang';
+
+  @override
+  String get authResetPasswordButton => 'Parolni yangilash';
+
+  @override
   String get homeSearchHint => 'O\'yin qidirish';
 
   @override

@@ -114,6 +114,20 @@ class AuthController extends AsyncNotifier<AuthState> {
   Future<void> resendVerification() =>
       ref.read(authApiProvider).resendVerification();
 
+  Future<void> requestPasswordReset({required String email}) =>
+      ref.read(authApiProvider).requestPasswordReset(email: email);
+
+  Future<void> resetPassword({
+    required String email,
+    required String code,
+    required String newPassword,
+  }) async {
+    final result = await ref
+        .read(authApiProvider)
+        .resetPassword(email: email, code: code, newPassword: newPassword);
+    await _applyAuthResult(result);
+  }
+
   /// Returns true on success, false if the user cancelled the Google
   /// account picker (not an error — callers should just stay put silently).
   Future<bool> signInWithGoogle() async {

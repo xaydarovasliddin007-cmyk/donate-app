@@ -31,6 +31,19 @@ export const refreshSchema = z.object({
   refreshToken: z.string().min(1),
 });
 
+export const passwordResetRequestSchema = z.object({
+  email: z.string().trim().toLowerCase().email(),
+});
+
+export const passwordResetSchema = z.object({
+  email: z.string().trim().toLowerCase().email(),
+  code: z
+    .string()
+    .trim()
+    .regex(/^\d{6}$/, 'Code must be 6 digits'),
+  newPassword: z.string().min(8).max(128),
+});
+
 export const googleAuthSchema = z.object({
   // The raw Google ID token (JWT) from the Flutter google_sign_in flow —
   // never trusted as-is, always re-verified server-side against Google.
@@ -41,6 +54,8 @@ export const googleAuthSchema = z.object({
 export type RegisterRequestCodeInput = z.infer<typeof registerRequestCodeSchema>;
 export type RegisterCompleteInput = z.infer<typeof registerCompleteSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
+export type PasswordResetRequestInput = z.infer<typeof passwordResetRequestSchema>;
+export type PasswordResetInput = z.infer<typeof passwordResetSchema>;
 export type VerifyEmailInput = z.infer<typeof verifyEmailSchema>;
 export type RefreshInput = z.infer<typeof refreshSchema>;
 export type GoogleAuthInput = z.infer<typeof googleAuthSchema>;

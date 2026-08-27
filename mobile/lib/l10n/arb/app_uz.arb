@@ -97,6 +97,16 @@
   "authVerifyEmailResendButton": "Kodni qayta yuborish",
   "authVerifyEmailResendSuccess": "Kod qayta yuborildi",
   "authVerifyEmailFailed": "Kod noto'g'ri yoki eskirgan",
+  "authForgotPasswordLink": "Parolni unutdingizmi?",
+  "authForgotPasswordTitle": "Parolni tiklash",
+  "authForgotPasswordSubtitle": "Ro'yxatdan o'tgan email manzilingizni kiriting — sizga tiklash kodini yuboramiz.",
+  "authForgotPasswordButton": "Kod yuborish",
+  "authForgotPasswordSentMessage": "Agar {email} bilan hisob mavjud bo'lsa, unga tiklash kodi yuborildi.",
+  "@authForgotPasswordSentMessage": {
+    "placeholders": { "email": { "type": "String" } }
+  },
+  "authResetPasswordSubtitle": "Kodni tasdiqlab, yangi parolingizni tanlang",
+  "authResetPasswordButton": "Parolni yangilash",
 
   "homeSearchHint": "O'yin qidirish",
   "notificationsComingSoon": "Bildirishnomalar tez kunda",
