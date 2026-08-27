@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/money_formatter.dart';
+import '../../../../core/widgets/pressable_scale.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 import '../../../games/application/games_providers.dart';
 import '../../../games/domain/game.dart';
@@ -106,20 +107,66 @@ class SavedGameCard extends ConsumerWidget {
               final cheapest = products.reduce(
                 (a, b) => a.amountMinor <= b.amountMinor ? a : b,
               );
-              return SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: () => onQuickBuy(cheapest),
-                  child: Text(
+              return _QuickBuyButton(
+                label:
                     '${l10n.homeQuickBuyButton} · ${formatMoney(cheapest.amountMinor, cheapest.currency, localeName)}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
+                onTap: () => onQuickBuy(cheapest),
               );
             },
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// A gradient-filled pill — the same treatment as the wallet card's "Top
+/// up" quick action — rather than a default Material [FilledButton], which
+/// read as generic next to every other primary action in the app.
+class _QuickBuyButton extends StatelessWidget {
+  const _QuickBuyButton({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final gradient = isDark
+        ? AppColors.heroGradientDark
+        : AppColors.heroGradientLight;
+
+    return PressableScale(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: gradient,
+          ),
+          borderRadius: BorderRadius.circular(AppRadius.pill),
+          boxShadow: [
+            BoxShadow(
+              color: gradient.first.withValues(alpha: 0.35),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        child: Text(
+          label,
+          textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: theme.textTheme.labelLarge?.copyWith(
+            color: Colors.white,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
       ),
     );
   }
