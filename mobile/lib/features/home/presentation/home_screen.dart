@@ -23,6 +23,7 @@ import '../../orders/application/orders_providers.dart';
 import '../../orders/presentation/widgets/order_card.dart';
 import '../../saved_games/application/saved_games_providers.dart';
 import '../../saved_games/presentation/widgets/saved_game_card.dart';
+import '../../wallet/application/wallet_providers.dart';
 import '../../wallet/presentation/widgets/wallet_balance_card.dart';
 import '../application/promotions_provider.dart';
 import 'widgets/promotion_banner.dart';
@@ -72,6 +73,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ],
               ),
         actions: [
+          if (isAuthenticated) ...[
+            const _BalanceChip(),
+            const SizedBox(width: 4),
+          ],
           if (isAuthenticated)
             Consumer(
               builder: (context, ref, _) {
@@ -105,22 +110,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             const SizedBox(height: AppSpacing.md),
             if (isAuthenticated) ...[
               const WalletBalanceCard(),
-              const SizedBox(height: AppSpacing.lg),
+              const SizedBox(height: AppSpacing.md),
             ] else ...[
               _GuestHero(
                 onBrowse: () => context.go('/catalog'),
                 onCreateAccount: () => context.push('/register'),
               ),
-              const SizedBox(height: AppSpacing.lg),
+              const SizedBox(height: AppSpacing.md),
             ],
             _SearchLauncher(
               hintText: l10n.homeSearchHint,
               onTap: () => context.go('/catalog'),
             ),
-            const SizedBox(height: AppSpacing.lg),
+            const SizedBox(height: AppSpacing.md),
             SectionHeader(title: l10n.homeQuickCategoriesTitle),
             SizedBox(
-              height: 96,
+              height: 44,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
@@ -129,7 +134,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     const SizedBox(width: AppSpacing.sm),
                 itemBuilder: (context, index) {
                   final entry = _quickCategories[index];
-                  return _QuickCategoryTile(
+                  return _QuickCategoryPill(
                     icon: entry.$1,
                     label: entry.$2,
                     gradient: AppColors
@@ -632,8 +637,11 @@ const _quickCategories = <(IconData, String)>[
   (Icons.sports_soccer_rounded, 'Sports'),
 ];
 
-class _QuickCategoryTile extends StatelessWidget {
-  const _QuickCategoryTile({
+/// A filled gradient pill (icon + label in one row) rather than a bordered
+/// vertical card — denser and reads more like a quick-action chip than a
+/// standalone tile, matching the reference apps' horizontal category strip.
+class _QuickCategoryPill extends StatelessWidget {
+  const _QuickCategoryPill({
     required this.icon,
     required this.label,
     required this.gradient,
@@ -649,46 +657,91 @@ class _QuickCategoryTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return SizedBox(
-      width: 84,
-      child: Material(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(AppRadius.lg),
-          onTap: onTap,
-          child: Container(
-            padding: const EdgeInsets.all(AppSpacing.sm),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(AppRadius.lg),
-              border: Border.all(color: theme.colorScheme.outlineVariant),
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(AppRadius.pill),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppRadius.pill),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: AppSpacing.xs,
+          ),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: gradient,
             ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: gradient,
-                    ),
-                    borderRadius: BorderRadius.circular(AppRadius.sm),
-                  ),
-                  child: Icon(icon, color: Colors.white, size: 21),
+            borderRadius: BorderRadius.circular(AppRadius.pill),
+            boxShadow: [
+              BoxShadow(
+                color: gradient.first.withValues(alpha: 0.3),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: Colors.white, size: 17),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
                 ),
-                const SizedBox(height: AppSpacing.xs),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Compact "glance" readout of the wallet balance in the AppBar — visible
+/// without scrolling to the big balance card, matching the reference apps'
+/// profile-header coin pill. Tapping it opens the same top-up flow as the
+/// balance card's own quick action.
+class _BalanceChip extends ConsumerWidget {
+  const _BalanceChip();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final walletAsync = ref.watch(walletProvider);
+
+    return walletAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error: (_, _) => const SizedBox.shrink(),
+      data: (wallet) => Material(
+        color: theme.colorScheme.surfaceContainerHighest.withValues(
+          alpha: 0.6,
+        ),
+        borderRadius: BorderRadius.circular(AppRadius.pill),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(AppRadius.pill),
+          onTap: () => context.push('/wallet/topup'),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.bolt_rounded,
+                  size: 14,
+                  color: AppColors.brandWarm,
+                ),
+                const SizedBox(width: 4),
                 Text(
-                  label,
-                  style: theme.textTheme.labelSmall?.copyWith(
+                  _compactAmount(wallet.balanceMinor),
+                  style: theme.textTheme.labelMedium?.copyWith(
                     fontWeight: FontWeight.w800,
                   ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
                 ),
               ],
             ),
@@ -697,4 +750,19 @@ class _QuickCategoryTile extends StatelessWidget {
       ),
     );
   }
+}
+
+/// A short "125K"/"3.4M" readout for the AppBar chip, where a fully
+/// formatted currency string ("125 000 UZS") wouldn't fit — the balance
+/// card below still shows the exact amount.
+String _compactAmount(int amountMinor) {
+  final majorUnits = amountMinor / 100;
+  if (majorUnits >= 1000000) {
+    final millions = majorUnits / 1000000;
+    return '${millions.toStringAsFixed(millions % 1 == 0 ? 0 : 1)}M';
+  }
+  if (majorUnits >= 1000) {
+    return '${(majorUnits / 1000).round()}K';
+  }
+  return majorUnits.round().toString();
 }
