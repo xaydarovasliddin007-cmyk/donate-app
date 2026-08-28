@@ -171,4 +171,83 @@ describe('topup reservation + auto-verification (live DB)', () => {
 
     expect(result).toBeNull();
   });
+
+  describe('reserving against a specific receiving-method type', () => {
+    let qrMethodId: string;
+
+    beforeAll(async () => {
+      const qr = await prisma.receivingMethod.create({
+        data: {
+          type: 'QR_CODE',
+          cardHolderName: 'Vitest QR Test',
+          qrPayload: 'https://example.com/vitest-qr-payload',
+          isActive: true,
+          sortOrder: -3,
+        },
+      });
+      qrMethodId = qr.id;
+    });
+
+    afterAll(async () => {
+      await prisma.topUpRequest.deleteMany({ where: { receivingMethodId: qrMethodId } });
+      await prisma.receivingMethod.delete({ where: { id: qrMethodId } });
+    });
+
+    it('only offers methods of the requested type, not every active method', async () => {
+      const user = await makeUser();
+      const reservation = await topupService.reserveTopUpRequest(ctx, user.id, 30000_00, 'QR_CODE');
+
+      expect(reservation.receivingMethods).toHaveLength(1);
+      expect(reservation.receivingMethods[0]!.id).toBe(qrMethodId);
+    });
+
+    it('rejects a type with no active methods instead of silently falling back to another type', async () => {
+      const user = await makeUser();
+      await expect(
+        topupService.reserveTopUpRequest(ctx, user.id, 30000_00, 'PAYNET_TERMINAL'),
+      ).rejects.toThrow(/no receiving methods/i);
+    });
+
+    it('defaults to any active type when none is given, same as before this feature existed', async () => {
+      const user = await makeUser();
+      const reservation = await topupService.reserveTopUpRequest(ctx, user.id, 30000_00);
+
+      const ids = reservation.receivingMethods.map((m) => m.id).sort();
+      expect(ids).toEqual([testCardAId, testCardBId, qrMethodId].sort());
+    });
+  });
+
+  describe('submitTopUpReference', () => {
+    it('attaches the reference to the caller\'s own pending request', async () => {
+      const user = await makeUser();
+      const reservation = await topupService.reserveTopUpRequest(ctx, user.id, 40000_00);
+
+      const updated = await topupService.submitTopUpReference(ctx, user.id, reservation.id, 'CHK-12345');
+
+      expect(updated.userReference).toBe('CHK-12345');
+    });
+
+    it('refuses to attach a reference to someone else\'s request', async () => {
+      const owner = await makeUser();
+      const stranger = await makeUser();
+      const reservation = await topupService.reserveTopUpRequest(ctx, owner.id, 41000_00);
+
+      await expect(
+        topupService.submitTopUpReference(ctx, stranger.id, reservation.id, 'CHK-99999'),
+      ).rejects.toThrow(/does not belong to you/i);
+    });
+
+    it('refuses once the request is no longer PENDING', async () => {
+      const user = await makeUser();
+      const reservation = await topupService.reserveTopUpRequest(ctx, user.id, 42000_00);
+      await topupService.autoVerifyFromCardTransaction(ctx, {
+        cardHint: '4242',
+        amountMinor: reservation.amountMinor,
+      });
+
+      await expect(
+        topupService.submitTopUpReference(ctx, user.id, reservation.id, 'CHK-00000'),
+      ).rejects.toThrow(/only pending/i);
+    });
+  });
 });

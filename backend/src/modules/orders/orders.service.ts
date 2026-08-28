@@ -304,7 +304,15 @@ export async function fulfillPaidOrder(ctx: OrderContext, orderId: string): Prom
 
   await runFulfillmentAttempt(
     ctx,
-    { id: order.id, orderNumber: order.orderNumber, userId: order.userId, status, playerId: order.playerId, zoneId: order.zoneId },
+    {
+      id: order.id,
+      orderNumber: order.orderNumber,
+      userId: order.userId,
+      status,
+      playerId: order.playerId,
+      zoneId: order.zoneId,
+      serverId: order.serverId,
+    },
     providerProduct,
   );
 }
@@ -338,7 +346,15 @@ export async function retryFulfillment(ctx: OrderContext, orderId: string): Prom
   );
   await runFulfillmentAttempt(
     ctx,
-    { id: order.id, orderNumber: order.orderNumber, userId: order.userId, status, playerId: order.playerId, zoneId: order.zoneId },
+    {
+      id: order.id,
+      orderNumber: order.orderNumber,
+      userId: order.userId,
+      status,
+      playerId: order.playerId,
+      zoneId: order.zoneId,
+      serverId: order.serverId,
+    },
     providerProduct,
   );
 }
@@ -352,6 +368,7 @@ async function runFulfillmentAttempt(
     status: OrderStatus;
     playerId: string;
     zoneId: string | null;
+    serverId: string | null;
   },
   providerProduct: { providerId: string; providerProductCode: string; provider: { code: string } },
 ): Promise<void> {
@@ -365,6 +382,13 @@ async function runFulfillmentAttempt(
     // The adapter's serverId means "real identity", not pricing region —
     // see the zoneId comment on the Order model.
     serverId: order.zoneId ?? undefined,
+    // The GameServer.code the buyer picked before checkout (e.g. "ASIA") —
+    // the pricing region, not their account identity. Most providers never
+    // need this (zoneId alone identifies the account), but some categories
+    // require the region as its own field on the order itself (Genshin
+    // Impact's "server" select on FazerCards) — see gameServerCode's doc
+    // comment on CreateTopupParams.
+    gameServerCode: order.serverId ?? undefined,
     referenceId: order.id,
   });
 

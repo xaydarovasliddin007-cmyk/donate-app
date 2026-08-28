@@ -457,26 +457,35 @@ async function main() {
         const mockProviderCode = server ? `${item.code}_${server.code}` : item.code;
         const isReal = !!item.fazercardsCode;
 
+        const description = isReal
+          ? `${item.name} — fulfilled via FazerCards.`
+          : `${item.name} — development/test product, delivered instantly by the mock provider.`;
+
         const existing = await prisma.product.findFirst({
           where: { gameId: game.id, serverId: server?.id ?? null, name: item.name },
         });
-        const product =
-          existing ??
-          (await prisma.product.create({
-            data: {
-              gameId: game.id,
-              serverId: server?.id,
-              name: item.name,
-              description: isReal
-                ? `${item.name} — fulfilled via FazerCards.`
-                : `${item.name} — development/test product, delivered instantly by the mock provider.`,
-              amountMinor: item.amountMinor,
-              currency: 'UZS',
-              isActive: true,
-              isTest: !isReal,
-              sortOrder: productIndex,
-            },
-          }));
+        // Re-running the seed after tweaking a realTier() price/description
+        // (e.g. correcting a margin) must actually apply the change, not
+        // just leave whatever was created the first time — this keeps
+        // amountMinor/description/isTest/sortOrder in sync on every run.
+        const product = existing
+          ? await prisma.product.update({
+              where: { id: existing.id },
+              data: { description, amountMinor: item.amountMinor, isActive: true, isTest: !isReal, sortOrder: productIndex },
+            })
+          : await prisma.product.create({
+              data: {
+                gameId: game.id,
+                serverId: server?.id,
+                name: item.name,
+                description,
+                amountMinor: item.amountMinor,
+                currency: 'UZS',
+                isActive: true,
+                isTest: !isReal,
+                sortOrder: productIndex,
+              },
+            });
 
         // Real games get FazerCards as priority 0 (tried first) and
         // DEV_MOCK_TOPUP demoted to priority 1 (fallback, dev-only) —

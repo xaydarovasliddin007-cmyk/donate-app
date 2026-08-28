@@ -9,6 +9,21 @@ import type {
 
 const BASE_URL = 'https://api.fzr.cards/api/v2';
 
+/**
+ * FazerCards' genshin_impact_global category needs its "server" field as
+ * one of these four lowercase values — a real *region select*, unlike
+ * every other category's free-text zone/server_id. The app's Genshin
+ * Impact GameServer catalog (see prisma/seed.ts) uses different codes for
+ * the same four regions since those double as this game's pricing tiers,
+ * so the value has to be translated rather than passed through as-is.
+ */
+const GENSHIN_SERVER_MAP: Record<string, string> = {
+  ASIA: 'asia',
+  AMERICA: 'america',
+  EU: 'europe',
+  TW_HK_MO: 'tw_hk_mo',
+};
+
 interface FazerCardsOrderResponse {
   ok?: boolean;
   order?: {
@@ -145,12 +160,21 @@ export class FazerCardsTopupProvider implements TopupProviderAdapter {
     }
 
     const { categoryId, offerId, playerField, serverField } = this.splitProductCode(providerProductCode);
+    // Genshin's "server" field is a region SELECT (see GENSHIN_SERVER_MAP)
+    // fed by gameServerCode (the pricing-region GameServer the buyer picked
+    // before checkout) — every other category's server-ish field is the
+    // buyer's own free-text zone/server ID (serverId), which is a
+    // different thing entirely and never needs translating.
+    const serverValue =
+      categoryId === 'genshin_impact_global'
+        ? (params.gameServerCode ? GENSHIN_SERVER_MAP[params.gameServerCode] : undefined)
+        : params.serverId;
     return {
       url: `${BASE_URL}/topups/order`,
       body: {
         category_id: categoryId,
         offer_id: offerId,
-        fields: { [playerField]: params.playerId, ...(params.serverId ? { [serverField]: params.serverId } : {}) },
+        fields: { [playerField]: params.playerId, ...(serverValue ? { [serverField]: serverValue } : {}) },
       },
     };
   }
