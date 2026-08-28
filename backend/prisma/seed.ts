@@ -224,6 +224,29 @@ async function main() {
       ],
     },
     {
+      slug: 'steam-wallet',
+      name: 'Steam',
+      category: 'Wallet',
+      logoEmoji: '🎮',
+      logoUrl: 'https://play-lh.googleusercontent.com/rMhu-jTGiv6-nWDPT_3AZzaAKPI7XmQFjyv0uZoi5DPuutz2sHTuUUeQjUn6uu0KGDA=s256',
+      availability: 'ACTIVE',
+      // Preset USD amounts rather than a free-form "enter any amount"
+      // flow — FazerCards' /steam-topup/order takes an arbitrary amount,
+      // but modeling it as fixed Product tiers reuses the whole existing
+      // catalog/order pipeline instead of a new custom-amount subsystem.
+      // "Player ID" in the order flow is the buyer's Steam login for this
+      // game — validatePlayer() actually checks it via
+      // POST /steam-topup/check-login (see fazercards-topup-provider.ts),
+      // unlike every other game's non-empty-string fallback. ~9% margin
+      // over live FazerCards USD cost at the snapshot ~11,950 UZS/USD rate.
+      products: [
+        realTier('STEAM_5', 'Steam Wallet — $5', 65_000, 'steam_topup:USD:5'),
+        realTier('STEAM_10', 'Steam Wallet — $10', 130_000, 'steam_topup:USD:10'),
+        realTier('STEAM_20', 'Steam Wallet — $20', 260_000, 'steam_topup:USD:20'),
+        realTier('STEAM_50', 'Steam Wallet — $50', 650_000, 'steam_topup:USD:50'),
+      ],
+    },
+    {
       slug: 'roblox',
       name: 'Roblox',
       category: 'Sandbox',

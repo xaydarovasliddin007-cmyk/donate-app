@@ -20,6 +20,11 @@ interface FazerCardsOrderResponse {
   code?: string;
 }
 
+interface FazerCardsCheckLoginResponse {
+  ok?: boolean;
+  can_refill?: boolean;
+}
+
 /**
  * FazerCards — a B2B wholesale reseller platform (reseller.fazercards.com)
  * chosen for its per-diamond price on Mobile Legends packages coming out
@@ -40,12 +45,18 @@ interface FazerCardsOrderResponse {
  * since their catalog needs both to place an order, while our shared
  * interface only carries one code string per `ProviderProduct`. Products
  * outside that generic `/topups` catalog use their own endpoint and a
- * distinct code prefix instead — currently just `"telegram_premium:<months>"`
- * for `POST /telegram/premium/buy`, which — unlike the generic order
- * endpoint above — has never been confirmed to return the same
- * `{ok, order:{id, status}}` shape (the docs excerpt only showed its
- * request body, not a response example); this assumes it does, matching
- * every other endpoint's pattern, but treat that as unverified too.
+ * distinct code prefix instead:
+ *   - `"telegram_premium:<months>"` → `POST /telegram/premium/buy`. Unlike
+ *     every other endpoint here, its response shape was never confirmed
+ *     (the docs excerpt only showed the request body) — this assumes the
+ *     same `{ok, order:{id, status}}` shape as everything else, but treat
+ *     that assumption as unverified.
+ *   - `"steam_topup:<currency>:<amount>"` (e.g. "steam_topup:USD:10") →
+ *     `POST /steam-topup/order`, `{steamLogin, currency, amount}`. This one
+ *     IS confirmed to return `{ok, order:{id, status}}` (docs show a
+ *     response example), and also gets a real `validatePlayer()` via
+ *     `POST /steam-topup/check-login` instead of the generic
+ *     non-empty-string fallback every other kind uses.
  */
 export class FazerCardsTopupProvider implements TopupProviderAdapter {
   readonly code = 'FAZERCARDS';
@@ -70,38 +81,70 @@ export class FazerCardsTopupProvider implements TopupProviderAdapter {
     return { categoryId, offerId };
   }
 
+  private splitSteamCode(providerProductCode: string): { currency: string; amount: string } {
+    const [, currency, amount] = providerProductCode.split(':');
+    if (!currency || !amount) {
+      throw new Error(
+        `Invalid FazerCards providerProductCode "${providerProductCode}" — expected "steam_topup:<currency>:<amount>"`,
+      );
+    }
+    return { currency, amount };
+  }
+
   /**
-   * FazerCards' docs don't describe a dedicated player-lookup/validate
-   * endpoint in the excerpt available here — same situation as Digiflazz,
-   * so this applies the same fallback: any non-empty player ID is
-   * provisionally valid, and createTopup()'s result is the real answer.
-   * Revisit once the full API Cookbook / OpenAPI schema is available.
+   * Real check for Steam (POST /steam-topup/check-login). Everything else
+   * falls back to "any non-empty player ID is provisionally valid, and
+   * createTopup()'s result is the real answer" — FazerCards' docs don't
+   * describe a dedicated validate endpoint for the generic /topups catalog
+   * or for Telegram Premium (same situation as the Digiflazz adapter).
    */
   async validatePlayer(params: TopupValidatePlayerParams): Promise<TopupValidatePlayerResult> {
+    if (params.providerProductCode.startsWith('steam_topup:')) {
+      const response = await fetch(`${BASE_URL}/steam-topup/check-login`, {
+        method: 'POST',
+        headers: this.headers(),
+        body: JSON.stringify({ steamLogin: params.playerId }),
+      });
+      const raw = (await response.json().catch(() => null)) as FazerCardsCheckLoginResponse | null;
+      const valid = !!raw?.ok && raw.can_refill === true;
+      return { valid, reason: valid ? undefined : 'This Steam login cannot be refilled' };
+    }
+
     const valid = params.playerId.trim().length > 0;
     return { valid, reason: valid ? undefined : 'Player ID is required' };
   }
 
+  private buildOrderRequest(params: CreateTopupParams): { url: string; body: unknown } {
+    const { providerProductCode } = params;
+
+    if (providerProductCode.startsWith('telegram_premium:')) {
+      return {
+        url: `${BASE_URL}/telegram/premium/buy`,
+        body: { telegram_username: params.playerId, months: Number(providerProductCode.split(':')[1]) },
+      };
+    }
+
+    if (providerProductCode.startsWith('steam_topup:')) {
+      const { currency, amount } = this.splitSteamCode(providerProductCode);
+      return {
+        url: `${BASE_URL}/steam-topup/order`,
+        body: { steamLogin: params.playerId, currency, amount: Number(amount) },
+      };
+    }
+
+    const { categoryId, offerId } = this.splitProductCode(providerProductCode);
+    return {
+      url: `${BASE_URL}/topups/order`,
+      body: {
+        category_id: categoryId,
+        offer_id: offerId,
+        fields: { player_id: params.playerId, ...(params.serverId ? { server_id: params.serverId } : {}) },
+      },
+    };
+  }
+
   async createTopup(params: CreateTopupParams): Promise<CreateTopupResult> {
-    const url = params.providerProductCode.startsWith('telegram_premium:')
-      ? `${BASE_URL}/telegram/premium/buy`
-      : `${BASE_URL}/topups/order`;
-    const body = params.providerProductCode.startsWith('telegram_premium:')
-      ? {
-          telegram_username: params.playerId,
-          months: Number(params.providerProductCode.split(':')[1]),
-        }
-      : (() => {
-          const { categoryId, offerId } = this.splitProductCode(params.providerProductCode);
-          return {
-            category_id: categoryId,
-            offer_id: offerId,
-            fields: {
-              player_id: params.playerId,
-              ...(params.serverId ? { server_id: params.serverId } : {}),
-            },
-          };
-        })();
+    const { url, body } = this.buildOrderRequest(params);
 
     const response = await fetch(url, {
       method: 'POST',
