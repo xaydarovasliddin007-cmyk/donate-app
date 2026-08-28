@@ -327,11 +327,117 @@ async function main() {
       logoUrl:
         'https://play-lh.googleusercontent.com/JT88XmsHoGDio7FxONwh382DhuTxuccfMmWFDtRBFjilySzNqWOCxUhqm8IhBKzQSwVrW2HWp_XvSgKFwi3ETA=s256',
       availability: 'ACTIVE',
-      // free_fire_cis (not free_fire_id) — the CIS-region category is the
-      // right supply line for players in Uzbekistan/CIS, even though its
-      // own denomination ladder differs from the old placeholder tiers.
-      // ~10% margin over live FazerCards USD cost, no competitor price was
-      // checked for Free Fire.
+      // free_fire_cis is the default/fallback server — the right supply
+      // line for players in Uzbekistan/CIS — plus 6 more real FazerCards
+      // regional categories (each its own catalog and USD pricing, priced
+      // the same way MLBB's regional servers are: ~10% margin, rounded).
+      // Every region's raw catalog is much longer than what's listed here
+      // (FF_ID alone has 50+ granular diamond amounts) — trimmed to a
+      // representative ladder (subscription items + ~9 evenly-spread
+      // diamond amounts), same curation MLBB's servers didn't need since
+      // FazerCards' own MLBB catalogs are already short.
+      servers: [
+        { name: 'CIS', code: 'CIS' },
+        {
+          name: 'Europe',
+          code: 'EU',
+          products: [
+            realTier('FF_EU_WEEKLY_LITE', 'Weekly Lite', 3_600, 'free_fire_eu:weekly_lite'),
+            realTier('FF_EU_WEEKLY_MEMBERSHIP', 'Weekly Membership', 21_500, 'free_fire_eu:weekly_membership'),
+            realTier('FF_EU_25', '25 Diamonds', 3_300, 'free_fire_eu:25_diamonds'),
+            realTier('FF_EU_110', '110 Diamonds', 13_000, 'free_fire_eu:110_diamonds'),
+            realTier('FF_EU_231', '231 Diamonds', 25_500, 'free_fire_eu:231_diamonds'),
+            realTier('FF_EU_520', '520 Diamonds', 64_000, 'free_fire_eu:520_diamonds'),
+            realTier('FF_EU_583', '583 Diamonds', 64_000, 'free_fire_eu:583_diamonds'),
+            realTier('FF_EU_1188', '1188 Diamonds', 128_000, 'free_fire_eu:1188_diamonds'),
+            realTier('FF_EU_2180', '2180 Diamonds', 255_000, 'free_fire_eu:2180_diamonds'),
+            realTier('FF_EU_5600', '5600 Diamonds', 637_000, 'free_fire_eu:5600_diamonds'),
+            realTier('FF_EU_11500', '11500 Diamonds', 1_274_000, 'free_fire_eu:11500_diamonds'),
+          ],
+        },
+        {
+          name: 'Indonesia',
+          code: 'ID',
+          products: [
+            realTier('FF_ID_WEEKLY_MEMBERSHIP', 'Weekly Membership', 20_500, 'free_fire_id:weekly_membership'),
+            realTier('FF_ID_MONTHLY_MEMBERSHIP', 'Monthly Membership', 62_000, 'free_fire_id:monthly_membership'),
+            realTier('FF_ID_5', '5 Diamonds', 700, 'free_fire_id:5_diamonds'),
+            realTier('FF_ID_30', '30 Diamonds', 4_200, 'free_fire_id:30_diamonds'),
+            realTier('FF_ID_100', '100 Diamonds', 11_000, 'free_fire_id:100_diamonds'),
+            realTier('FF_ID_145', '145 Diamonds', 14_500, 'free_fire_id:145_diamonds'),
+            realTier('FF_ID_280', '280 Diamonds', 28_000, 'free_fire_id:280_diamonds'),
+            realTier('FF_ID_565', '565 Diamonds', 56_000, 'free_fire_id:565_diamonds'),
+            realTier('FF_ID_930', '930 Diamonds', 91_000, 'free_fire_id:930_diamonds'),
+            realTier('FF_ID_1080', '1080 Diamonds', 105_000, 'free_fire_id:1080_diamonds'),
+            realTier('FF_ID_7290', '7290 Diamonds', 656_000, 'free_fire_id:7290_diamonds'),
+          ],
+        },
+        {
+          name: 'Malaysia/Singapore',
+          code: 'MY_SG',
+          products: [
+            realTier('FF_MYSG_WEEKLY_LITE', 'Weekly Lite', 4_200, 'free_fire_my_sg:weekly_lite'),
+            realTier('FF_MYSG_WEEKLY_MEMBERSHIP', 'Weekly Membership', 20_000, 'free_fire_my_sg:weekly_membership'),
+            realTier('FF_MYSG_25', '25 Diamonds', 3_000, 'free_fire_my_sg:25_diamonds'),
+            realTier('FF_MYSG_100', '100 Diamonds', 9_500, 'free_fire_my_sg:100_diamonds'),
+            realTier('FF_MYSG_310', '310 Diamonds', 35_000, 'free_fire_my_sg:310_diamonds'),
+            realTier('FF_MYSG_520', '520 Diamonds', 49_500, 'free_fire_my_sg:520_diamonds'),
+            realTier('FF_MYSG_1060', '1060 Diamonds', 97_000, 'free_fire_my_sg:1060_diamonds'),
+            realTier('FF_MYSG_2180', '2180 Diamonds', 196_000, 'free_fire_my_sg:2180_diamonds'),
+            realTier('FF_MYSG_5600', '5600 Diamonds', 485_000, 'free_fire_my_sg:5600_diamonds'),
+            realTier('FF_MYSG_11500', '11500 Diamonds', 999_000, 'free_fire_my_sg:11500_diamonds'),
+          ],
+        },
+        {
+          name: 'Philippines',
+          code: 'PH',
+          products: [
+            realTier('FF_PH_20', '20 Diamonds', 2_000, 'free_fire_ph:20_diamonds'),
+            realTier('FF_PH_40', '40 Diamonds', 4_100, 'free_fire_ph:40_diamonds'),
+            realTier('FF_PH_100', '100 Diamonds', 10_000, 'free_fire_ph:100_diamonds'),
+            realTier('FF_PH_205', '205 Diamonds', 20_000, 'free_fire_ph:205_diamonds'),
+            realTier('FF_PH_420', '420 Diamonds', 40_500, 'free_fire_ph:420_diamonds'),
+            realTier('FF_PH_650', '650 Diamonds', 61_000, 'free_fire_ph:650_diamonds'),
+            realTier('FF_PH_1100', '1100 Diamonds', 101_000, 'free_fire_ph:1100_diamonds'),
+            realTier('FF_PH_2250', '2250 Diamonds', 203_000, 'free_fire_ph:2250_diamonds'),
+          ],
+        },
+        {
+          name: 'Thailand',
+          code: 'TH',
+          products: [
+            realTier('FF_TH_WEEKLY_PACK', 'Weekly Pack', 27_000, 'free_fire_th:weekly_pack'),
+            realTier('FF_TH_MONTHLY_PACK', 'Monthly Pack', 114_000, 'free_fire_th:monthly_pack'),
+            realTier('FF_TH_33', '33 Diamonds', 3_800, 'free_fire_th:33_diamonds'),
+            realTier('FF_TH_68', '68 Diamonds', 7_500, 'free_fire_th:68_diamonds'),
+            realTier('FF_TH_172', '172 Diamonds', 19_000, 'free_fire_th:172_diamonds'),
+            realTier('FF_TH_310', '310 Diamonds', 34_500, 'free_fire_th:310_diamonds'),
+            realTier('FF_TH_517', '517 Diamonds', 57_000, 'free_fire_th:517_diamonds'),
+            realTier('FF_TH_690', '690 Diamonds', 77_000, 'free_fire_th:690_diamonds'),
+            realTier('FF_TH_1052', '1052 Diamonds', 115_000, 'free_fire_th:1052_diamonds'),
+            realTier('FF_TH_1801', '1801 Diamonds', 192_000, 'free_fire_th:1801_diamonds'),
+            realTier('FF_TH_3698', '3698 Diamonds', 383_000, 'free_fire_th:3698_diamonds'),
+          ],
+        },
+        {
+          name: 'Vietnam',
+          code: 'VN',
+          products: [
+            realTier('FF_VN_WEEKLY_LITE', 'Weekly Lite', 6_000, 'free_fire_vn:weekly_lite'),
+            realTier('FF_VN_WEEKLY_MEMBERSHIP', 'Weekly Membership', 25_000, 'free_fire_vn:weekly_membership'),
+            realTier('FF_VN_25', '25 Diamonds', 2_600, 'free_fire_vn:25_diamonds'),
+            realTier('FF_VN_51', '51 Diamonds', 5_000, 'free_fire_vn:51_diamonds'),
+            realTier('FF_VN_113', '113 Diamonds', 9_500, 'free_fire_vn:113_diamonds'),
+            realTier('FF_VN_283', '283 Diamonds', 24_000, 'free_fire_vn:283_diamonds'),
+            realTier('FF_VN_566', '566 Diamonds', 48_000, 'free_fire_vn:566_diamonds'),
+            realTier('FF_VN_1132', '1132 Diamonds', 96_000, 'free_fire_vn:1132_diamonds'),
+            realTier('FF_VN_2830', '2830 Diamonds', 241_000, 'free_fire_vn:2830_diamonds'),
+          ],
+        },
+      ],
+      // CIS — default/fallback ladder, the right supply line for players
+      // in Uzbekistan/CIS. ~10% margin over live FazerCards USD cost, no
+      // competitor price was checked for Free Fire.
       products: [
         realTier('FF_110', '110 Diamonds', 10_200, 'free_fire_cis:110_diamonds'),
         realTier('FF_341', '341 Diamonds', 31_000, 'free_fire_cis:341_diamonds'),
@@ -447,8 +553,105 @@ async function main() {
       logoUrl:
         'https://play-lh.googleusercontent.com/4KLtYEExeMc9gcYZz1BgAiV87IZ8onX3aGld_lJ8xMydt1MP7m--a6dn0aGNMemq-IiwGrrhqt81TA-Qbve8=s256',
       availability: 'ACTIVE',
-      // codm_activision_kz (Kazakhstan) — the closest CIS-region CODM line
-      // FazerCards carries. Field key is user_id, not player_id.
+      // codm_activision_kz (Kazakhstan) is the default/fallback — the
+      // closest CIS-region CODM line FazerCards carries — plus 6 more real
+      // regional categories (Activision CA/IN/SA/US, Garena SG-MY and
+      // Garena Indonesia), each its own catalog/pricing. Field key is
+      // user_id, not player_id, for every one of them.
+      servers: [
+        { name: 'Kazakhstan (CIS)', code: 'KZ' },
+        {
+          name: 'Canada',
+          code: 'CA',
+          products: [
+            realTier('CODM_CA_88', '80 + 8 CP', 9_500, 'codm_activision_ca:88_cp:user_id'),
+            realTier('CODM_CA_460', '400 + 60 CP', 43_000, 'codm_activision_ca:460_cp:user_id'),
+            realTier('CODM_CA_960', '800 + 160 CP', 80_000, 'codm_activision_ca:960_cp:user_id'),
+            realTier('CODM_CA_2600', '2000 + 600 CP', 216_000, 'codm_activision_ca:2600_cp:user_id'),
+            realTier('CODM_CA_5400', '4000 + 1400 CP', 432_000, 'codm_activision_ca:5400_cp:user_id'),
+            realTier('CODM_CA_11200', '8000 + 3200 CP', 1_235_000, 'codm_activision_ca:11200_cp:user_id'),
+            realTier('CODM_CA_22400', '16000 + 6400 CP', 2_471_000, 'codm_activision_ca:22400_cp:user_id'),
+            realTier('CODM_CA_33600', '24000 + 9600 CP', 3_707_000, 'codm_activision_ca:33600_cp:user_id'),
+            realTier('CODM_CA_56000', '40000 + 16000 CP', 6_178_000, 'codm_activision_ca:56000_cp:user_id'),
+          ],
+        },
+        {
+          name: 'India',
+          code: 'IN',
+          products: [
+            realTier('CODM_IN_88', '80 + 8 CP', 13_000, 'codm_activision_in:88_cp:user_id'),
+            realTier('CODM_IN_460', '400 + 60 CP', 65_000, 'codm_activision_in:460_cp:user_id'),
+            realTier('CODM_IN_960', '800 + 160 CP', 131_000, 'codm_activision_in:960_cp:user_id'),
+            realTier('CODM_IN_2600', '2000 + 600 CP', 328_000, 'codm_activision_in:2600_cp:user_id'),
+            realTier('CODM_IN_5400', '4000 + 1400 CP', 656_000, 'codm_activision_in:5400_cp:user_id'),
+            realTier('CODM_IN_11200', '8000 + 3200 CP', 1_299_000, 'codm_activision_in:11200_cp:user_id'),
+            realTier('CODM_IN_22400', '16000 + 6400 CP', 2_623_000, 'codm_activision_in:22400_cp:user_id'),
+            realTier('CODM_IN_33600', '24000 + 9600 CP', 3_935_000, 'codm_activision_in:33600_cp:user_id'),
+            realTier('CODM_IN_56000', '40000 + 16000 CP', 6_558_000, 'codm_activision_in:56000_cp:user_id'),
+          ],
+        },
+        {
+          name: 'Saudi Arabia',
+          code: 'SA',
+          products: [
+            realTier('CODM_SA_88', '80 + 8 CP', 13_000, 'codm_activision_sa:88_cp:user_id'),
+            realTier('CODM_SA_460', '400 + 60 CP', 63_000, 'codm_activision_sa:460_cp:user_id'),
+            realTier('CODM_SA_960', '800 + 160 CP', 129_000, 'codm_activision_sa:960_cp:user_id'),
+            realTier('CODM_SA_2600', '2000 + 600 CP', 315_000, 'codm_activision_sa:2600_cp:user_id'),
+            realTier('CODM_SA_5400', '4000 + 1400 CP', 647_000, 'codm_activision_sa:5400_cp:user_id'),
+            realTier('CODM_SA_11600', '8000 + 3600 CP', 1_294_000, 'codm_activision_sa:11600_cp:user_id'),
+            realTier('CODM_SA_23200', '16000 + 7200 CP', 2_543_000, 'codm_activision_sa:23200_cp:user_id'),
+            realTier('CODM_SA_34800', '24000 + 10800 CP', 3_753_000, 'codm_activision_sa:34800_cp:user_id'),
+            realTier('CODM_SA_58000', '40000 + 18000 CP', 6_082_000, 'codm_activision_sa:58000_cp:user_id'),
+          ],
+        },
+        {
+          name: 'United States',
+          code: 'US',
+          products: [
+            realTier('CODM_US_88', '80 + 8 CP', 13_000, 'codm_activision_us:88_cp:user_id'),
+            realTier('CODM_US_460', '400 + 60 CP', 66_000, 'codm_activision_us:460_cp:user_id'),
+            realTier('CODM_US_960', '800 + 160 CP', 131_000, 'codm_activision_us:960_cp:user_id'),
+            realTier('CODM_US_2600', '2000 + 600 CP', 328_000, 'codm_activision_us:2600_cp:user_id'),
+            realTier('CODM_US_5400', '4000 + 1400 CP', 657_000, 'codm_activision_us:5400_cp:user_id'),
+            realTier('CODM_US_11600', '8000 + 3600 CP', 1_314_000, 'codm_activision_us:11600_cp:user_id'),
+            realTier('CODM_US_23200', '16000 + 7200 CP', 2_629_000, 'codm_activision_us:23200_cp:user_id'),
+            realTier('CODM_US_34800', '24000 + 10800 CP', 3_943_000, 'codm_activision_us:34800_cp:user_id'),
+            realTier('CODM_US_58000', '40000 + 18000 CP', 6_572_000, 'codm_activision_us:58000_cp:user_id'),
+          ],
+        },
+        {
+          name: 'Singapore/Malaysia (Garena)',
+          code: 'GARENA_SGMY',
+          products: [
+            realTier('CODM_SGMY_114', '114 CP', 16_000, 'codm_garena_sgmy:114_cp:user_id'),
+            realTier('CODM_SGMY_253', '253 CP', 31_000, 'codm_garena_sgmy:253_cp:user_id'),
+            realTier('CODM_SGMY_794', '794 CP', 93_000, 'codm_garena_sgmy:794_cp:user_id'),
+            realTier('CODM_SGMY_1053', '1053 CP', 124_000, 'codm_garena_sgmy:1053_cp:user_id'),
+            realTier('CODM_SGMY_2760', '2760 CP', 309_000, 'codm_garena_sgmy:2760_cp:user_id'),
+            realTier('CODM_SGMY_9200', '9200 CP', 928_000, 'codm_garena_sgmy:9200_cp:user_id'),
+            realTier('CODM_SGMY_12880', '12880 CP', 1_237_000, 'codm_garena_sgmy:12880_cp:user_id'),
+            realTier('CODM_SGMY_15640', '15640 CP', 1_547_000, 'codm_garena_sgmy:15640_cp:user_id'),
+            realTier('CODM_SGMY_19320', '19320 CP', 1_856_000, 'codm_garena_sgmy:19320_cp:user_id'),
+          ],
+        },
+        {
+          name: 'Indonesia (Garena)',
+          code: 'GARENA_ID',
+          products: [
+            realTier('CODM_GID_31', '31 CP', 3_200, 'codm_garena_indonesia:31_cp:user_id'),
+            realTier('CODM_GID_128', '128 CP', 13_500, 'codm_garena_indonesia:128_cp:user_id'),
+            realTier('CODM_GID_645', '645 CP', 68_000, 'codm_garena_indonesia:645_cp:user_id'),
+            realTier('CODM_GID_800', '800 CP', 76_000, 'codm_garena_indonesia:800_cp:user_id'),
+            realTier('CODM_GID_2060', '2060 CP', 205_000, 'codm_garena_indonesia:2060_cp:user_id'),
+            realTier('CODM_GID_3564', '3564 CP', 342_000, 'codm_garena_indonesia:3564_cp:user_id'),
+            realTier('CODM_GID_7656', '7656 CP', 683_000, 'codm_garena_indonesia:7656_cp:user_id'),
+            realTier('CODM_GID_15312', '15312 CP', 1_268_000, 'codm_garena_indonesia:15312_cp:user_id'),
+            realTier('CODM_GID_76560', '76560 CP', 6_340_000, 'codm_garena_indonesia:76560_cp:user_id'),
+          ],
+        },
+      ],
+      // Kazakhstan (CIS) — default/fallback ladder.
       products: [
         realTier('CODM_88', '80 + 8 CP', 14_200, 'codm_activision_kz:88_cp:user_id'),
         realTier('CODM_460', '400 + 60 CP', 70_500, 'codm_activision_kz:460_cp:user_id'),
@@ -537,8 +740,56 @@ async function main() {
       logoUrl:
         'https://play-lh.googleusercontent.com/NEp-Nq3k_EBZriaPEmAKdqjd2v3UGAhMcSvoOcdrfwZQavolX_-OwQA2TX21LS-A8x8cV15r3J2CFaG-yT2IVX4=s256',
       availability: 'ACTIVE',
-      // eafc_mobile_id (Indonesia) — no region-neutral "global" EAFC Mobile
-      // category exists on FazerCards; this is the closest available line.
+      // eafc_mobile_id (Indonesia) is the default/fallback — no
+      // region-neutral "global" EAFC Mobile category exists on FazerCards
+      // — plus the 3 other real regional categories FazerCards carries
+      // (Cambodia, Malaysia, Singapore), each its own catalog/pricing.
+      // Only the FC Points currency is wired (not each region's identical-
+      // priced "Silver" line, which reads like a duplicate/alt SKU for the
+      // same offers, not a second real currency).
+      servers: [
+        { name: 'Indonesia', code: 'ID' },
+        {
+          name: 'Cambodia',
+          code: 'KH',
+          products: [
+            realTier('FCM_KH_40', '40 FC Points', 5_000, 'eafc_mobile_kh:40_fc_points'),
+            realTier('FCM_KH_100', '100 FC Points', 12_500, 'eafc_mobile_kh:100_fc_points'),
+            realTier('FCM_KH_520', '520 FC Points', 63_000, 'eafc_mobile_kh:520_fc_points'),
+            realTier('FCM_KH_1070', '1070 FC Points', 127_000, 'eafc_mobile_kh:1070_fc_points'),
+            realTier('FCM_KH_2200', '2200 FC Points', 254_000, 'eafc_mobile_kh:2200_fc_points'),
+            realTier('FCM_KH_5750', '5750 FC Points', 634_000, 'eafc_mobile_kh:5750_fc_points'),
+            realTier('FCM_KH_12000', '12000 FC Points', 1_269_000, 'eafc_mobile_kh:12000_fc_points'),
+          ],
+        },
+        {
+          name: 'Malaysia',
+          code: 'MY',
+          products: [
+            realTier('FCM_MY_40', '40 FC Points', 6_500, 'eafc_mobile_my:40_fc_points'),
+            realTier('FCM_MY_100', '100 FC Points', 15_500, 'eafc_mobile_my:100_fc_points'),
+            realTier('FCM_MY_520', '520 FC Points', 75_000, 'eafc_mobile_my:520_fc_points'),
+            realTier('FCM_MY_1070', '1070 FC Points', 141_000, 'eafc_mobile_my:1070_fc_points'),
+            realTier('FCM_MY_2200', '2200 FC Points', 299_000, 'eafc_mobile_my:2200_fc_points'),
+            realTier('FCM_MY_5750', '5750 FC Points', 755_000, 'eafc_mobile_my:5750_fc_points'),
+            realTier('FCM_MY_12000', '12000 FC Points', 1_511_000, 'eafc_mobile_my:12000_fc_points'),
+          ],
+        },
+        {
+          name: 'Singapore',
+          code: 'SG',
+          products: [
+            realTier('FCM_SG_40', '40 FC Points', 6_000, 'eafc_mobile_sg:40_fc_points'),
+            realTier('FCM_SG_100', '100 FC Points', 14_500, 'eafc_mobile_sg:100_fc_points'),
+            realTier('FCM_SG_520', '520 FC Points', 70_000, 'eafc_mobile_sg:520_fc_points'),
+            realTier('FCM_SG_1070', '1070 FC Points', 149_000, 'eafc_mobile_sg:1070_fc_points'),
+            realTier('FCM_SG_2200', '2200 FC Points', 289_000, 'eafc_mobile_sg:2200_fc_points'),
+            realTier('FCM_SG_5750', '5750 FC Points', 689_000, 'eafc_mobile_sg:5750_fc_points'),
+            realTier('FCM_SG_12000', '12000 FC Points', 1_487_000, 'eafc_mobile_sg:12000_fc_points'),
+          ],
+        },
+      ],
+      // Indonesia — default/fallback ladder.
       products: [
         realTier('FCM_40', '40 FC Points', 4_600, 'eafc_mobile_id:40_fc_points'),
         realTier('FCM_100', '100 FC Points', 11_200, 'eafc_mobile_id:100_fc_points'),

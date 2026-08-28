@@ -38,7 +38,7 @@ class _KindStyle {
   final String? badge;
 }
 
-_KindStyle _styleOf(_TierKind kind, bool isDark) {
+_KindStyle _styleOf(_TierKind kind, bool isDark, String name) {
   switch (kind) {
     case _TierKind.bonus:
       return const _KindStyle(
@@ -65,9 +65,17 @@ _KindStyle _styleOf(_TierKind kind, bool isDark) {
         badge: 'HIT',
       );
     case _TierKind.plain:
+      // Every non-MLBB game lands here — its currency isn't necessarily
+      // diamonds (PUBG's UC, Roblox's Robux, Genshin's Genesis Crystals,
+      // Honor of Kings' Tokens, CODM's CP, 8 Ball Pool's Cash, Standoff
+      // 2's Gold, EA FC's FC Points…), so a diamond icon on all of them
+      // was misleading. Only show the gem for currencies that actually
+      // are diamonds/gems/crystals; everything else gets a neutral coin.
+      final lower = name.toLowerCase();
+      final isGemLike = lower.contains('diamond') || lower.contains('gem') || lower.contains('crystal');
       return _KindStyle(
         gradient: isDark ? AppColors.heroGradientDark : AppColors.heroGradientLight,
-        iconAsset: 'assets/icons/gem.svg',
+        iconAsset: isGemLike ? 'assets/icons/gem.svg' : 'assets/icons/coin.svg',
       );
   }
 }
@@ -89,7 +97,7 @@ class ProductCard extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
     final localeName = Localizations.localeOf(context).toString();
     final kind = _kindOf(product.name);
-    final style = _styleOf(kind, isDark);
+    final style = _styleOf(kind, isDark, product.name);
 
     return PressableScale(
       onTap: onTap,
