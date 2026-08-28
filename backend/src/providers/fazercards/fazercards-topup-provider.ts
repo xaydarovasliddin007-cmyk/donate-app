@@ -71,14 +71,26 @@ export class FazerCardsTopupProvider implements TopupProviderAdapter {
     };
   }
 
-  private splitProductCode(providerProductCode: string): { categoryId: string; offerId: string } {
-    const [categoryId, offerId] = providerProductCode.split(':');
+  /**
+   * The generic /topups catalog's per-category `fields` schema isn't always
+   * `{player_id, server_id}` — e.g. 8 Ball Pool and CODM use `user_id`,
+   * Genshin Impact uses a `server` select instead of `server_id` (see the
+   * category's own `fields` array from GET /topups/offers). Two optional
+   * trailing segments let a `ProviderProduct` row override the field keys
+   * without changing every existing "<category_id>:<offer_id>" code:
+   * "<category_id>:<offer_id>[:<playerFieldKey>[:<serverFieldKey>]]".
+   */
+  private splitProductCode(
+    providerProductCode: string,
+  ): { categoryId: string; offerId: string; playerField: string; serverField: string } {
+    const [categoryId, offerId, playerField, serverField] = providerProductCode.split(':');
     if (!categoryId || !offerId) {
       throw new Error(
-        `Invalid FazerCards providerProductCode "${providerProductCode}" — expected "<category_id>:<offer_id>"`,
+        `Invalid FazerCards providerProductCode "${providerProductCode}" — expected ` +
+          `"<category_id>:<offer_id>[:<playerFieldKey>[:<serverFieldKey>]]"`,
       );
     }
-    return { categoryId, offerId };
+    return { categoryId, offerId, playerField: playerField || 'player_id', serverField: serverField || 'server_id' };
   }
 
   private splitSteamCode(providerProductCode: string): { currency: string; amount: string } {
@@ -132,13 +144,13 @@ export class FazerCardsTopupProvider implements TopupProviderAdapter {
       };
     }
 
-    const { categoryId, offerId } = this.splitProductCode(providerProductCode);
+    const { categoryId, offerId, playerField, serverField } = this.splitProductCode(providerProductCode);
     return {
       url: `${BASE_URL}/topups/order`,
       body: {
         category_id: categoryId,
         offer_id: offerId,
-        fields: { player_id: params.playerId, ...(params.serverId ? { server_id: params.serverId } : {}) },
+        fields: { [playerField]: params.playerId, ...(params.serverId ? { [serverField]: params.serverId } : {}) },
       },
     };
   }

@@ -267,14 +267,25 @@ async function main() {
       logoUrl:
         'https://play-lh.googleusercontent.com/YQqyKaXX-63krqsfIzUEJWUWLINxcb5tbS6QVySdxbS7eZV7YB2dUjUvX27xA0TIGtfxQ5v-tQjwlT5tTB-O=s256',
       availability: 'ACTIVE',
-      // Genshin Impact's four real official server regions.
+      // Genshin Impact's four real official server regions. FazerCards'
+      // genshin_impact_global category wants the zone as `fields.server`
+      // (a select: america/asia/europe/tw_hk_mo — lowercase, unlike these
+      // GameServer.code values), not `server_id` like most other games —
+      // see the ":player_id:server" field-key override on fazercardsCode.
       servers: [
         { name: 'Asia', code: 'ASIA' },
         { name: 'America', code: 'AMERICA' },
         { name: 'Europe', code: 'EU' },
         { name: 'TW, HK, MO', code: 'TW_HK_MO' },
       ],
-      products: tiers('GENSHIN', 'Genesis Crystals', [60, 300, 980, 1980, 3280]),
+      products: [
+        realTier('GENSHIN_60', '60 Genesis Crystals', 12_800, 'genshin_impact_global:60_genesis_crystals:player_id:server'),
+        realTier('GENSHIN_330', '300 + 30 Genesis Crystals', 65_000, 'genshin_impact_global:300_30_genesis_crystals:player_id:server'),
+        realTier('GENSHIN_1090', '980 + 110 Genesis Crystals', 194_000, 'genshin_impact_global:980_110_genesis_crystals:player_id:server'),
+        realTier('GENSHIN_2240', '1980 + 260 Genesis Crystals', 389_000, 'genshin_impact_global:1980_260_genesis_crystals:player_id:server'),
+        realTier('GENSHIN_3880', '3280 + 600 Genesis Crystals', 648_000, 'genshin_impact_global:3280_600_genesis_crystals:player_id:server'),
+        realTier('GENSHIN_8080', '6480 + 1600 Genesis Crystals', 1_295_000, 'genshin_impact_global:6480_1600_genesis_crystals:player_id:server'),
+      ],
     },
     {
       slug: 'honor-of-kings',
@@ -284,7 +295,14 @@ async function main() {
       logoUrl:
         'https://play-lh.googleusercontent.com/ySKKDO_bieWZ11fmnOD1fuDpcPgOjASwjg9Nxyut3gk9bM_QPVYnAn3G4Q7_vR76dOs0VnW_DVFE99aOqVEcaCU=s256',
       availability: 'ACTIVE',
-      products: tiers('HOK', 'Tokens', [60, 300, 980, 1980, 3280]),
+      products: [
+        realTier('HOK_80', '80 Tokens', 11_000, 'honor_of_kings:80_tokens'),
+        realTier('HOK_240', '240 Tokens', 33_000, 'honor_of_kings:240_tokens'),
+        realTier('HOK_400', '400 Tokens', 55_000, 'honor_of_kings:400_tokens'),
+        realTier('HOK_830', '830 Tokens', 110_000, 'honor_of_kings:830_tokens'),
+        realTier('HOK_1245', '1245 Tokens', 165_000, 'honor_of_kings:1245_tokens'),
+        realTier('HOK_2508', '2508 Tokens', 330_000, 'honor_of_kings:2508_tokens'),
+      ],
     },
     {
       slug: 'call-of-duty-mobile',
@@ -294,7 +312,15 @@ async function main() {
       logoUrl:
         'https://play-lh.googleusercontent.com/4KLtYEExeMc9gcYZz1BgAiV87IZ8onX3aGld_lJ8xMydt1MP7m--a6dn0aGNMemq-IiwGrrhqt81TA-Qbve8=s256',
       availability: 'ACTIVE',
-      products: tiers('CODM', 'CP', [80, 400, 800, 2000, 5000]),
+      // codm_activision_kz (Kazakhstan) — the closest CIS-region CODM line
+      // FazerCards carries. Field key is user_id, not player_id.
+      products: [
+        realTier('CODM_88', '80 + 8 CP', 14_200, 'codm_activision_kz:88_cp:user_id'),
+        realTier('CODM_460', '400 + 60 CP', 70_500, 'codm_activision_kz:460_cp:user_id'),
+        realTier('CODM_960', '800 + 160 CP', 141_500, 'codm_activision_kz:960_cp:user_id'),
+        realTier('CODM_2600', '2000 + 600 CP', 368_000, 'codm_activision_kz:2600_cp:user_id'),
+        realTier('CODM_5400', '4000 + 1400 CP', 709_000, 'codm_activision_kz:5400_cp:user_id'),
+      ],
     },
     {
       slug: '8-ball-pool',
@@ -304,7 +330,13 @@ async function main() {
       logoUrl:
         'https://play-lh.googleusercontent.com/F2_Kbn1-vQePDh_Y0qNCDhkmpEK5qdEyPwcJqwXho54ZVG4w6Szt32VHsyPzeVLPR2kfYI62-hGmNpQoDxS-wQ=s256',
       availability: 'ACTIVE',
-      products: tiers('8BP', 'Cash', [25, 60, 125, 330, 600]),
+      // Field key is user_id, not player_id.
+      products: [
+        realTier('8BP_20', '20 Cash', 20_000, '8_ball_pool:20_cash:user_id'),
+        realTier('8BP_50', '50 Cash', 50_000, '8_ball_pool:50_cash:user_id'),
+        realTier('8BP_110', '110 Cash', 99_000, '8_ball_pool:110_cash:user_id'),
+        realTier('8BP_250', '250 Cash', 199_000, '8_ball_pool:250_cash:user_id'),
+      ],
     },
     {
       slug: 'clash-of-clans',
@@ -370,7 +402,16 @@ async function main() {
       logoUrl:
         'https://play-lh.googleusercontent.com/NEp-Nq3k_EBZriaPEmAKdqjd2v3UGAhMcSvoOcdrfwZQavolX_-OwQA2TX21LS-A8x8cV15r3J2CFaG-yT2IVX4=s256',
       availability: 'ACTIVE',
-      products: tiers('FCM', 'FC Points', [100, 550, 1200, 2800, 5900]),
+      // eafc_mobile_id (Indonesia) — no region-neutral "global" EAFC Mobile
+      // category exists on FazerCards; this is the closest available line.
+      products: [
+        realTier('FCM_40', '40 FC Points', 4_600, 'eafc_mobile_id:40_fc_points'),
+        realTier('FCM_100', '100 FC Points', 11_200, 'eafc_mobile_id:100_fc_points'),
+        realTier('FCM_520', '520 FC Points', 55_000, 'eafc_mobile_id:520_fc_points'),
+        realTier('FCM_1070', '1070 FC Points', 111_000, 'eafc_mobile_id:1070_fc_points'),
+        realTier('FCM_2200', '2200 FC Points', 230_000, 'eafc_mobile_id:2200_fc_points'),
+        realTier('FCM_5750', '5750 FC Points', 560_000, 'eafc_mobile_id:5750_fc_points'),
+      ],
     },
   ];
 
