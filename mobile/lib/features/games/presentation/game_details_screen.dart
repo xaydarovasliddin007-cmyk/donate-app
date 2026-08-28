@@ -322,7 +322,7 @@ class _ProductGrid extends ConsumerWidget {
               crossAxisCount: 2,
               mainAxisSpacing: AppSpacing.sm,
               crossAxisSpacing: AppSpacing.sm,
-              childAspectRatio: 1.15,
+              childAspectRatio: 2.6,
             ),
             delegate: SliverChildBuilderDelegate((context, i) {
               final product = products[i];
