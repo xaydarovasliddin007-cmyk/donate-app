@@ -90,6 +90,12 @@ async function main() {
   interface SeedServer {
     name: string;
     code: string;
+    // Per-server product ladder override — for games where different
+    // regions are genuinely different FazerCards categories with their own
+    // catalog/pricing (e.g. MLBB's mobile_legends_ru vs _turkey vs
+    // _global), not just a cosmetic label. Falls back to the game's shared
+    // `products` list when omitted (every other game's server picker).
+    products?: SeedTier[];
   }
   interface SeedGame {
     slug: string;
@@ -132,21 +138,146 @@ async function main() {
       logoUrl:
         'https://play-lh.googleusercontent.com/D8r13ijO9c-0_1N-CP4d63mR1w6YhDuR2mBQUl27ELJAx0sKdaKtM5vCUnSLODKBVzUx7rZ9cW4Ir9jYiufsSQ=s256',
       availability: 'ACTIVE',
-      // A single "Global (UZ)" server, not the old Asia/Europe/Americas
-      // picker — every tier here is fulfilled through FazerCards'
-      // `mobile_legends_global` line regardless of which region a buyer
-      // picked, so the old 3-way picker was cosmetic and misleading (same
-      // product/price duplicated under three tabs). BekPinBot's reference
-      // list leads with a combined "UZ/Global" tab for exactly this reason
-      // — the vast majority of Uzbek buyers' MLBB accounts are on Global.
-      servers: [{ name: 'Global (UZ)', code: 'GLOBAL' }],
-      // Matches BekPinBot's exact package list/prices (a real competitor,
-      // checked 2026-08-28) — every denomination here is a confirmed exact
-      // match against a live FazerCards mobile_legends_global offer.
-      // Order matches BekPinBot's layout exactly: the four x2 bonus packs,
-      // then the four passes, then plain diamonds smallest-to-largest —
-      // not the "all bonuses, then all diamonds, passes last" grouping
-      // this had before.
+      // Six real regional servers, matching BekPinBot's own tab list
+      // (checked 2026-08-29: UZ/Global, RU, TR, SG, MY, ID) — each one is a
+      // genuinely distinct FazerCards category (mobile_legends_global vs
+      // _ru vs _turkey vs _singapore vs _malaysia vs _indonesia) with its
+      // own catalog and its own USD pricing, not a relabeled duplicate of
+      // Global. Per-region UZS prices below are ~10% margin over each
+      // category's live FazerCards USD offer at the ~11,950 UZS/USD
+      // snapshot rate already used for Global, rounded to a clean number.
+      // The picker's default (first entry) is Global — correct per the
+      // requirement that ~90% of buyers here are on UZ/Global accounts.
+      servers: [
+        { name: 'Global (UZ)', code: 'GLOBAL' },
+        {
+          name: 'Russia',
+          code: 'RU',
+          products: [
+            realTier('MLBB_RU_WEEKLY_PASS', 'Weekly Pass', 24_000, 'mobile_legends_ru:weekly_pass'),
+            realTier('MLBB_RU_SUPER_VALUE', 'Super Value Pass', 14_000, 'mobile_legends_ru:super_value_pass'),
+            realTier('MLBB_RU_35', '35 Diamonds', 7_500, 'mobile_legends_ru:35_diamonds'),
+            realTier('MLBB_RU_55', '55 Diamonds', 12_000, 'mobile_legends_ru:55_diamonds'),
+            realTier('MLBB_RU_165', '165 Diamonds', 36_000, 'mobile_legends_ru:165_diamonds'),
+            realTier('MLBB_RU_275', '275 Diamonds', 60_000, 'mobile_legends_ru:275_diamonds'),
+            realTier('MLBB_RU_565', '565 Diamonds', 120_000, 'mobile_legends_ru:565_diamonds'),
+            realTier('MLBB_RU_1155', '1155 Diamonds', 241_000, 'mobile_legends_ru:1155_diamonds'),
+            realTier('MLBB_RU_1765', '1765 Diamonds', 360_000, 'mobile_legends_ru:1765_diamonds'),
+            realTier('MLBB_RU_2975', '2975 Diamonds', 601_000, 'mobile_legends_ru:2975_diamonds'),
+            realTier('MLBB_RU_6000', '6000 Diamonds', 1_200_000, 'mobile_legends_ru:6000_diamonds'),
+          ],
+        },
+        {
+          name: 'Turkey',
+          code: 'TR',
+          products: [
+            realTier('MLBB_TR_WEEKLY_ELITE', 'Weekly Elite Pack', 11_000, 'mobile_legends_turkey:weekly_elite_pack'),
+            realTier('MLBB_TR_WEEKLY_PASS', 'Weekly Pass', 24_000, 'mobile_legends_turkey:weekly_pass'),
+            realTier('MLBB_TR_MONTHLY_ELITE', 'Monthly Elite Pack', 55_000, 'mobile_legends_turkey:monthly_elite_pack'),
+            realTier('MLBB_TR_TWILIGHT_PASS', 'Twilight Pass', 105_000, 'mobile_legends_turkey:twilight_pass'),
+            realTier('MLBB_TR_LIMITED_VALUE', 'Limited-Time Value Pack', 2_600, 'mobile_legends_turkey:limited_time_value_pack'),
+            realTier('MLBB_TR_16', '16 Diamonds', 3_100, 'mobile_legends_turkey:16_diamonds'),
+            realTier('MLBB_TR_24', '24 Diamonds', 4_600, 'mobile_legends_turkey:24_diamonds'),
+            realTier('MLBB_TR_44', '44 Diamonds', 8_500, 'mobile_legends_turkey:44_diamonds'),
+            realTier('MLBB_TR_88', '88 Diamonds', 17_000, 'mobile_legends_turkey:88_diamonds'),
+            realTier('MLBB_TR_133', '133 Diamonds', 25_500, 'mobile_legends_turkey:133_diamonds'),
+            realTier('MLBB_TR_221', '221 Diamonds', 42_500, 'mobile_legends_turkey:221_diamonds'),
+            realTier('MLBB_TR_494', '494 Diamonds', 94_000, 'mobile_legends_turkey:494_diamonds'),
+            realTier('MLBB_TR_1041', '1041 Diamonds', 189_000, 'mobile_legends_turkey:1041_diamonds'),
+            realTier('MLBB_TR_2645', '2645 Diamonds', 471_000, 'mobile_legends_turkey:2645_diamonds'),
+            realTier('MLBB_TR_6146', '6146 Diamonds', 1_075_000, 'mobile_legends_turkey:6146_diamonds'),
+          ],
+        },
+        {
+          name: 'Singapore',
+          code: 'SG',
+          products: [
+            realTier('MLBB_SG_55_x2', '55 (50+5) Diamonds x2', 12_000, 'mobile_legends_singapore:50_5_diamonds_first_top_up_bonus'),
+            realTier('MLBB_SG_165_x2', '165 (150+15) Diamonds x2', 35_500, 'mobile_legends_singapore:150_15_diamonds_first_top_up_bonus'),
+            realTier('MLBB_SG_275_x2', '275 (250+25) Diamonds x2', 59_000, 'mobile_legends_singapore:250_25_diamonds_first_top_up_bonus'),
+            realTier('MLBB_SG_565_x2', '565 (500+65) Diamonds x2', 120_000, 'mobile_legends_singapore:500_65_diamonds_first_top_up_bonus'),
+            realTier('MLBB_SG_WEEKLY_ELITE', 'Weekly Elite Pack', 12_000, 'mobile_legends_singapore:weekly_elite_pack'),
+            realTier('MLBB_SG_WEEKLY_PASS', 'Weekly Pass', 26_000, 'mobile_legends_singapore:weekly_pass'),
+            realTier('MLBB_SG_MONTHLY_ELITE', 'Monthly Elite Pack', 59_000, 'mobile_legends_singapore:monthly_elite_pack'),
+            realTier('MLBB_SG_5', '5 Diamonds', 1_100, 'mobile_legends_singapore:5_diamonds'),
+            realTier('MLBB_SG_14', '14 (13+1) Diamonds', 3_000, 'mobile_legends_singapore:13_1_diamonds'),
+            realTier('MLBB_SG_42', '42 (38+4) Diamonds', 9_000, 'mobile_legends_singapore:38_4_diamonds'),
+            realTier('MLBB_SG_70', '70 (64+6) Diamonds', 15_000, 'mobile_legends_singapore:64_6_diamonds'),
+            realTier('MLBB_SG_140', '140 (127+13) Diamonds', 30_500, 'mobile_legends_singapore:127_13_diamonds'),
+            realTier('MLBB_SG_284', '284 (254+30) Diamonds', 61_000, 'mobile_legends_singapore:254_30_diamonds'),
+            realTier('MLBB_SG_355', '355 (317+38) Diamonds', 76_000, 'mobile_legends_singapore:317_38_diamonds'),
+            realTier('MLBB_SG_429', '429 (383+46) Diamonds', 91_000, 'mobile_legends_singapore:383_46_diamonds'),
+            realTier('MLBB_SG_716', '716 (633+83) Diamonds', 152_000, 'mobile_legends_singapore:633_83_diamonds'),
+            realTier('MLBB_SG_1084', '1084 (940+144) Diamonds', 233_000, 'mobile_legends_singapore:940_144_diamonds'),
+            realTier('MLBB_SG_1446', '1446 (1252+194) Diamonds', 304_000, 'mobile_legends_singapore:1252_194_diamonds'),
+            realTier('MLBB_SG_2976', '2976 (2501+475) Diamonds', 609_000, 'mobile_legends_singapore:2501_475_diamonds'),
+            realTier('MLBB_SG_7502', '7502 (6252+1250) Diamonds', 1_510_000, 'mobile_legends_singapore:6252_1250_diamonds'),
+          ],
+        },
+        {
+          name: 'Malaysia',
+          code: 'MY',
+          products: [
+            realTier('MLBB_MY_55_x2', '55 (50+5) Diamonds x2', 12_000, 'mobile_legends_malaysia:50_5_diamonds_first_top_up_bonus'),
+            realTier('MLBB_MY_165_x2', '165 (150+15) Diamonds x2', 35_500, 'mobile_legends_malaysia:150_15_diamonds_first_top_up_bonus'),
+            realTier('MLBB_MY_275_x2', '275 (250+25) Diamonds x2', 59_000, 'mobile_legends_malaysia:250_25_diamonds_first_top_up_bonus'),
+            realTier('MLBB_MY_565_x2', '565 (500+65) Diamonds x2', 120_000, 'mobile_legends_malaysia:500_65_diamonds_first_top_up_bonus'),
+            realTier('MLBB_MY_WEEKLY_ELITE', 'Weekly Elite Pack', 12_000, 'mobile_legends_malaysia:weekly_elite_pack'),
+            realTier('MLBB_MY_WEEKLY_PASS', 'Weekly Pass', 26_000, 'mobile_legends_malaysia:weekly_pass'),
+            realTier('MLBB_MY_MONTHLY_ELITE', 'Monthly Elite Pack', 59_000, 'mobile_legends_malaysia:monthly_elite_pack'),
+            realTier('MLBB_MY_TWILIGHT_PASS', 'Twilight Pass', 112_000, 'mobile_legends_malaysia:twilight_pass'),
+            realTier('MLBB_MY_5', '5 Diamonds', 1_100, 'mobile_legends_malaysia:5_diamonds'),
+            realTier('MLBB_MY_14', '14 (13+1) Diamonds', 3_000, 'mobile_legends_malaysia:13_1_diamonds'),
+            realTier('MLBB_MY_42', '42 (38+4) Diamonds', 9_000, 'mobile_legends_malaysia:38_4_diamonds'),
+            realTier('MLBB_MY_70', '70 (64+6) Diamonds', 15_000, 'mobile_legends_malaysia:64_6_diamonds'),
+            realTier('MLBB_MY_140', '140 (127+13) Diamonds', 30_500, 'mobile_legends_malaysia:127_13_diamonds'),
+            realTier('MLBB_MY_284', '284 (254+30) Diamonds', 61_000, 'mobile_legends_malaysia:254_30_diamonds'),
+            realTier('MLBB_MY_355', '355 (317+38) Diamonds', 76_000, 'mobile_legends_malaysia:317_38_diamonds'),
+            realTier('MLBB_MY_429', '429 (383+46) Diamonds', 91_000, 'mobile_legends_malaysia:383_46_diamonds'),
+            realTier('MLBB_MY_716', '716 (633+83) Diamonds', 152_000, 'mobile_legends_malaysia:633_83_diamonds'),
+            realTier('MLBB_MY_1084', '1084 (940+144) Diamonds', 229_000, 'mobile_legends_malaysia:940_144_diamonds'),
+            realTier('MLBB_MY_1446', '1446 (1252+194) Diamonds', 295_000, 'mobile_legends_malaysia:1252_194_diamonds'),
+            realTier('MLBB_MY_2976', '2976 (2501+475) Diamonds', 609_000, 'mobile_legends_malaysia:2501_475_diamonds'),
+            realTier('MLBB_MY_7502', '7502 (6252+1250) Diamonds', 1_510_000, 'mobile_legends_malaysia:6252_1250_diamonds'),
+          ],
+        },
+        {
+          name: 'Indonesia',
+          code: 'ID',
+          products: [
+            realTier('MLBB_ID_100_x2', '100 (50+50) Diamonds x2', 11_500, 'mobile_legends_indonesia:50_50_diamonds_first_top_up_bonus'),
+            realTier('MLBB_ID_300_x2', '300 (150+150) Diamonds x2', 34_500, 'mobile_legends_indonesia:150_150_diamonds_first_top_up_bonus'),
+            realTier('MLBB_ID_500_x2', '500 (250+250) Diamonds x2', 58_000, 'mobile_legends_indonesia:250_250_diamonds_first_top_up_bonus'),
+            realTier('MLBB_ID_1000_x2', '1000 (500+500) Diamonds x2', 117_000, 'mobile_legends_indonesia:500_500_diamonds_first_top_up_bonus'),
+            realTier('MLBB_ID_WEEKLY_ELITE', 'Weekly Elite Pack', 12_000, 'mobile_legends_indonesia:weekly_elite_pack'),
+            realTier('MLBB_ID_WEEKLY_PASS', 'Weekly Pass', 22_500, 'mobile_legends_indonesia:weekly_pass'),
+            realTier('MLBB_ID_MONTHLY_ELITE', 'Monthly Elite Pack', 58_000, 'mobile_legends_indonesia:monthly_elite_pack'),
+            realTier('MLBB_ID_TWILIGHT_PASS', 'Twilight Pass', 111_000, 'mobile_legends_indonesia:twilight_pass'),
+            realTier('MLBB_ID_5', '5 Diamonds', 1_100, 'mobile_legends_indonesia:5_diamonds'),
+            realTier('MLBB_ID_12', '12 (11+1) Diamonds', 2_800, 'mobile_legends_indonesia:11_1_diamonds'),
+            realTier('MLBB_ID_19', '19 (17+2) Diamonds', 4_200, 'mobile_legends_indonesia:17_2_diamonds'),
+            realTier('MLBB_ID_28', '28 (25+3) Diamonds', 6_000, 'mobile_legends_indonesia:25_3_diamonds'),
+            realTier('MLBB_ID_44', '44 (40+4) Diamonds', 9_000, 'mobile_legends_indonesia:40_4_diamonds'),
+            realTier('MLBB_ID_59', '59 (53+6) Diamonds', 12_000, 'mobile_legends_indonesia:53_6_diamonds'),
+            realTier('MLBB_ID_85', '85 (77+8) Diamonds', 18_000, 'mobile_legends_indonesia:77_8_diamonds'),
+            realTier('MLBB_ID_170', '170 (154+16) Diamonds', 35_000, 'mobile_legends_indonesia:154_16_diamonds'),
+            realTier('MLBB_ID_240', '240 (217+23) Diamonds', 49_500, 'mobile_legends_indonesia:217_23_diamonds'),
+            realTier('MLBB_ID_296', '296 (256+40) Diamonds', 61_000, 'mobile_legends_indonesia:256_40_diamonds'),
+            realTier('MLBB_ID_408', '408 (367+41) Diamonds', 84_000, 'mobile_legends_indonesia:367_41_diamonds'),
+            realTier('MLBB_ID_568', '568 (503+65) Diamonds', 115_000, 'mobile_legends_indonesia:503_65_diamonds'),
+            realTier('MLBB_ID_875', '875 (774+101) Diamonds', 175_000, 'mobile_legends_indonesia:774_101_diamonds'),
+            realTier('MLBB_ID_2010', '2010 (1708+302) Diamonds', 382_000, 'mobile_legends_indonesia:1708_302_diamonds'),
+            realTier('MLBB_ID_4830', '4830 (4003+827) Diamonds', 917_000, 'mobile_legends_indonesia:4003_827_diamonds'),
+          ],
+        },
+      ],
+      // Global (UZ) — this game's default/fallback ladder, and the server
+      // ~90% of buyers here actually use. Matches BekPinBot's exact
+      // package list/prices (a real competitor, checked 2026-08-28) —
+      // every denomination here is a confirmed exact match against a live
+      // FazerCards mobile_legends_global offer. Order matches BekPinBot's
+      // layout exactly: the four x2 bonus packs, then the four passes,
+      // then plain diamonds smallest-to-largest.
       products: [
         realTier('MLBB_55_x2', '55 (50+5) Diamonds x2', 9_800, 'mobile_legends_global:50_5_diamonds_first_top_up_bonus'),
         realTier('MLBB_165_x2', '165 (150+15) Diamonds x2', 29_000, 'mobile_legends_global:150_15_diamonds_first_top_up_bonus'),
@@ -434,17 +565,22 @@ async function main() {
       },
     });
 
-    const servers = g.servers
+    // Paired with the originating SeedServer (not just the DB row) so a
+    // server with its own `products` override — e.g. MLBB's per-region
+    // ladders, each a genuinely distinct FazerCards category/price, not a
+    // relabeled duplicate — can be seeded with the right catalog below.
+    const serverPairs = g.servers
       ? await Promise.all(
-          g.servers.map((s) =>
-            prisma.gameServer.upsert({
+          g.servers.map(async (s) => ({
+            seed: s,
+            db: await prisma.gameServer.upsert({
               where: { gameId_code: { gameId: game.id, code: s.code } },
               update: { name: s.name, isActive: true },
               create: { gameId: game.id, name: s.name, code: s.code, isActive: true, sortOrder: g.servers!.indexOf(s) },
             }),
-          ),
+          })),
         )
-      : [null];
+      : [{ seed: null as SeedServer | null, db: null }];
 
     // Deactivate servers this game used to have but no longer lists (e.g.
     // MLBB's old Asia/Europe/Americas picker, replaced by a single Global
@@ -471,15 +607,21 @@ async function main() {
     // Deactivate stale products this game used to have under an old name
     // (e.g. the placeholder ladder's "86 Diamonds" before it became the
     // real-priced "86 (78+8) Diamonds") — soft-deleted, not removed, since
-    // past orders may still reference them.
-    const currentNames = g.products.map((p) => p.name);
+    // past orders may still reference them. Union across every server's
+    // own product list (not just the fallback g.products) so a name that's
+    // current for one region isn't wrongly swept as stale because it isn't
+    // also in another region's list.
+    const currentNames = new Set(
+      serverPairs.flatMap(({ seed }) => (seed?.products ?? g.products).map((p) => p.name)),
+    );
     await prisma.product.updateMany({
-      where: { gameId: game.id, name: { notIn: currentNames } },
+      where: { gameId: game.id, name: { notIn: [...currentNames] } },
       data: { isActive: false },
     });
 
-    for (const server of servers) {
-      for (const [productIndex, item] of g.products.entries()) {
+    for (const { seed, db: server } of serverPairs) {
+      const productsForServer = seed?.products ?? g.products;
+      for (const [productIndex, item] of productsForServer.entries()) {
         const mockProviderCode = server ? `${item.code}_${server.code}` : item.code;
         const isReal = !!item.fazercardsCode;
 
