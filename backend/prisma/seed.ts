@@ -57,6 +57,18 @@ async function main() {
     update: {},
     create: { code: 'APIGAMES', name: 'Apigames.id', type: 'TOPUP', isActive: false, healthStatus: 'UNKNOWN' },
   });
+  const fazercardsProvider = await prisma.provider.upsert({
+    where: { code: 'FAZERCARDS' },
+    update: { isActive: true, healthStatus: 'HEALTHY', lastCheckedAt: new Date() },
+    create: {
+      code: 'FAZERCARDS',
+      name: 'FazerCards',
+      type: 'TOPUP',
+      isActive: true,
+      healthStatus: 'HEALTHY',
+      lastCheckedAt: new Date(),
+    },
+  });
 
   // --- Games & catalog ---------------------------------------------------------
   //
@@ -70,6 +82,10 @@ async function main() {
     code: string;
     name: string;
     amountMinor: number;
+    // "<category_id>:<offer_id>" from FazerCards' live catalog — set only
+    // for games priced from real FazerCards data (see realTier() below).
+    // Everything else stays on the DEV_MOCK_TOPUP-only placeholder ladder.
+    fazercardsCode?: string;
   }
   interface SeedServer {
     name: string;
@@ -92,6 +108,21 @@ async function main() {
   const tiers = (code: string, unit: string, amounts: number[]): SeedTier[] =>
     amounts.map((amount, i) => ({ code: `${code}_${amount}`, name: `${amount} ${unit}`, amountMinor: LADDER[i] }));
 
+  // Real-priced tiers for games actually wired to the FazerCards live
+  // catalog (see backend/README.md "FazerCards top-up setup"). Unlike
+  // tiers() above, prices here are NOT a placeholder ladder — sellUzs is a
+  // real UZS retail price (already *100 into minor units/tiyin) chosen to
+  // sit close to a known competitor's price for the same package where one
+  // was checked (BekPinBot, MLBB), or a comparable ~10% margin over the
+  // live FazerCards USD cost otherwise (snapshot rate ~11,950 UZS/USD,
+  // 2026-08-28 — re-check periodically, this isn't pegged to a live rate).
+  const realTier = (code: string, name: string, sellUzs: number, fazercardsCode: string): SeedTier => ({
+    code,
+    name,
+    amountMinor: sellUzs * 100,
+    fazercardsCode,
+  });
+
   const seedGames: SeedGame[] = [
     {
       slug: 'mobile-legends',
@@ -109,7 +140,27 @@ async function main() {
         { name: 'Europe', code: 'EU' },
         { name: 'Americas', code: 'AMERICAS' },
       ],
-      products: tiers('MLBB', 'Diamonds', [86, 172, 257, 344, 706]),
+      // Matches BekPinBot's exact package list/prices (a real competitor,
+      // checked 2026-08-28) — every denomination here is a confirmed exact
+      // match against a live FazerCards mobile_legends_global offer.
+      products: [
+        realTier('MLBB_55_x2', '55 (50+5) Diamonds x2', 9_800, 'mobile_legends_global:50_5_diamonds_first_top_up_bonus'),
+        realTier('MLBB_165_x2', '165 (150+15) Diamonds x2', 29_000, 'mobile_legends_global:150_15_diamonds_first_top_up_bonus'),
+        realTier('MLBB_275_x2', '275 (250+25) Diamonds x2', 46_000, 'mobile_legends_global:250_25_diamonds_first_top_up_bonus'),
+        realTier('MLBB_565_x2', '565 (500+65) Diamonds x2', 96_000, 'mobile_legends_global:500_65_diamonds_first_top_up_bonus'),
+        realTier('MLBB_86', '86 (78+8) Diamonds', 15_500, 'mobile_legends_global:78_8_diamonds'),
+        realTier('MLBB_172', '172 (156+16) Diamonds', 29_800, 'mobile_legends_global:156_16_diamonds'),
+        realTier('MLBB_257', '257 (234+23) Diamonds', 44_000, 'mobile_legends_global:234_23_diamonds'),
+        realTier('MLBB_706', '706 (625+81) Diamonds', 122_000, 'mobile_legends_global:625_81_diamonds'),
+        realTier('MLBB_2195', '2195 (1860+335) Diamonds', 364_000, 'mobile_legends_global:1860_335_diamonds'),
+        realTier('MLBB_3688', '3688 (3099+589) Diamonds', 605_000, 'mobile_legends_global:3099_589_diamonds'),
+        realTier('MLBB_5532', '5532 (4649+883) Diamonds', 915_000, 'mobile_legends_global:4649_883_diamonds'),
+        realTier('MLBB_9288', '9288 (7740+1548) Diamonds', 1_520_000, 'mobile_legends_global:7740_1548_diamonds'),
+        realTier('MLBB_WEEKLY_PASS', 'Weekly Pass', 18_600, 'mobile_legends_global:weekly_pass'),
+        realTier('MLBB_WEEKLY_ELITE', 'Weekly Elite Pack', 11_000, 'mobile_legends_global:weekly_elite_pack'),
+        realTier('MLBB_MONTHLY_ELITE', 'Monthly Elite Pack', 51_000, 'mobile_legends_global:monthly_elite_pack'),
+        realTier('MLBB_TWILIGHT_PASS', 'Twilight Pass', 105_000, 'mobile_legends_global:twilight_pass'),
+      ],
     },
     {
       slug: 'pubg-mobile',
@@ -119,7 +170,19 @@ async function main() {
       logoUrl:
         'https://play-lh.googleusercontent.com/O8jPCZ2EXAt7wGlbZhkhA-3vPIWVBpz8tZrRnsr7uVeqp0UD1AQwIEl_N9So80kdp8gDvIksC64GypylkQV_=s256',
       availability: 'ACTIVE',
-      products: tiers('PUBGM', 'UC', [60, 120, 325, 660, 1800]),
+      // pubg_mobile_auto chosen over the cheaper-on-paper pubg_mobile_manual
+      // category — "manual" implies non-instant/human-handled fulfillment
+      // on FazerCards' side, a worse customer experience for a few % in
+      // margin. ~10% margin over live FazerCards USD cost, no competitor
+      // price was checked for PUBG (see chat — only MLBB was benchmarked).
+      products: [
+        realTier('PUBGM_60', '60 UC', 11_650, 'pubg_mobile_auto:60_uc'),
+        realTier('PUBGM_325', '325 UC', 58_250, 'pubg_mobile_auto:325_uc'),
+        realTier('PUBGM_660', '660 UC', 116_500, 'pubg_mobile_auto:660_uc'),
+        realTier('PUBGM_1800', '1800 UC', 292_000, 'pubg_mobile_auto:1800_uc'),
+        realTier('PUBGM_3850', '3850 UC', 584_000, 'pubg_mobile_auto:3850_uc'),
+        realTier('PUBGM_8100', '8100 UC', 1_168_000, 'pubg_mobile_auto:8100_uc'),
+      ],
     },
     {
       slug: 'free-fire',
@@ -129,7 +192,36 @@ async function main() {
       logoUrl:
         'https://play-lh.googleusercontent.com/JT88XmsHoGDio7FxONwh382DhuTxuccfMmWFDtRBFjilySzNqWOCxUhqm8IhBKzQSwVrW2HWp_XvSgKFwi3ETA=s256',
       availability: 'ACTIVE',
-      products: tiers('FF', 'Diamonds', [100, 210, 520, 1060, 2180]),
+      // free_fire_cis (not free_fire_id) — the CIS-region category is the
+      // right supply line for players in Uzbekistan/CIS, even though its
+      // own denomination ladder differs from the old placeholder tiers.
+      // ~10% margin over live FazerCards USD cost, no competitor price was
+      // checked for Free Fire.
+      products: [
+        realTier('FF_110', '110 Diamonds', 10_200, 'free_fire_cis:110_diamonds'),
+        realTier('FF_341', '341 Diamonds', 31_000, 'free_fire_cis:341_diamonds'),
+        realTier('FF_572', '572 Diamonds', 50_500, 'free_fire_cis:572_diamonds'),
+        realTier('FF_1166', '1166 Diamonds', 101_200, 'free_fire_cis:1166_diamonds'),
+        realTier('FF_2398', '2398 Diamonds', 202_400, 'free_fire_cis:2398_diamonds'),
+        realTier('FF_6160', '6160 Diamonds', 512_700, 'free_fire_cis:6160_diamonds'),
+      ],
+    },
+    {
+      slug: 'telegram-premium',
+      name: 'Telegram Premium',
+      category: 'Subscription',
+      logoEmoji: '✈️',
+      logoUrl: 'https://play-lh.googleusercontent.com/aq4Pl-YZBB1lnjmMxOFatBHc1KM4jQK5AaTGXAJPHIVCFXK1de0-ZgMMOa0OpqpB1p8=s256',
+      availability: 'ACTIVE',
+      // Uses FazerCards' dedicated /telegram/premium/buy endpoint (not the
+      // generic /topups/order one) — see the "telegram_premium:" prefix
+      // handling in fazercards-topup-provider.ts. ~10% margin over live
+      // FazerCards USD cost, no competitor price was checked.
+      products: [
+        realTier('TG_PREMIUM_3M', 'Telegram Premium — 3 months', 160_000, 'telegram_premium:3'),
+        realTier('TG_PREMIUM_6M', 'Telegram Premium — 6 months', 214_000, 'telegram_premium:6'),
+        realTier('TG_PREMIUM_12M', 'Telegram Premium — 12 months', 388_000, 'telegram_premium:12'),
+      ],
     },
     {
       slug: 'roblox',
@@ -286,9 +378,20 @@ async function main() {
         )
       : [null];
 
+    // Deactivate stale products this game used to have under an old name
+    // (e.g. the placeholder ladder's "86 Diamonds" before it became the
+    // real-priced "86 (78+8) Diamonds") — soft-deleted, not removed, since
+    // past orders may still reference them.
+    const currentNames = g.products.map((p) => p.name);
+    await prisma.product.updateMany({
+      where: { gameId: game.id, name: { notIn: currentNames } },
+      data: { isActive: false },
+    });
+
     for (const server of servers) {
       for (const [productIndex, item] of g.products.entries()) {
-        const providerCode = server ? `${item.code}_${server.code}` : item.code;
+        const mockProviderCode = server ? `${item.code}_${server.code}` : item.code;
+        const isReal = !!item.fazercardsCode;
 
         const existing = await prisma.product.findFirst({
           where: { gameId: game.id, serverId: server?.id ?? null, name: item.name },
@@ -300,26 +403,45 @@ async function main() {
               gameId: game.id,
               serverId: server?.id,
               name: item.name,
-              description: `${item.name} — development/test product, delivered instantly by the mock provider.`,
+              description: isReal
+                ? `${item.name} — fulfilled via FazerCards.`
+                : `${item.name} — development/test product, delivered instantly by the mock provider.`,
               amountMinor: item.amountMinor,
               currency: 'UZS',
               isActive: true,
-              isTest: true,
+              isTest: !isReal,
               sortOrder: productIndex,
             },
           }));
 
+        // Real games get FazerCards as priority 0 (tried first) and
+        // DEV_MOCK_TOPUP demoted to priority 1 (fallback, dev-only) —
+        // every other game keeps DEV_MOCK_TOPUP at priority 0, unchanged.
         await prisma.providerProduct.upsert({
           where: { providerId_productId: { providerId: topupProvider.id, productId: product.id } },
-          update: { providerProductCode: providerCode, isActive: true, priority: 0 },
+          update: { providerProductCode: mockProviderCode, isActive: true, priority: isReal ? 1 : 0 },
           create: {
             providerId: topupProvider.id,
             productId: product.id,
-            providerProductCode: providerCode,
-            priority: 0,
+            providerProductCode: mockProviderCode,
+            priority: isReal ? 1 : 0,
             isActive: true,
           },
         });
+
+        if (item.fazercardsCode) {
+          await prisma.providerProduct.upsert({
+            where: { providerId_productId: { providerId: fazercardsProvider.id, productId: product.id } },
+            update: { providerProductCode: item.fazercardsCode, isActive: true, priority: 0 },
+            create: {
+              providerId: fazercardsProvider.id,
+              productId: product.id,
+              providerProductCode: item.fazercardsCode,
+              priority: 0,
+              isActive: true,
+            },
+          });
+        }
       }
     }
   }

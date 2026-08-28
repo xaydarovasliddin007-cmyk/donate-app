@@ -2,6 +2,7 @@ import { env } from '../config/env.js';
 import { ApiGamesTopupProvider } from './apigames/apigames-topup-provider.js';
 import { ClickProvider } from './click/click-provider.js';
 import { DigiflazzTopupProvider } from './digiflazz/digiflazz-topup-provider.js';
+import { FazerCardsTopupProvider } from './fazercards/fazercards-topup-provider.js';
 import { MockPaymentProvider } from './mock/mock-payment-provider.js';
 import { MockTopupProvider } from './mock/mock-topup-provider.js';
 import { PaymeProvider } from './payme/payme-provider.js';
@@ -35,6 +36,9 @@ if (env.DIGIFLAZZ_USERNAME && env.DIGIFLAZZ_API_KEY) {
 }
 if (env.APIGAMES_USERNAME && env.APIGAMES_API_KEY) {
   topupAdapters.APIGAMES = new ApiGamesTopupProvider(env.APIGAMES_USERNAME, env.APIGAMES_API_KEY);
+}
+if (env.FAZERCARDS_API_KEY) {
+  topupAdapters.FAZERCARDS = new FazerCardsTopupProvider(env.FAZERCARDS_API_KEY);
 }
 
 export function getTopupProvider(code: string): TopupProviderAdapter {

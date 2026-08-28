@@ -336,6 +336,36 @@ To finish this:
 4. In the admin panel, map each `Product` to its real Apigames SKU code via `ProviderProduct`
    and flip the `APIGAMES` provider row's `isActive` to `true`.
 
+## FazerCards top-up setup (cheapest checked so far — MLBB)
+
+Not configured yet — `src/providers/fazercards/fazercards-topup-provider.ts` implements the same
+`TopupProviderAdapter` interface. Built from FazerCards' own published REST v2 docs
+(reseller.fazercards.com/en/docs — real endpoint paths, `X-API-Key` auth, and request/response
+shapes, not guessed), but still unverified against a live account/order, same caveat as the other
+two adapters.
+
+Why it's worth adding alongside Digiflazz/Apigames: checking a matching Mobile Legends
+denomination against MRCODA's consumer storefront put FazerCards' listed wholesale price roughly
+30-35% cheaper per diamond, and — unlike Digiflazz/Apigames, which only take an Indonesian
+bank/e-wallet deposit — FazerCards' balance can be funded with USDT (TRC20/BEP20/TON/Aptos),
+which is actually reachable from Uzbekistan. This is the first of a planned multi-provider
+lineup (one or two vetted suppliers per game, picking whichever is genuinely cheapest) rather
+than a wholesale replacement for Digiflazz.
+
+To finish this:
+
+1. Register a reseller account at [reseller.fazercards.com](https://reseller.fazercards.com) and
+   fund the balance (USDT deposit).
+2. Create an API key from the reseller hub (Profile) and set `FAZERCARDS_API_KEY` in
+   `backend/.env` — the provider registers itself in `src/providers/registry.ts` once present.
+3. Open the API Cookbook / OpenAPI schema from the reseller hub (or share it with the AI
+   assistant) to confirm/correct the endpoint paths and `fields` payload shape in
+   `fazercards-topup-provider.ts` — the `fields: { player_id }` mapping is a best guess from the
+   docs excerpt available, not confirmed per-game.
+4. Note `providerProductCode` here is `"<category_id>:<offer_id>"` (both are needed to place an
+   order) — encode it that way when mapping each `Product` to its `ProviderProduct` row, then
+   flip the `FAZERCARDS` provider row's `isActive` to `true`.
+
 ## Card-transfer auto top-up setup
 
 This is the "enter an amount, get assigned one card, transfer that exact amount, balance

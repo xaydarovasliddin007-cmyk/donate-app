@@ -69,6 +69,14 @@ const envSchema = z.object({
   APIGAMES_USERNAME: z.string().trim().min(1).optional(),
   APIGAMES_API_KEY: z.string().trim().min(1).optional(),
 
+  // Optional: FazerCards — a B2B wholesale reseller platform, cheaper than
+  // Apigames/MRCODA per-diamond on the games checked so far and fundable
+  // via USDT (unlike Digiflazz/Apigames' Indonesian bank/e-wallet-only
+  // deposits). See src/providers/fazercards/fazercards-topup-provider.ts —
+  // built from FazerCards' own published API docs, still unverified
+  // against a live account/order.
+  FAZERCARDS_API_KEY: z.string().trim().min(1).optional(),
+
   // Optional: shared secret the Telegram bank-notification listener script
   // (scripts/humo-listener.ts) must send on every request to
   // POST /webhooks/humo-transaction. Without it, that endpoint refuses all
