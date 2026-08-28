@@ -4,4 +4,13 @@
          to allow setting breakpoints, to provide hot reload, etc.
     -->
     <uses-permission android:name="android.permission.INTERNET"/>
+
+    <!-- Debug-only: Android blocks plain-HTTP (cleartext) traffic by
+         default on API 28+, which silently breaks every API call against
+         a local dev backend (http://localhost:4000, http://10.0.2.2:4000,
+         a LAN IP, ...) with no error the app can distinguish from "no
+         internet". The release manifest has no such override — production
+         must use HTTPS. Merged into the debug <application> tag by
+         Gradle's manifest merger, no change to src/main needed. -->
+    <application android:usesCleartextTraffic="true"/>
 </manifest>
