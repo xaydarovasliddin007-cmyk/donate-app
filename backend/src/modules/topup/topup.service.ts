@@ -137,11 +137,18 @@ interface FinalizeVerificationOptions {
 }
 
 /**
- * Shared by the admin's manual verifyTopUpRequest() and the Telegram-bot
- * auto-verify path — credits the wallet and notifies exactly once either
- * way. Idempotency key is deterministic on the request ID, so a retried
- * call after a partial failure is safe: applyLedgerEntry just returns the
- * already-applied entry instead of crediting twice.
+ * The Telegram-bot auto-verify path only (see autoVerifyFromCardTransaction
+ * below) — despite the name, this is NOT what the admin's manual
+ * verifyTopUpRequest() calls; that one has its own copy further down,
+ * deliberately looser (PENDING or EXPIRED — see its doc comment) since a
+ * human reviewing a real bank statement should still be able to credit a
+ * transfer that arrived a little late. Auto-verify staying PENDING-only is
+ * intentional: an expired reservation's amount is free for reuse (see
+ * reserveTopUpRequest), so a coincidental later SMS on that same amount
+ * must never auto-credit the wrong request. Idempotency key is
+ * deterministic on the request ID, so a retried call after a partial
+ * failure is safe: applyLedgerEntry just returns the already-applied entry
+ * instead of crediting twice.
  */
 async function finalizeVerification(ctx: TopUpContext, requestId: string, options: FinalizeVerificationOptions) {
   const request = await ctx.prisma.topUpRequest.findUnique({ where: { id: requestId } });
@@ -310,12 +317,21 @@ export async function listTopUpRequestsAdmin(
  * never on user submission. The user's own claim that they paid
  * (`userReference`) is a hint for the admin to match against a real bank
  * statement, never proof by itself.
+ *
+ * Allowed from PENDING or EXPIRED (not VERIFIED/REJECTED, which are
+ * already final): a reservation's countdown only controls how long its
+ * amount stays exclusively claimed — see reserveTopUpRequest() — it isn't
+ * a deadline on whether the transfer itself was legitimate. A customer who
+ * transfers a minute after their card assignment expired still genuinely
+ * paid, and an admin who can see that transfer on the real bank statement
+ * must still be able to credit it manually instead of the money being
+ * stuck with no way to apply it.
  */
 export async function verifyTopUpRequest(ctx: TopUpContext, adminId: string, topUpRequestId: string) {
   const request = await ctx.prisma.topUpRequest.findUnique({ where: { id: topUpRequestId } });
   if (!request) throw new NotFoundError('Top-up request not found');
-  if (request.status !== 'PENDING') {
-    throw new ConflictError(`Only PENDING top-up requests can be verified (this one is ${request.status})`);
+  if (request.status !== 'PENDING' && request.status !== 'EXPIRED') {
+    throw new ConflictError(`Only PENDING or EXPIRED top-up requests can be verified (this one is ${request.status})`);
   }
 
   // Idempotency key is deterministic on the request ID, so if the status

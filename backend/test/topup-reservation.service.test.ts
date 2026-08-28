@@ -250,4 +250,38 @@ describe('topup reservation + auto-verification (live DB)', () => {
       ).rejects.toThrow(/only pending/i);
     });
   });
+
+  describe('verifyTopUpRequest (admin manual review)', () => {
+    // reviewedByAdminId is a real FK to AdminUser — reusing whichever admin
+    // the dev seed already created rather than making a throwaway one,
+    // since this suite doesn't otherwise touch the admin_users table.
+    let adminId: string;
+
+    beforeAll(async () => {
+      const admin = await prisma.adminUser.findFirstOrThrow();
+      adminId = admin.id;
+    });
+
+    it('credits an EXPIRED request — a customer who transferred a little late still genuinely paid', async () => {
+      const user = await makeUser();
+      const reservation = await topupService.reserveTopUpRequest(ctx, user.id, 43000_00);
+      await prisma.topUpRequest.update({ where: { id: reservation.id }, data: { status: 'EXPIRED' } });
+
+      const updated = await topupService.verifyTopUpRequest(ctx, adminId, reservation.id);
+
+      expect(updated.status).toBe('VERIFIED');
+      const wallet = await prisma.wallet.findUniqueOrThrow({ where: { userId: user.id } });
+      expect(wallet.balanceMinor).toBe(reservation.amountMinor);
+    });
+
+    it('refuses a request that was already REJECTED', async () => {
+      const user = await makeUser();
+      const reservation = await topupService.reserveTopUpRequest(ctx, user.id, 44000_00);
+      await prisma.topUpRequest.update({ where: { id: reservation.id }, data: { status: 'REJECTED' } });
+
+      await expect(topupService.verifyTopUpRequest(ctx, adminId, reservation.id)).rejects.toThrow(
+        /pending or expired/i,
+      );
+    });
+  });
 });

@@ -72,17 +72,22 @@ function TopUpRow({ request, onChanged }: { request: TopUpRequestAdmin; onChange
       </td>
       <td>{formatDate(request.createdAt)}</td>
       <td>
-        {request.status === 'PENDING' && (
+        {(request.status === 'PENDING' || request.status === 'EXPIRED') && (
           <div className="stack-form">
+            {request.status === 'EXPIRED' && (
+              <div className="muted">{t('topups.expiredButVerifiableNote')}</div>
+            )}
             {rowError && <div className="form-error">{rowError}</div>}
             {!rejecting ? (
               <div className="toolbar">
                 <button className="btn btn-primary" disabled={busy} onClick={verify}>
                   {t('topups.verify')}
                 </button>
-                <button className="btn btn-danger" disabled={busy} onClick={() => setRejecting(true)}>
-                  {t('topups.reject')}
-                </button>
+                {request.status === 'PENDING' && (
+                  <button className="btn btn-danger" disabled={busy} onClick={() => setRejecting(true)}>
+                    {t('topups.reject')}
+                  </button>
+                )}
               </div>
             ) : (
               <div className="toolbar">
