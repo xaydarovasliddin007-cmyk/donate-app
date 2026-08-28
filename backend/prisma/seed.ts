@@ -211,7 +211,7 @@ async function main() {
       name: 'Telegram Premium',
       category: 'Subscription',
       logoEmoji: '✈️',
-      logoUrl: 'https://play-lh.googleusercontent.com/aq4Pl-YZBB1lnjmMxOFatBHc1KM4jQK5AaTGXAJPHIVCFXK1de0-ZgMMOa0OpqpB1p8=s256',
+      logoUrl: 'https://play-lh.googleusercontent.com/PyZ3akMGXPV0tKKirKNwfO--PSQW3FHR6rD_H9mAaukZ8LiHyYFuBLeU8UZ2ok6r5SP79-3prkfybWKh98AZAD0=s256',
       availability: 'ACTIVE',
       // Uses FazerCards' dedicated /telegram/premium/buy endpoint (not the
       // generic /topups/order one) — see the "telegram_premium:" prefix
@@ -228,7 +228,7 @@ async function main() {
       name: 'Steam',
       category: 'Wallet',
       logoEmoji: '🎮',
-      logoUrl: 'https://play-lh.googleusercontent.com/rMhu-jTGiv6-nWDPT_3AZzaAKPI7XmQFjyv0uZoi5DPuutz2sHTuUUeQjUn6uu0KGDA=s256',
+      logoUrl: 'https://play-lh.googleusercontent.com/E_x2GPSJakCdUYfECBptVyFoVnC4BxIPy3K4OdbwNyEtEJkRAY_J-Lo_Ltiybq6LiJ_aZCIzvqLv5h4Fbk91=s256',
       availability: 'ACTIVE',
       // Preset USD amounts rather than a free-form "enter any amount"
       // flow — FazerCards' /steam-topup/order takes an arbitrary amount,
