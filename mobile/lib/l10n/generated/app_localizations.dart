@@ -1442,6 +1442,12 @@ abstract class AppLocalizations {
   /// **'Karta olish'**
   String get topupSubmitButton;
 
+  /// No description provided for @topupContinueButton.
+  ///
+  /// In uz, this message translates to:
+  /// **'Davom etish'**
+  String get topupContinueButton;
+
   /// No description provided for @topupInstructionsTitle.
   ///
   /// In uz, this message translates to:
@@ -1615,6 +1621,66 @@ abstract class AppLocalizations {
   /// In uz, this message translates to:
   /// **'Bekor qilish'**
   String get topupCancelReservationButton;
+
+  /// No description provided for @topupMethodCardTransfer.
+  ///
+  /// In uz, this message translates to:
+  /// **'Karta orqali'**
+  String get topupMethodCardTransfer;
+
+  /// No description provided for @topupMethodQrCode.
+  ///
+  /// In uz, this message translates to:
+  /// **'QR-kod orqali'**
+  String get topupMethodQrCode;
+
+  /// No description provided for @topupMethodPaynetTerminal.
+  ///
+  /// In uz, this message translates to:
+  /// **'Paynet terminali'**
+  String get topupMethodPaynetTerminal;
+
+  /// No description provided for @topupQrInstructions.
+  ///
+  /// In uz, this message translates to:
+  /// **'Ushbu QR-kodni istalgan bank ilovasi orqali skanerlang va quyida ko\'rsatilgan aniq summani to\'lang.'**
+  String get topupQrInstructions;
+
+  /// No description provided for @topupTerminalInstructions.
+  ///
+  /// In uz, this message translates to:
+  /// **'Eng yaqin Paynet terminaliga boring, ushbu QR-kodni ko\'rsatib naqd to\'lang va chekni saqlab qoling.'**
+  String get topupTerminalInstructions;
+
+  /// No description provided for @topupReceiptNumberLabel.
+  ///
+  /// In uz, this message translates to:
+  /// **'Chek raqami'**
+  String get topupReceiptNumberLabel;
+
+  /// No description provided for @topupReceiptNumberHint.
+  ///
+  /// In uz, this message translates to:
+  /// **'Chekdagi raqamni kiriting'**
+  String get topupReceiptNumberHint;
+
+  /// No description provided for @topupSubmitReceiptButton.
+  ///
+  /// In uz, this message translates to:
+  /// **'Chek raqamini yuborish'**
+  String get topupSubmitReceiptButton;
+
+  /// No description provided for @topupReceiptRequiredError.
+  ///
+  /// In uz, this message translates to:
+  /// **'Chek raqamini kiriting'**
+  String get topupReceiptRequiredError;
+
+  /// No description provided for @topupReceiptSubmittedMessage.
+  ///
+  /// In uz, this message translates to:
+  /// **'Chek raqami yuborildi. Admin tekshirishi bilan balansingiz to\'ldiriladi.'**
+  String get topupReceiptSubmittedMessage;
 
   /// No description provided for @profileUzdonateIdLabel.
   ///

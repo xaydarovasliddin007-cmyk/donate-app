@@ -141,12 +141,15 @@ export interface UserDetail {
   activeSessions: { id: string; userAgent: string | null; ipAddress: string | null; createdAt: string }[];
 }
 
+export type ReceivingMethodType = 'CARD_TRANSFER' | 'QR_CODE' | 'PAYNET_TERMINAL';
+
 export interface ReceivingMethod {
   id: string;
-  type: 'CARD_TRANSFER';
-  cardNumber: string;
+  type: ReceivingMethodType;
+  cardNumber: string | null;
   cardHolderName: string;
   bankName: string | null;
+  qrPayload: string | null;
   isActive: boolean;
   sortOrder: number;
   createdAt: string;

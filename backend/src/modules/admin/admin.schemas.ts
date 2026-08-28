@@ -158,12 +158,23 @@ export const adminUpdatePromoCodeSchema = z.object({
   isActive: z.boolean().optional(),
 });
 
-export const adminCreateReceivingMethodSchema = z.object({
-  cardNumber: z.string().trim().min(4).max(40),
-  cardHolderName: z.string().trim().min(1).max(120),
-  bankName: z.string().trim().min(1).max(120).optional(),
-  sortOrder: z.number().int().optional(),
-});
+export const adminCreateReceivingMethodSchema = z
+  .object({
+    type: z.enum(['CARD_TRANSFER', 'QR_CODE', 'PAYNET_TERMINAL']).default('CARD_TRANSFER'),
+    cardNumber: z.string().trim().min(4).max(40).optional(),
+    cardHolderName: z.string().trim().min(1).max(120),
+    bankName: z.string().trim().min(1).max(120).optional(),
+    qrPayload: z.string().trim().min(10).max(600).optional(),
+    sortOrder: z.number().int().optional(),
+  })
+  .refine((data) => data.type !== 'CARD_TRANSFER' || !!data.cardNumber, {
+    message: 'cardNumber is required for CARD_TRANSFER',
+    path: ['cardNumber'],
+  })
+  .refine((data) => data.type === 'CARD_TRANSFER' || !!data.qrPayload, {
+    message: 'qrPayload is required for QR_CODE and PAYNET_TERMINAL',
+    path: ['qrPayload'],
+  });
 
 export const adminUpdateReceivingMethodSchema = z
   .object({
@@ -171,6 +182,7 @@ export const adminUpdateReceivingMethodSchema = z
     cardNumber: z.string().trim().min(4).max(40).optional(),
     cardHolderName: z.string().trim().min(1).max(120).optional(),
     bankName: z.string().trim().min(1).max(120).optional(),
+    qrPayload: z.string().trim().min(10).max(600).optional(),
     sortOrder: z.number().int().optional(),
   })
   .refine((data) => Object.keys(data).length > 0, { message: 'At least one field must be provided' });

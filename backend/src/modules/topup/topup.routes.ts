@@ -1,9 +1,19 @@
 import type { FastifyInstance } from 'fastify';
 import { authenticate } from '../../middleware/authenticate.js';
 import { validateBody, validateQuery } from '../../lib/validate.js';
-import { createTopUpRequestSchema, listTopUpRequestsQuerySchema, reserveTopUpRequestSchema } from './topup.schemas.js';
+import {
+  createTopUpRequestSchema,
+  listTopUpRequestsQuerySchema,
+  reserveTopUpRequestSchema,
+  submitTopUpReferenceSchema,
+} from './topup.schemas.js';
 import * as topupService from './topup.service.js';
-import type { CreateTopUpRequestInput, ListTopUpRequestsQuery, ReserveTopUpRequestInput } from './topup.schemas.js';
+import type {
+  CreateTopUpRequestInput,
+  ListTopUpRequestsQuery,
+  ReserveTopUpRequestInput,
+  SubmitTopUpReferenceInput,
+} from './topup.schemas.js';
 
 /** Customer-facing UZDONATE card-transfer top-up: submit + track requests. Verification is admin-only (see modules/admin). */
 export async function topupRoutes(app: FastifyInstance) {
@@ -42,7 +52,7 @@ export async function topupRoutes(app: FastifyInstance) {
     { preHandler: [authenticate, validateBody(reserveTopUpRequestSchema)] },
     async (request, reply) => {
       const body = request.body as ReserveTopUpRequestInput;
-      const topUp = await topupService.reserveTopUpRequest(ctx, request.currentUser!.id, body.amountMinor);
+      const topUp = await topupService.reserveTopUpRequest(ctx, request.currentUser!.id, body.amountMinor, body.type);
       return reply.status(201).send(topUp);
     },
   );
@@ -50,4 +60,15 @@ export async function topupRoutes(app: FastifyInstance) {
   app.get<{ Params: { id: string } }>('/topups/:id', { preHandler: authenticate }, async (request) => {
     return topupService.getTopUpRequestForUser(ctx, request.currentUser!.id, request.params.id);
   });
+
+  // Lets the Paynet-terminal flow attach the check/receipt number to its
+  // own pending request, for the admin to see next to it during review.
+  app.post<{ Params: { id: string } }>(
+    '/topups/:id/reference',
+    { preHandler: [authenticate, validateBody(submitTopUpReferenceSchema)] },
+    async (request) => {
+      const body = request.body as SubmitTopUpReferenceInput;
+      return topupService.submitTopUpReference(ctx, request.currentUser!.id, request.params.id, body.userReference);
+    },
+  );
 }

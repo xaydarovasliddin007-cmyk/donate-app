@@ -8,6 +8,13 @@ export const createTopUpRequestSchema = z.object({
 
 export const reserveTopUpRequestSchema = z.object({
   amountMinor: z.number().int().positive(),
+  // Which kind of receiving method to reserve against — omitted means any
+  // active type (today's behavior, when only CARD_TRANSFER exists).
+  type: z.enum(['CARD_TRANSFER', 'QR_CODE', 'PAYNET_TERMINAL']).optional(),
+});
+
+export const submitTopUpReferenceSchema = z.object({
+  userReference: z.string().trim().min(1).max(200),
 });
 
 export const listTopUpRequestsQuerySchema = z.object({
@@ -28,3 +35,4 @@ export type CreateTopUpRequestInput = z.infer<typeof createTopUpRequestSchema>;
 export type ReserveTopUpRequestInput = z.infer<typeof reserveTopUpRequestSchema>;
 export type ListTopUpRequestsQuery = z.infer<typeof listTopUpRequestsQuerySchema>;
 export type HumoTransactionInput = z.infer<typeof humoTransactionSchema>;
+export type SubmitTopUpReferenceInput = z.infer<typeof submitTopUpReferenceSchema>;

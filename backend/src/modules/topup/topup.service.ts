@@ -1,4 +1,4 @@
-import type { PrismaClient } from '@prisma/client';
+import type { PrismaClient, ReceivingMethodType } from '@prisma/client';
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../../lib/errors.js';
 import { formatMinorAmount } from '../../lib/money.js';
 import { notifyAdmins } from '../../lib/telegram.js';
@@ -11,8 +11,13 @@ interface TopUpContext {
 }
 
 // How long a reservation's amount stays claimed before it's free for
-// someone else to be assigned instead.
-const RESERVATION_TTL_MS = 7 * 60 * 1000;
+// someone else to be assigned instead. Card/QR payments are near-instant;
+// a Paynet terminal top-up needs time to actually walk to a kiosk.
+const RESERVATION_TTL_MS: Record<ReceivingMethodType, number> = {
+  CARD_TRANSFER: 7 * 60 * 1000,
+  QR_CODE: 7 * 60 * 1000,
+  PAYNET_TERMINAL: 60 * 60 * 1000,
+};
 
 /** Last-4-or-so digits, digits only — how a stored card number and whatever
  * a bank notification message reveals get compared, without either needing
@@ -88,7 +93,12 @@ async function pickUniqueAmount(ctx: TopUpContext, requestedAmountMinor: number,
  * which one actually got the transfer — see pickUniqueAmount() for how the
  * exact amount stays unambiguous across every concurrently pending request.
  */
-export async function reserveTopUpRequest(ctx: TopUpContext, userId: string, amountMinor: number) {
+export async function reserveTopUpRequest(
+  ctx: TopUpContext,
+  userId: string,
+  amountMinor: number,
+  type?: ReceivingMethodType,
+) {
   const now = new Date();
 
   // Self-healing sweep: nothing depends on a background job for this — a
@@ -100,18 +110,20 @@ export async function reserveTopUpRequest(ctx: TopUpContext, userId: string, amo
     data: { status: 'EXPIRED' },
   });
 
-  const activeMethods = await listActiveReceivingMethods(ctx);
+  const allActiveMethods = await listActiveReceivingMethods(ctx);
+  const activeMethods = type ? allActiveMethods.filter((m) => m.type === type) : allActiveMethods;
   if (activeMethods.length === 0) {
-    throw new ConflictError('No receiving cards are configured right now — please try again later');
+    throw new ConflictError('No receiving methods are configured right now — please try again later');
   }
 
   const uniqueAmountMinor = await pickUniqueAmount(ctx, amountMinor, now);
+  const ttlMs = RESERVATION_TTL_MS[activeMethods[0]!.type];
 
   const request = await ctx.prisma.topUpRequest.create({
     data: {
       userId,
       amountMinor: uniqueAmountMinor,
-      expiresAt: new Date(now.getTime() + RESERVATION_TTL_MS),
+      expiresAt: new Date(now.getTime() + ttlMs),
     },
   });
 
@@ -194,8 +206,10 @@ export async function autoVerifyFromCardTransaction(ctx: TopUpContext, input: Hu
   const hint = trailingDigits(input.cardHint);
   const now = new Date();
 
-  const activeMethods = await ctx.prisma.receivingMethod.findMany({ where: { isActive: true } });
-  const method = activeMethods.find((m) => trailingDigits(m.cardNumber) === hint);
+  const activeMethods = await ctx.prisma.receivingMethod.findMany({
+    where: { isActive: true, type: 'CARD_TRANSFER' },
+  });
+  const method = activeMethods.find((m) => trailingDigits(m.cardNumber ?? '') === hint);
   if (!method) {
     return null;
   }
@@ -224,6 +238,33 @@ export async function listMyTopUpRequests(ctx: TopUpContext, userId: string, lim
     where: { userId },
     orderBy: { createdAt: 'desc' },
     take: limit,
+    include: { receivingMethod: true },
+  });
+}
+
+/**
+ * Lets the caller attach a hint (e.g. a Paynet terminal receipt/check
+ * number) to their own still-pending request — this is how the
+ * PAYNET_TERMINAL flow's proof-of-payment reaches the admin's manual
+ * review screen, since (unlike CARD_TRANSFER) there's no automated
+ * transaction feed to match against for that method.
+ */
+export async function submitTopUpReference(
+  ctx: TopUpContext,
+  userId: string,
+  topUpRequestId: string,
+  userReference: string,
+) {
+  const request = await ctx.prisma.topUpRequest.findUnique({ where: { id: topUpRequestId } });
+  if (!request) throw new NotFoundError('Top-up request not found');
+  if (request.userId !== userId) throw new ForbiddenError('This top-up request does not belong to you');
+  if (request.status !== 'PENDING') {
+    throw new ConflictError(`Only PENDING top-up requests can be updated (this one is ${request.status})`);
+  }
+
+  return ctx.prisma.topUpRequest.update({
+    where: { id: request.id },
+    data: { userReference },
     include: { receivingMethod: true },
   });
 }
@@ -339,7 +380,14 @@ export async function listReceivingMethodsAdmin(ctx: TopUpContext) {
 
 export async function createReceivingMethod(
   ctx: TopUpContext,
-  input: { cardNumber: string; cardHolderName: string; bankName?: string; sortOrder?: number },
+  input: {
+    type?: ReceivingMethodType;
+    cardNumber?: string;
+    cardHolderName: string;
+    bankName?: string;
+    qrPayload?: string;
+    sortOrder?: number;
+  },
 ) {
   return ctx.prisma.receivingMethod.create({ data: input });
 }
@@ -347,7 +395,14 @@ export async function createReceivingMethod(
 export async function updateReceivingMethod(
   ctx: TopUpContext,
   id: string,
-  changes: { isActive?: boolean; cardNumber?: string; cardHolderName?: string; bankName?: string; sortOrder?: number },
+  changes: {
+    isActive?: boolean;
+    cardNumber?: string;
+    cardHolderName?: string;
+    bankName?: string;
+    qrPayload?: string;
+    sortOrder?: number;
+  },
 ) {
   const existing = await ctx.prisma.receivingMethod.findUnique({ where: { id } });
   if (!existing) throw new NotFoundError('Receiving method not found');

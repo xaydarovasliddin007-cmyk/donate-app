@@ -726,6 +726,9 @@ class AppLocalizationsUz extends AppLocalizations {
   String get topupSubmitButton => 'Karta olish';
 
   @override
+  String get topupContinueButton => 'Davom etish';
+
+  @override
   String get topupInstructionsTitle => 'Balans qanday to\'ldiriladi?';
 
   @override
@@ -822,6 +825,39 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get topupCancelReservationButton => 'Bekor qilish';
+
+  @override
+  String get topupMethodCardTransfer => 'Karta orqali';
+
+  @override
+  String get topupMethodQrCode => 'QR-kod orqali';
+
+  @override
+  String get topupMethodPaynetTerminal => 'Paynet terminali';
+
+  @override
+  String get topupQrInstructions =>
+      'Ushbu QR-kodni istalgan bank ilovasi orqali skanerlang va quyida ko\'rsatilgan aniq summani to\'lang.';
+
+  @override
+  String get topupTerminalInstructions =>
+      'Eng yaqin Paynet terminaliga boring, ushbu QR-kodni ko\'rsatib naqd to\'lang va chekni saqlab qoling.';
+
+  @override
+  String get topupReceiptNumberLabel => 'Chek raqami';
+
+  @override
+  String get topupReceiptNumberHint => 'Chekdagi raqamni kiriting';
+
+  @override
+  String get topupSubmitReceiptButton => 'Chek raqamini yuborish';
+
+  @override
+  String get topupReceiptRequiredError => 'Chek raqamini kiriting';
+
+  @override
+  String get topupReceiptSubmittedMessage =>
+      'Chek raqami yuborildi. Admin tekshirishi bilan balansingiz to\'ldiriladi.';
 
   @override
   String get profileUzdonateIdLabel => 'UZDONATE ID';

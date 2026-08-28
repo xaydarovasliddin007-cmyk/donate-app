@@ -721,6 +721,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get topupSubmitButton => 'Получить карту';
 
   @override
+  String get topupContinueButton => 'Продолжить';
+
+  @override
   String get topupInstructionsTitle => 'Как пополняется баланс?';
 
   @override
@@ -816,6 +819,39 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get topupCancelReservationButton => 'Отменить';
+
+  @override
+  String get topupMethodCardTransfer => 'Переводом на карту';
+
+  @override
+  String get topupMethodQrCode => 'По QR-коду';
+
+  @override
+  String get topupMethodPaynetTerminal => 'Через терминал Paynet';
+
+  @override
+  String get topupQrInstructions =>
+      'Отсканируйте этот QR-код в любом банковском приложении и оплатите указанную ниже точную сумму.';
+
+  @override
+  String get topupTerminalInstructions =>
+      'Подойдите к ближайшему терминалу Paynet, покажите этот QR-код, оплатите наличными и сохраните чек.';
+
+  @override
+  String get topupReceiptNumberLabel => 'Номер чека';
+
+  @override
+  String get topupReceiptNumberHint => 'Введите номер с чека';
+
+  @override
+  String get topupSubmitReceiptButton => 'Отправить номер чека';
+
+  @override
+  String get topupReceiptRequiredError => 'Введите номер чека';
+
+  @override
+  String get topupReceiptSubmittedMessage =>
+      'Номер чека отправлен. Баланс пополнится после проверки администратором.';
 
   @override
   String get profileUzdonateIdLabel => 'UZDONATE ID';

@@ -54,8 +54,12 @@ function TopUpRow({ request, onChanged }: { request: TopUpRequestAdmin; onChange
         {request.receivingMethod ? (
           <>
             {request.receivingMethod.cardHolderName}
-            <br />
-            <span className="muted">{request.receivingMethod.cardNumber}</span>
+            {request.receivingMethod.cardNumber && (
+              <>
+                <br />
+                <span className="muted">{request.receivingMethod.cardNumber}</span>
+              </>
+            )}
           </>
         ) : (
           <span className="muted">{t('topups.methodNotYetMatched')}</span>

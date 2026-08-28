@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import '../../../core/errors/failure.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_motion.dart';
@@ -46,6 +47,12 @@ class _TopupScreenState extends ConsumerState<TopupScreen> {
   Timer? _countdownTimer;
   Duration? _remaining;
 
+  // Set (to more than one type) only when more than one receiving-method
+  // type is currently active — the method-type picker step. Skipped
+  // entirely when zero or one type is active, so today's card-only setup
+  // behaves exactly as before.
+  List<ReceivingMethodType>? _availableTypes;
+
   void _pickPreset(int amount) {
     setState(() {
       _selectedPreset = amount;
@@ -62,7 +69,7 @@ class _TopupScreenState extends ConsumerState<TopupScreen> {
     super.dispose();
   }
 
-  Future<void> _requestCard() async {
+  Future<void> _onContinue() async {
     final l10n = AppLocalizations.of(context);
     final amountMajor = double.tryParse(_amountController.text.trim());
     if (amountMajor == null || amountMajor <= 0) {
@@ -76,12 +83,46 @@ class _TopupScreenState extends ConsumerState<TopupScreen> {
     });
 
     try {
+      final methods = await ref.read(topupApiProvider).listReceivingMethods();
+      final types = methods.map((m) => m.type).toSet().toList();
+      if (!mounted) return;
+      if (types.length > 1) {
+        setState(() {
+          _submitting = false;
+          _availableTypes = types;
+        });
+      } else {
+        await _reserve(types.isEmpty ? null : types.first);
+      }
+    } catch (error) {
+      final failure = Failure.from(error);
+      if (!mounted) return;
+      setState(() {
+        _submitting = false;
+        _errorMessage = failure.isNetworkError
+            ? l10n.errorNoConnectionMessage
+            : failure.message;
+      });
+    }
+  }
+
+  Future<void> _reserve(ReceivingMethodType? type) async {
+    final l10n = AppLocalizations.of(context);
+    final amountMajor = double.tryParse(_amountController.text.trim())!;
+
+    setState(() {
+      _submitting = true;
+      _errorMessage = null;
+    });
+
+    try {
       final reservation = await ref
           .read(topupApiProvider)
-          .reserveTopUp(amountMinor: (amountMajor * 100).round());
+          .reserveTopUp(amountMinor: (amountMajor * 100).round(), type: type);
       if (!mounted) return;
       setState(() {
         _reservation = reservation;
+        _availableTypes = null;
         _submitting = false;
       });
       _startCountdown(reservation.expiresAt);
@@ -159,6 +200,7 @@ class _TopupScreenState extends ConsumerState<TopupScreen> {
     _countdownTimer?.cancel();
     setState(() {
       _reservation = null;
+      _availableTypes = null;
       _remaining = null;
       _errorMessage = null;
     });
@@ -168,25 +210,36 @@ class _TopupScreenState extends ConsumerState<TopupScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
 
+    final Widget body;
+    if (_reservation != null) {
+      body = _ReservationView(
+        reservation: _reservation!,
+        remaining: _remaining,
+        onTryAgain: _reset,
+      );
+    } else if (_availableTypes != null) {
+      body = _MethodPickerView(
+        types: _availableTypes!,
+        submitting: _submitting,
+        errorMessage: _errorMessage,
+        onPickType: _reserve,
+        onBack: () => setState(() => _availableTypes = null),
+      );
+    } else {
+      body = _AmountEntryView(
+        amountController: _amountController,
+        selectedPreset: _selectedPreset,
+        submitting: _submitting,
+        errorMessage: _errorMessage,
+        onPickPreset: _pickPreset,
+        onAmountChanged: () => setState(() => _errorMessage = null),
+        onSubmit: _onContinue,
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(title: Text(l10n.topupTitle)),
-      body: SafeArea(
-        child: _reservation != null
-            ? _ReservationView(
-                reservation: _reservation!,
-                remaining: _remaining,
-                onTryAgain: _reset,
-              )
-            : _AmountEntryView(
-                amountController: _amountController,
-                selectedPreset: _selectedPreset,
-                submitting: _submitting,
-                errorMessage: _errorMessage,
-                onPickPreset: _pickPreset,
-                onAmountChanged: () => setState(() => _errorMessage = null),
-                onSubmit: _requestCard,
-              ),
-      ),
+      body: SafeArea(child: body),
     );
   }
 }
@@ -274,9 +327,137 @@ class _AmountEntryView extends StatelessWidget {
                     width: 20,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : Text(l10n.topupSubmitButton),
+                : Text(l10n.topupContinueButton),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// The method-type picker — shown only when more than one receiving-method
+/// type is currently active, letting the user choose how they want to pay
+/// before an amount is reserved against that type.
+class _MethodPickerView extends StatelessWidget {
+  const _MethodPickerView({
+    required this.types,
+    required this.submitting,
+    required this.errorMessage,
+    required this.onPickType,
+    required this.onBack,
+  });
+
+  final List<ReceivingMethodType> types;
+  final bool submitting;
+  final String? errorMessage;
+  final ValueChanged<ReceivingMethodType> onPickType;
+  final VoidCallback onBack;
+
+  static const _icons = {
+    ReceivingMethodType.cardTransfer: Icons.credit_card_rounded,
+    ReceivingMethodType.qrCode: Icons.qr_code_2_rounded,
+    ReceivingMethodType.paynetTerminal: Icons.receipt_long_rounded,
+  };
+
+  String _labelOf(AppLocalizations l10n, ReceivingMethodType type) =>
+      switch (type) {
+        ReceivingMethodType.cardTransfer => l10n.topupMethodCardTransfer,
+        ReceivingMethodType.qrCode => l10n.topupMethodQrCode,
+        ReceivingMethodType.paynetTerminal => l10n.topupMethodPaynetTerminal,
+      };
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+
+    return ListView(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      children: [
+        Row(
+          children: [
+            IconButton(
+              onPressed: submitting ? null : onBack,
+              icon: const Icon(Icons.arrow_back_rounded),
+            ),
+            const SizedBox(width: 4),
+            Text(l10n.topupSelectMethodTitle, style: theme.textTheme.titleMedium),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        for (final type in types) ...[
+          _MethodOptionTile(
+            icon: _icons[type]!,
+            label: _labelOf(l10n, type),
+            enabled: !submitting,
+            onTap: () => onPickType(type),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+        ],
+        if (submitting) ...[
+          const SizedBox(height: AppSpacing.md),
+          const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+        ],
+        if (errorMessage != null) ...[
+          const SizedBox(height: AppSpacing.md),
+          Text(
+            errorMessage!,
+            style: TextStyle(color: theme.colorScheme.error),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _MethodOptionTile extends StatelessWidget {
+  const _MethodOptionTile({
+    required this.icon,
+    required this.label,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool enabled;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return PressableScale(
+      onTap: enabled ? onTap : null,
+      child: Container(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          border: Border.all(color: theme.colorScheme.outlineVariant),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primaryContainer,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, size: 20, color: theme.colorScheme.onPrimaryContainer),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Text(
+                label,
+                style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w700),
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded, color: theme.colorScheme.onSurfaceVariant),
+          ],
+        ),
       ),
     );
   }
@@ -308,10 +489,50 @@ class _ReservationViewState extends ConsumerState<_ReservationView> {
   String? _selectedMethodId;
   bool _confirmedPaid = false;
 
+  final _referenceController = TextEditingController();
+  bool _submittingReference = false;
+  String? _referenceError;
+
+  @override
+  void dispose() {
+    _referenceController.dispose();
+    super.dispose();
+  }
+
   String _formatDuration(Duration d) {
     final minutes = d.inMinutes.remainder(60).toString().padLeft(2, '0');
     final seconds = d.inSeconds.remainder(60).toString().padLeft(2, '0');
     return '$minutes:$seconds';
+  }
+
+  Future<void> _submitReceipt() async {
+    final l10n = AppLocalizations.of(context);
+    final value = _referenceController.text.trim();
+    if (value.isEmpty) {
+      setState(() => _referenceError = l10n.topupReceiptRequiredError);
+      return;
+    }
+    setState(() {
+      _submittingReference = true;
+      _referenceError = null;
+    });
+    try {
+      await ref.read(topupApiProvider).submitReference(widget.reservation.id, value);
+      if (!mounted) return;
+      setState(() {
+        _confirmedPaid = true;
+        _submittingReference = false;
+      });
+    } catch (error) {
+      final failure = Failure.from(error);
+      if (!mounted) return;
+      setState(() {
+        _submittingReference = false;
+        _referenceError = failure.isNetworkError
+            ? l10n.errorNoConnectionMessage
+            : failure.message;
+      });
+    }
   }
 
   @override
@@ -327,6 +548,9 @@ class _ReservationViewState extends ConsumerState<_ReservationView> {
         (reservation.receivingMethod != null
             ? [reservation.receivingMethod!]
             : const []);
+    final type = methods.isNotEmpty
+        ? methods.first.type
+        : ReceivingMethodType.cardTransfer;
     final isExpired =
         reservation.status == TopUpRequestStatus.expired ||
         (remaining != null && remaining <= Duration.zero);
@@ -347,42 +571,83 @@ class _ReservationViewState extends ConsumerState<_ReservationView> {
       child: ListView(
         padding: const EdgeInsets.all(AppSpacing.lg),
         children: [
-          Text(l10n.topupReservedCardTitle, style: theme.textTheme.titleSmall),
-          const SizedBox(height: 4),
-          Row(
-            children: [
-              Icon(
-                Icons.verified_rounded,
-                size: 14,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-              const SizedBox(width: 4),
-              Text(
-                l10n.topupNoCommissionNote,
-                style: theme.textTheme.bodySmall?.copyWith(
+          if (type == ReceivingMethodType.cardTransfer) ...[
+            Text(l10n.topupReservedCardTitle, style: theme.textTheme.titleSmall),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Icon(
+                  Icons.verified_rounded,
+                  size: 14,
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
+                const SizedBox(width: 4),
+                Text(
+                  l10n.topupNoCommissionNote,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.md),
+            for (final method in methods)
+              Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                child: _ReceivingMethodTile(
+                  method: method,
+                  selected: (_selectedMethodId ?? methods.first.id) == method.id,
+                  onTap: () => setState(() => _selectedMethodId = method.id),
+                  onCopy: () {
+                    Clipboard.setData(ClipboardData(text: method.cardNumber ?? ''));
+                    showCopiedToast(
+                      context,
+                      message: l10n.topupCardNumberCopied,
+                      reduceMotion: reduceMotion,
+                    );
+                  },
+                ),
               ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.md),
-          for (final method in methods)
-            Padding(
-              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-              child: _ReceivingMethodTile(
-                method: method,
-                selected: (_selectedMethodId ?? methods.first.id) == method.id,
-                onTap: () => setState(() => _selectedMethodId = method.id),
-                onCopy: () {
-                  Clipboard.setData(ClipboardData(text: method.cardNumber));
-                  showCopiedToast(
-                    context,
-                    message: l10n.topupCardNumberCopied,
-                    reduceMotion: reduceMotion,
-                  );
-                },
+          ] else ...[
+            Text(
+              type == ReceivingMethodType.qrCode
+                  ? l10n.topupMethodQrCode
+                  : l10n.topupMethodPaynetTerminal,
+              style: theme.textTheme.titleSmall,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              type == ReceivingMethodType.qrCode
+                  ? l10n.topupQrInstructions
+                  : l10n.topupTerminalInstructions,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
+            const SizedBox(height: AppSpacing.md),
+            if (methods.isNotEmpty && methods.first.qrPayload != null)
+              Center(
+                child: Container(
+                  padding: const EdgeInsets.all(AppSpacing.lg),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(AppRadius.xl),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.08),
+                        blurRadius: 16,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: QrImageView(
+                    data: methods.first.qrPayload!,
+                    size: 220,
+                    backgroundColor: Colors.white,
+                  ),
+                ),
+              ),
+          ],
           const SizedBox(height: AppSpacing.sm),
           Container(
             width: double.infinity,
@@ -488,21 +753,58 @@ class _ReservationViewState extends ConsumerState<_ReservationView> {
               ),
             const SizedBox(height: AppSpacing.md),
             if (!_confirmedPaid) ...[
-              FilledButton.icon(
-                onPressed: () => setState(() => _confirmedPaid = true),
-                icon: const Icon(Icons.check_circle_outline_rounded),
-                label: Text(l10n.topupIvePaidButton),
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              Center(
-                child: Text(
-                  l10n.topupWaitingMessage,
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
+              if (type == ReceivingMethodType.paynetTerminal) ...[
+                TextField(
+                  controller: _referenceController,
+                  decoration: InputDecoration(
+                    labelText: l10n.topupReceiptNumberLabel,
+                    hintText: l10n.topupReceiptNumberHint,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                    ),
+                  ),
+                  onChanged: (_) {
+                    if (_referenceError != null) {
+                      setState(() => _referenceError = null);
+                    }
+                  },
+                ),
+                if (_referenceError != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    _referenceError!,
+                    style: TextStyle(color: theme.colorScheme.error),
+                  ),
+                ],
+                const SizedBox(height: AppSpacing.sm),
+                FilledButton.icon(
+                  onPressed: _submittingReference ? null : _submitReceipt,
+                  icon: _submittingReference
+                      ? const SizedBox(
+                          height: 16,
+                          width: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.send_rounded),
+                  label: Text(l10n.topupSubmitReceiptButton),
+                ),
+              ] else ...[
+                FilledButton.icon(
+                  onPressed: () => setState(() => _confirmedPaid = true),
+                  icon: const Icon(Icons.check_circle_outline_rounded),
+                  label: Text(l10n.topupIvePaidButton),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Center(
+                  child: Text(
+                    l10n.topupWaitingMessage,
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ),
-              ),
+              ],
             ] else
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -515,7 +817,9 @@ class _ReservationViewState extends ConsumerState<_ReservationView> {
                   const SizedBox(width: AppSpacing.sm),
                   Flexible(
                     child: Text(
-                      l10n.topupCheckingMessage,
+                      type == ReceivingMethodType.paynetTerminal
+                          ? l10n.topupReceiptSubmittedMessage
+                          : l10n.topupCheckingMessage,
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
@@ -836,7 +1140,7 @@ class _ReceivingMethodTile extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          method.cardNumber,
+                          method.cardNumber ?? '',
                           style: theme.textTheme.titleMedium?.copyWith(
                             color: Colors.white,
                             letterSpacing: 1.4,

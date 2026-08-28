@@ -735,25 +735,35 @@ model WalletTransaction {
 
 enum ReceivingMethodType {
   CARD_TRANSFER
+  QR_CODE
+  PAYNET_TERMINAL
 
   @@map("receiving_method_type")
 }
 
 model ReceivingMethod {
-  id             String              @id @default(uuid()) @db.Uuid
-  type           ReceivingMethodType @default(CARD_TRANSFER)
+  id   String              @id @default(uuid()) @db.Uuid
+  type ReceivingMethodType @default(CARD_TRANSFER)
   // The FULL card number (e.g. "8600 1234 5678 8882") — not a real PAN
   // security concern the way a debit/credit card's CVV+expiry would be
   // (a receive-only card-transfer target being known lets someone send it
   // money, not take money out), and the customer needs the complete
   // number displayed to actually key it into their own banking app.
-  cardNumber     String              @map("card_number")
-  cardHolderName String              @map("card_holder_name")
-  bankName       String?             @map("bank_name")
-  isActive       Boolean             @default(true) @map("is_active")
-  sortOrder      Int                 @default(0) @map("sort_order")
-  createdAt      DateTime            @default(now()) @map("created_at")
-  updatedAt      DateTime            @updatedAt @map("updated_at")
+  // Only set for CARD_TRANSFER.
+  cardNumber String? @map("card_number")
+  // For CARD_TRANSFER this is the cardholder's name; for QR_CODE /
+  // PAYNET_TERMINAL it's just the label shown to the user (e.g. "Paynet
+  // QR", "Paynet terminal") — every type needs a display name, so the one
+  // field covers both rather than adding a separate "label" column.
+  cardHolderName String  @map("card_holder_name")
+  bankName       String? @map("bank_name")
+  // The raw Paynet (or other provider) QR payload/link — rendered as an
+  // actual QR image client-side. Only set for QR_CODE / PAYNET_TERMINAL.
+  qrPayload String? @map("qr_payload")
+  isActive  Boolean @default(true) @map("is_active")
+  sortOrder Int     @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   topUpRequests TopUpRequest[]
 

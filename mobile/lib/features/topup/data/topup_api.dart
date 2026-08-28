@@ -41,17 +41,35 @@ class TopupApi {
 
   /// The automatic card-transfer flow: reserves this exact amount (bumped
   /// by a few tiyin server-side if another pending request already claimed
-  /// it) and returns every active receiving card the user can transfer to.
-  Future<TopUpRequest> reserveTopUp({required int amountMinor}) async {
+  /// it) and returns every active receiving method of [type] the user can
+  /// pay to. Omitting [type] reserves against any active method.
+  Future<TopUpRequest> reserveTopUp({
+    required int amountMinor,
+    ReceivingMethodType? type,
+  }) async {
     final json = await _client.post(
       '/topups/reserve',
-      body: {'amountMinor': amountMinor},
+      body: {
+        'amountMinor': amountMinor,
+        if (type != null) 'type': receivingMethodTypeToJson(type),
+      },
     );
     return TopUpRequest.fromJson(json);
   }
 
   Future<TopUpRequest> getTopUp(String id) async {
     final json = await _client.get('/topups/$id');
+    return TopUpRequest.fromJson(json);
+  }
+
+  /// Attaches a hint (e.g. a Paynet terminal receipt/check number) to an
+  /// already-reserved, still-pending request — used by the terminal flow
+  /// since there's no automated transaction feed to match against.
+  Future<TopUpRequest> submitReference(String id, String userReference) async {
+    final json = await _client.post(
+      '/topups/$id/reference',
+      body: {'userReference': userReference},
+    );
     return TopUpRequest.fromJson(json);
   }
 }
