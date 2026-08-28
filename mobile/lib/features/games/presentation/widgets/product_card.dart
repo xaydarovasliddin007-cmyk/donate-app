@@ -13,9 +13,11 @@ import '../../domain/product.dart';
 /// re-icons each one instead of listing every tier identically. The
 /// backend has no dedicated "kind" field for this, so it's inferred from
 /// the product name — good enough for the tiers this app actually seeds
-/// (MLBB's "x2"/"Elite"/"Twilight"/"Pass" wording). Icons here are
-/// Material glyphs chosen to read the same way as the reference's own
-/// (gift/crown/book/flame), not a copy of its actual artwork.
+/// (MLBB's "x2"/"Elite"/"Twilight"/"Pass" wording). Icons here are emoji,
+/// not the reference's own artwork (that's Moonton's, not ours to copy) —
+/// but emoji render as real colored/shaded glyphs on Android (Noto Color
+/// Emoji), which reads far closer to the reference's game-art icons than
+/// a flat monochrome Material glyph did.
 enum _TierKind { bonus, elitePass, weeklyPass, hotPass, plain }
 
 _TierKind _kindOf(String name) {
@@ -28,10 +30,10 @@ _TierKind _kindOf(String name) {
 }
 
 class _KindStyle {
-  const _KindStyle({required this.gradient, required this.icon, this.badge});
+  const _KindStyle({required this.gradient, required this.emoji, this.badge});
 
   final List<Color> gradient;
-  final IconData icon;
+  final String emoji;
   final String? badge;
 }
 
@@ -40,31 +42,31 @@ _KindStyle _styleOf(_TierKind kind, bool isDark) {
     case _TierKind.bonus:
       return const _KindStyle(
         gradient: [AppColors.brandWarm, Color(0xFFFF6B6B)],
-        icon: Icons.redeem_rounded,
+        emoji: '🎁',
         badge: '×2',
       );
     case _TierKind.elitePass:
       return const _KindStyle(
         gradient: [Color(0xFF8E5CF6), Color(0xFFFF4FA3)],
-        icon: Icons.workspace_premium_rounded,
+        emoji: '👑',
         badge: 'EP',
       );
     case _TierKind.weeklyPass:
       return const _KindStyle(
         gradient: [Color(0xFF19A7CE), Color(0xFF146CFF)],
-        icon: Icons.menu_book_rounded,
+        emoji: '🎫',
         badge: 'HP',
       );
     case _TierKind.hotPass:
       return const _KindStyle(
         gradient: [Color(0xFFFFB02E), Color(0xFFE0453C)],
-        icon: Icons.local_fire_department_rounded,
+        emoji: '🔥',
         badge: 'HIT',
       );
     case _TierKind.plain:
       return _KindStyle(
         gradient: isDark ? AppColors.heroGradientDark : AppColors.heroGradientLight,
-        icon: Icons.diamond_rounded,
+        emoji: '💎',
       );
   }
 }
@@ -121,7 +123,10 @@ class ProductCard extends StatelessWidget {
                     ),
                     borderRadius: BorderRadius.circular(AppRadius.sm),
                   ),
-                  child: Icon(style.icon, size: 15, color: Colors.white),
+                  child: Text(
+                    style.emoji,
+                    style: const TextStyle(fontSize: 16, height: 1),
+                  ),
                 ),
                 const SizedBox(width: AppSpacing.sm),
                 Expanded(
