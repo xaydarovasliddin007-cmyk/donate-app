@@ -6,20 +6,67 @@ import '../../../../core/widgets/pressable_scale.dart';
 import '../../domain/product.dart';
 
 /// Denomination tiers aren't all the same *kind* of thing — a plain
-/// currency pack, a first-top-up-bonus pack (sold at double value), and a
-/// time-limited pass are different offers a buyer should be able to tell
-/// apart at a glance, the way a real storefront (see BekPinBot reference,
-/// shared in chat) badges and re-icons each one instead of listing every
-/// tier identically. The backend has no dedicated "kind" field for this,
-/// so it's inferred from the product name — good enough for the tiers this
-/// app actually seeds (MLBB's "x2"/"Pass"/"Elite"/"Twilight" wording).
-enum _TierKind { bonus, pass, plain }
+/// currency pack, a first-top-up-bonus pack (sold at double value), and
+/// the different flavors of time-limited pass are different offers a
+/// buyer should be able to tell apart at a glance, matching how a real
+/// storefront (BekPinBot, shared as a reference in chat) badges and
+/// re-icons each one instead of listing every tier identically. The
+/// backend has no dedicated "kind" field for this, so it's inferred from
+/// the product name — good enough for the tiers this app actually seeds
+/// (MLBB's "x2"/"Elite"/"Twilight"/"Pass" wording). Icons here are
+/// Material glyphs chosen to read the same way as the reference's own
+/// (gift/crown/book/flame), not a copy of its actual artwork.
+enum _TierKind { bonus, elitePass, weeklyPass, hotPass, plain }
 
 _TierKind _kindOf(String name) {
   final lower = name.toLowerCase();
   if (lower.contains('x2')) return _TierKind.bonus;
-  if (lower.contains('pass') || lower.contains('elite')) return _TierKind.pass;
+  if (lower.contains('twilight')) return _TierKind.hotPass;
+  if (lower.contains('elite')) return _TierKind.elitePass;
+  if (lower.contains('pass')) return _TierKind.weeklyPass;
   return _TierKind.plain;
+}
+
+class _KindStyle {
+  const _KindStyle({required this.gradient, required this.icon, this.badge});
+
+  final List<Color> gradient;
+  final IconData icon;
+  final String? badge;
+}
+
+_KindStyle _styleOf(_TierKind kind, bool isDark) {
+  switch (kind) {
+    case _TierKind.bonus:
+      return const _KindStyle(
+        gradient: [AppColors.brandWarm, Color(0xFFFF6B6B)],
+        icon: Icons.redeem_rounded,
+        badge: '×2',
+      );
+    case _TierKind.elitePass:
+      return const _KindStyle(
+        gradient: [Color(0xFF8E5CF6), Color(0xFFFF4FA3)],
+        icon: Icons.workspace_premium_rounded,
+        badge: 'EP',
+      );
+    case _TierKind.weeklyPass:
+      return const _KindStyle(
+        gradient: [Color(0xFF19A7CE), Color(0xFF146CFF)],
+        icon: Icons.menu_book_rounded,
+        badge: 'HP',
+      );
+    case _TierKind.hotPass:
+      return const _KindStyle(
+        gradient: [Color(0xFFFFB02E), Color(0xFFE0453C)],
+        icon: Icons.local_fire_department_rounded,
+        badge: 'HIT',
+      );
+    case _TierKind.plain:
+      return _KindStyle(
+        gradient: isDark ? AppColors.heroGradientDark : AppColors.heroGradientLight,
+        icon: Icons.diamond_rounded,
+      );
+  }
 }
 
 /// The tile a user actually picks a diamond/currency package from — a
@@ -39,22 +86,7 @@ class ProductCard extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
     final localeName = Localizations.localeOf(context).toString();
     final kind = _kindOf(product.name);
-
-    final List<Color> iconGradient;
-    final IconData icon;
-    switch (kind) {
-      case _TierKind.bonus:
-        iconGradient = const [AppColors.brandWarm, Color(0xFFFF6B6B)];
-        icon = Icons.redeem_rounded;
-      case _TierKind.pass:
-        iconGradient = const [Color(0xFF8E5CF6), Color(0xFFFF4FA3)];
-        icon = Icons.workspace_premium_rounded;
-      case _TierKind.plain:
-        iconGradient = isDark
-            ? AppColors.heroGradientDark
-            : AppColors.heroGradientLight;
-        icon = Icons.diamond_rounded;
-    }
+    final style = _styleOf(kind, isDark);
 
     return PressableScale(
       onTap: onTap,
@@ -72,7 +104,7 @@ class ProductCard extends StatelessWidget {
                     ? theme.colorScheme.outlineVariant.withValues(
                         alpha: isDark ? 0.4 : 0.7,
                       )
-                    : iconGradient.first.withValues(alpha: 0.5),
+                    : style.gradient.first.withValues(alpha: 0.5),
               ),
             ),
             child: Row(
@@ -85,11 +117,11 @@ class ProductCard extends StatelessWidget {
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
-                      colors: iconGradient,
+                      colors: style.gradient,
                     ),
                     borderRadius: BorderRadius.circular(AppRadius.sm),
                   ),
-                  child: Icon(icon, size: 15, color: Colors.white),
+                  child: Icon(style.icon, size: 15, color: Colors.white),
                 ),
                 const SizedBox(width: AppSpacing.sm),
                 Expanded(
@@ -110,7 +142,7 @@ class ProductCard extends StatelessWidget {
                       Text(
                         formatMoney(product.amountMinor, product.currency, localeName),
                         style: theme.textTheme.labelMedium?.copyWith(
-                          color: iconGradient.first,
+                          color: style.gradient.first,
                           fontWeight: FontWeight.w800,
                         ),
                         maxLines: 1,
@@ -130,14 +162,14 @@ class ProductCard extends StatelessWidget {
               ],
             ),
           ),
-          if (kind == _TierKind.bonus)
+          if (style.badge != null)
             Positioned(
               top: 4,
               right: 4,
               child: _MiniBadge(
-                label: '×2',
-                color: AppColors.brandWarm,
-                textColor: Colors.black,
+                label: style.badge!,
+                color: style.gradient.first,
+                textColor: Colors.white,
               ),
             ),
         ],
