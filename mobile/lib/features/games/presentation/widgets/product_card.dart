@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/money_formatter.dart';
@@ -13,11 +14,11 @@ import '../../domain/product.dart';
 /// re-icons each one instead of listing every tier identically. The
 /// backend has no dedicated "kind" field for this, so it's inferred from
 /// the product name — good enough for the tiers this app actually seeds
-/// (MLBB's "x2"/"Elite"/"Twilight"/"Pass" wording). Icons here are emoji,
-/// not the reference's own artwork (that's Moonton's, not ours to copy) —
-/// but emoji render as real colored/shaded glyphs on Android (Noto Color
-/// Emoji), which reads far closer to the reference's game-art icons than
-/// a flat monochrome Material glyph did.
+/// (MLBB's "x2"/"Elite"/"Twilight"/"Pass" wording). Icons are bundled
+/// Twemoji SVG artwork (assets/icons/*.svg, CC-BY 4.0) rather than the
+/// reference's own game art (that's Moonton's, not ours to copy) or the
+/// system emoji font (renders as a flat, low-detail glyph on some devices)
+/// — vector artwork stays crisp and colorful at any size/density.
 enum _TierKind { bonus, elitePass, weeklyPass, hotPass, plain }
 
 _TierKind _kindOf(String name) {
@@ -30,10 +31,10 @@ _TierKind _kindOf(String name) {
 }
 
 class _KindStyle {
-  const _KindStyle({required this.gradient, required this.emoji, this.badge});
+  const _KindStyle({required this.gradient, required this.iconAsset, this.badge});
 
   final List<Color> gradient;
-  final String emoji;
+  final String iconAsset;
   final String? badge;
 }
 
@@ -42,31 +43,31 @@ _KindStyle _styleOf(_TierKind kind, bool isDark) {
     case _TierKind.bonus:
       return const _KindStyle(
         gradient: [AppColors.brandWarm, Color(0xFFFF6B6B)],
-        emoji: '🎁',
+        iconAsset: 'assets/icons/moneybag.svg',
         badge: '×2',
       );
     case _TierKind.elitePass:
       return const _KindStyle(
         gradient: [Color(0xFF8E5CF6), Color(0xFFFF4FA3)],
-        emoji: '👑',
+        iconAsset: 'assets/icons/crown.svg',
         badge: 'EP',
       );
     case _TierKind.weeklyPass:
       return const _KindStyle(
         gradient: [Color(0xFF19A7CE), Color(0xFF146CFF)],
-        emoji: '🎫',
+        iconAsset: 'assets/icons/ticket.svg',
         badge: 'HP',
       );
     case _TierKind.hotPass:
       return const _KindStyle(
         gradient: [Color(0xFFFFB02E), Color(0xFFE0453C)],
-        emoji: '🔥',
+        iconAsset: 'assets/icons/fire.svg',
         badge: 'HIT',
       );
     case _TierKind.plain:
       return _KindStyle(
         gradient: isDark ? AppColors.heroGradientDark : AppColors.heroGradientLight,
-        emoji: '💎',
+        iconAsset: 'assets/icons/gem.svg',
       );
   }
 }
@@ -123,10 +124,8 @@ class ProductCard extends StatelessWidget {
                     ),
                     borderRadius: BorderRadius.circular(AppRadius.sm),
                   ),
-                  child: Text(
-                    style.emoji,
-                    style: const TextStyle(fontSize: 16, height: 1),
-                  ),
+                  padding: const EdgeInsets.all(5),
+                  child: SvgPicture.asset(style.iconAsset),
                 ),
                 const SizedBox(width: AppSpacing.sm),
                 Expanded(

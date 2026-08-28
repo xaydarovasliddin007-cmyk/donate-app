@@ -132,14 +132,14 @@ async function main() {
       logoUrl:
         'https://play-lh.googleusercontent.com/D8r13ijO9c-0_1N-CP4d63mR1w6YhDuR2mBQUl27ELJAx0sKdaKtM5vCUnSLODKBVzUx7rZ9cW4Ir9jYiufsSQ=s256',
       availability: 'ACTIVE',
-      // Demonstrates per-server pricing (this plan's Part 4) — every other
-      // game below has none and behaves exactly as before that concept
-      // existed.
-      servers: [
-        { name: 'Asia', code: 'ASIA' },
-        { name: 'Europe', code: 'EU' },
-        { name: 'Americas', code: 'AMERICAS' },
-      ],
+      // A single "Global (UZ)" server, not the old Asia/Europe/Americas
+      // picker — every tier here is fulfilled through FazerCards'
+      // `mobile_legends_global` line regardless of which region a buyer
+      // picked, so the old 3-way picker was cosmetic and misleading (same
+      // product/price duplicated under three tabs). BekPinBot's reference
+      // list leads with a combined "UZ/Global" tab for exactly this reason
+      // — the vast majority of Uzbek buyers' MLBB accounts are on Global.
+      servers: [{ name: 'Global (UZ)', code: 'GLOBAL' }],
       // Matches BekPinBot's exact package list/prices (a real competitor,
       // checked 2026-08-28) — every denomination here is a confirmed exact
       // match against a live FazerCards mobile_legends_global offer.
@@ -445,6 +445,28 @@ async function main() {
           ),
         )
       : [null];
+
+    // Deactivate servers this game used to have but no longer lists (e.g.
+    // MLBB's old Asia/Europe/Americas picker, replaced by a single Global
+    // server) — along with the duplicate per-server products seeded under
+    // them, so a stale server/product pair can't still show up in the app.
+    if (g.servers) {
+      const currentCodes = g.servers.map((s) => s.code);
+      const staleServers = await prisma.gameServer.findMany({
+        where: { gameId: game.id, code: { notIn: currentCodes } },
+      });
+      if (staleServers.length > 0) {
+        const staleServerIds = staleServers.map((s) => s.id);
+        await prisma.product.updateMany({
+          where: { gameId: game.id, serverId: { in: staleServerIds } },
+          data: { isActive: false },
+        });
+        await prisma.gameServer.updateMany({
+          where: { id: { in: staleServerIds } },
+          data: { isActive: false },
+        });
+      }
+    }
 
     // Deactivate stale products this game used to have under an old name
     // (e.g. the placeholder ladder's "86 Diamonds" before it became the
