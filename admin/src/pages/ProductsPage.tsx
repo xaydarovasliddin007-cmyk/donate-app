@@ -98,7 +98,13 @@ function CreateProductForm({ games, onCreated }: { games: Game[]; onCreated: () 
       setServers([]);
       return;
     }
-    api.get<{ servers: GameServer[] }>(`/admin/games/${gameId}/servers`).then((res) => setServers(res.servers));
+    // Only active servers belong in this picker — it's choosing where a new
+    // product goes, and an inactive server (e.g. MLBB's old Asia/Europe/
+    // Americas, replaced by real per-region servers) is invisible to
+    // customers, so a product created under one would be unreachable.
+    api
+      .get<{ servers: GameServer[] }>(`/admin/games/${gameId}/servers`)
+      .then((res) => setServers(res.servers.filter((s) => s.isActive)));
   }, [gameId]);
 
   async function createProduct(event: FormEvent) {
