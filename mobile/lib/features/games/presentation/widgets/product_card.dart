@@ -85,14 +85,18 @@ _KindStyle _styleOf(_TierKind kind, bool isDark, String name, int amountMinor) {
       // diamonds (PUBG's UC, Roblox's Robux, Genshin's Genesis Crystals,
       // Honor of Kings' Tokens, CODM's CP, 8 Ball Pool's Cash, Standoff
       // 2's Gold, EA FC's FC Points…), so a diamond icon on all of them
-      // was misleading. Only show a gem-family icon for currencies that
-      // actually are diamonds/gems/crystals; everything else gets a
-      // neutral coin.
-      final lower = name.toLowerCase();
-      final isGemLike = lower.contains('diamond') || lower.contains('gem') || lower.contains('crystal');
+      // was misleading. The diamondpile/safe/truck art is specifically
+      // MLBB-style faceted blue diamonds (cropped from an MLBB reference)
+      // — only apply it to currencies actually called "Diamonds" (Free
+      // Fire matches too, and looks like the same style of gem). Other
+      // premium currencies that just sound gem-adjacent (Clash's "Gems",
+      // Genshin's "Genesis Crystals") would look like a branding mismatch
+      // wearing MLBB's specific diamond art, so they fall to the neutral
+      // coin along with everything else instead.
+      final isDiamondLike = name.toLowerCase().contains('diamond');
       return _KindStyle(
         gradient: isDark ? AppColors.heroGradientDark : AppColors.heroGradientLight,
-        iconAsset: isGemLike ? _gemIconFor(amountMinor) : 'assets/icons/coin.png',
+        iconAsset: isDiamondLike ? _gemIconFor(amountMinor) : 'assets/icons/coin.png',
       );
   }
 }
