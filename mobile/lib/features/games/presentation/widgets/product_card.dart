@@ -13,12 +13,16 @@ import '../../domain/product.dart';
 /// re-icons each one instead of listing every tier identically. The
 /// backend has no dedicated "kind" field for this, so it's inferred from
 /// the product name — good enough for the tiers this app actually seeds
-/// (MLBB's "x2"/"Elite"/"Twilight"/"Pass" wording). Icons are bundled
-/// Fluent Emoji 3D artwork (assets/icons/*.png, Microsoft/MIT-licensed —
-/// see github.com/microsoft/fluentui-emoji) rather than the reference's
-/// own game art (that's Moonton's, not ours to copy) or a flat emoji/
-/// Material glyph — the glossy 3D render reads as premium icon artwork
-/// instead of a flat pictogram.
+/// (MLBB's "x2"/"Elite"/"Twilight"/"Pass" wording). Icons for the
+/// diamond-shaped kinds (bonus/elite/pass/plain-gem) are cropped directly
+/// from a real competitor's (Uzpin) own product screenshots, at the
+/// user's explicit request after two rounds of stock icon sets (Twemoji,
+/// then Fluent Emoji 3D) were rejected as not matching what a real MLBB
+/// storefront looks like — see assets/icons/{moneybag,pass,diamondpile,
+/// safe,truck}.png. Twilight Pass keeps a bundled Fluent Emoji 3D flame
+/// (Microsoft/MIT-licensed) since the reference's own art there is a
+/// Moonton character portrait, not ours to copy; non-gem currencies (UC,
+/// Robux, Tokens, CP…) keep the neutral Fluent coin.
 enum _TierKind { bonus, elitePass, weeklyPass, hotPass, plain }
 
 _TierKind _kindOf(String name) {
@@ -38,24 +42,36 @@ class _KindStyle {
   final String? badge;
 }
 
-_KindStyle _styleOf(_TierKind kind, bool isDark, String name) {
+/// Diamond-pile vs. safe vs. truck isn't arbitrary — the reference scales
+/// the icon's "container" with how much the tier is actually worth (a
+/// handful of diamonds for a cheap pack, a safe overflowing for a mid
+/// pack, a truck dumping a mountain of them for the single biggest pack),
+/// and that visual cue is worth reproducing rather than using one static
+/// gem icon for every price point.
+String _gemIconFor(int amountMinor) {
+  if (amountMinor >= 800_000_00) return 'assets/icons/truck.png';
+  if (amountMinor >= 60_000_00) return 'assets/icons/safe.png';
+  return 'assets/icons/diamondpile.png';
+}
+
+_KindStyle _styleOf(_TierKind kind, bool isDark, String name, int amountMinor) {
   switch (kind) {
     case _TierKind.bonus:
       return const _KindStyle(
         gradient: [AppColors.brandWarm, Color(0xFFFF6B6B)],
-        iconAsset: 'assets/icons/moneybag.png',
+        iconAsset: 'assets/icons/diamondpile.png',
         badge: '×2',
       );
     case _TierKind.elitePass:
       return const _KindStyle(
         gradient: [Color(0xFF8E5CF6), Color(0xFFFF4FA3)],
-        iconAsset: 'assets/icons/crown.png',
+        iconAsset: 'assets/icons/moneybag.png',
         badge: 'EP',
       );
     case _TierKind.weeklyPass:
       return const _KindStyle(
         gradient: [Color(0xFF19A7CE), Color(0xFF146CFF)],
-        iconAsset: 'assets/icons/ticket.png',
+        iconAsset: 'assets/icons/pass.png',
         badge: 'HP',
       );
     case _TierKind.hotPass:
@@ -69,13 +85,14 @@ _KindStyle _styleOf(_TierKind kind, bool isDark, String name) {
       // diamonds (PUBG's UC, Roblox's Robux, Genshin's Genesis Crystals,
       // Honor of Kings' Tokens, CODM's CP, 8 Ball Pool's Cash, Standoff
       // 2's Gold, EA FC's FC Points…), so a diamond icon on all of them
-      // was misleading. Only show the gem for currencies that actually
-      // are diamonds/gems/crystals; everything else gets a neutral coin.
+      // was misleading. Only show a gem-family icon for currencies that
+      // actually are diamonds/gems/crystals; everything else gets a
+      // neutral coin.
       final lower = name.toLowerCase();
       final isGemLike = lower.contains('diamond') || lower.contains('gem') || lower.contains('crystal');
       return _KindStyle(
         gradient: isDark ? AppColors.heroGradientDark : AppColors.heroGradientLight,
-        iconAsset: isGemLike ? 'assets/icons/gem.png' : 'assets/icons/coin.png',
+        iconAsset: isGemLike ? _gemIconFor(amountMinor) : 'assets/icons/coin.png',
       );
   }
 }
@@ -97,7 +114,7 @@ class ProductCard extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
     final localeName = Localizations.localeOf(context).toString();
     final kind = _kindOf(product.name);
-    final style = _styleOf(kind, isDark, product.name);
+    final style = _styleOf(kind, isDark, product.name, product.amountMinor);
 
     return PressableScale(
       onTap: onTap,
