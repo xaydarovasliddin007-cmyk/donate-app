@@ -304,6 +304,15 @@
   "topupSubmitReceiptButton": "Отправить номер чека",
   "topupReceiptRequiredError": "Введите номер чека",
   "topupReceiptSubmittedMessage": "Номер чека отправлен. Баланс пополнится после проверки администратором.",
+  "topupSheetTitle": "Пополните баланс",
+  "topupSheetShortfallLabel": "Для покупки нужно ещё минимум {amount}",
+  "@topupSheetShortfallLabel": {
+    "placeholders": {
+      "amount": { "type": "String" }
+    }
+  },
+  "topupSheetSuccessMessage": "Баланс пополнен. Продолжить покупку?",
+  "topupSheetContinueButton": "Продолжить покупку",
 
   "profileUzdonateIdLabel": "UZDONATE ID",
   "profileCopyButton": "Копировать",

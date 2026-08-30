@@ -15,7 +15,9 @@ import '../../../l10n/generated/app_localizations.dart';
 import '../../games/domain/game.dart';
 import '../../games/domain/product.dart';
 import '../../payments/application/payments_providers.dart';
+import '../../topup/presentation/widgets/topup_bottom_sheet.dart';
 import '../../wallet/application/wallet_providers.dart';
+import '../../wallet/domain/wallet.dart';
 import '../application/orders_providers.dart';
 
 enum _PaymentMethod { wallet, payme, click, mock }
@@ -102,6 +104,27 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       });
     } finally {
       if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  /// Tops up without ever leaving this screen — checkout's own state
+  /// (order details, selected method) is untouched by a modal sheet, unlike
+  /// the old `context.push('/wallet/topup')` which pushed a whole new route
+  /// the user had to manually back out of. Retries the purchase
+  /// automatically on success so a shortfall never means starting over.
+  Future<void> _topUpThenRetry(Wallet? wallet) async {
+    final shortfall = widget.product.amountMinor - (wallet?.balanceMinor ?? 0);
+    if (shortfall <= 0) {
+      setState(() => _insufficientBalance = false);
+      return;
+    }
+    final toppedUp = await showTopUpBottomSheet(
+      context,
+      shortfallMinor: shortfall,
+    );
+    if (toppedUp == true && mounted) {
+      setState(() => _insufficientBalance = false);
+      await _buyNow();
     }
   }
 
@@ -217,7 +240,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                 if (_insufficientBalance) ...[
                   const SizedBox(height: AppSpacing.sm),
                   OutlinedButton(
-                    onPressed: () => context.push('/wallet/topup'),
+                    onPressed: () => _topUpThenRetry(walletAsync.value),
                     child: Text(l10n.checkoutTopUpNowButton),
                   ),
                 ],

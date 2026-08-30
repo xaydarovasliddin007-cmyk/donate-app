@@ -317,6 +317,15 @@
   "topupSubmitReceiptButton": "Chek raqamini yuborish",
   "topupReceiptRequiredError": "Chek raqamini kiriting",
   "topupReceiptSubmittedMessage": "Chek raqami yuborildi. Admin tekshirishi bilan balansingiz to'ldiriladi.",
+  "topupSheetTitle": "Balansni to'ldiring",
+  "topupSheetShortfallLabel": "Xarid uchun kamida {amount} kerak",
+  "@topupSheetShortfallLabel": {
+    "placeholders": {
+      "amount": { "type": "String" }
+    }
+  },
+  "topupSheetSuccessMessage": "Balans to'ldirildi. Xaridni davom ettirmoqchimisiz?",
+  "topupSheetContinueButton": "Xaridni davom ettirish",
 
   "profileUzdonateIdLabel": "UZDONATE ID",
   "profileCopyButton": "Nusxalash",

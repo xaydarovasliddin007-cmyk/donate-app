@@ -20,6 +20,7 @@ import '../../games/domain/product.dart';
 import '../../payments/application/payments_providers.dart';
 import '../../saved_games/application/saved_games_providers.dart';
 import '../../saved_games/domain/saved_game.dart';
+import '../../topup/presentation/widgets/topup_bottom_sheet.dart';
 import '../../wallet/application/wallet_providers.dart';
 import '../application/orders_providers.dart';
 import '../domain/player_id_field_spec.dart';
@@ -210,6 +211,27 @@ class _PurchaseFlowScreenState extends ConsumerState<PurchaseFlowScreen> {
     }
   }
 
+  /// Tops up without leaving the purchase flow — a modal sheet over this
+  /// same screen, not a route push, so the step/player-ID/method state here
+  /// is never at risk of unmounting. Retries the purchase automatically on
+  /// success so a shortfall never means starting the 3-step flow over.
+  Future<void> _topUpThenRetry() async {
+    final wallet = ref.read(walletProvider).value;
+    final shortfall = widget.product.amountMinor - (wallet?.balanceMinor ?? 0);
+    if (shortfall <= 0) {
+      setState(() => _insufficientBalance = false);
+      return;
+    }
+    final toppedUp = await showTopUpBottomSheet(
+      context,
+      shortfallMinor: shortfall,
+    );
+    if (toppedUp == true && mounted) {
+      setState(() => _insufficientBalance = false);
+      await _pay();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -300,6 +322,7 @@ class _PurchaseFlowScreenState extends ConsumerState<PurchaseFlowScreen> {
                       errorMessage: _errorMessage,
                       insufficientBalance: _insufficientBalance,
                       onPay: _pay,
+                      onTopUp: _topUpThenRetry,
                     ),
                   },
                 ),
@@ -964,6 +987,7 @@ class _ConfirmationStep extends StatelessWidget {
     required this.errorMessage,
     required this.insufficientBalance,
     required this.onPay,
+    required this.onTopUp,
   });
 
   final Game game;
@@ -975,6 +999,7 @@ class _ConfirmationStep extends StatelessWidget {
   final String? errorMessage;
   final bool insufficientBalance;
   final VoidCallback onPay;
+  final VoidCallback onTopUp;
 
   String _methodLabel(AppLocalizations l10n) => switch (method) {
     _PaymentMethod.wallet => l10n.checkoutPayWithWalletLabel,
@@ -1032,7 +1057,7 @@ class _ConfirmationStep extends StatelessWidget {
             if (insufficientBalance) ...[
               const SizedBox(height: AppSpacing.sm),
               OutlinedButton(
-                onPressed: () => context.push('/wallet/topup'),
+                onPressed: onTopUp,
                 child: Text(l10n.checkoutTopUpNowButton),
               ),
             ],

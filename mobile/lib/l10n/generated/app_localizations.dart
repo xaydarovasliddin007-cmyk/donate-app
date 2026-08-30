@@ -1682,6 +1682,30 @@ abstract class AppLocalizations {
   /// **'Chek raqami yuborildi. Admin tekshirishi bilan balansingiz to\'ldiriladi.'**
   String get topupReceiptSubmittedMessage;
 
+  /// No description provided for @topupSheetTitle.
+  ///
+  /// In uz, this message translates to:
+  /// **'Balansni to\'ldiring'**
+  String get topupSheetTitle;
+
+  /// No description provided for @topupSheetShortfallLabel.
+  ///
+  /// In uz, this message translates to:
+  /// **'Xarid uchun kamida {amount} kerak'**
+  String topupSheetShortfallLabel(String amount);
+
+  /// No description provided for @topupSheetSuccessMessage.
+  ///
+  /// In uz, this message translates to:
+  /// **'Balans to\'ldirildi. Xaridni davom ettirmoqchimisiz?'**
+  String get topupSheetSuccessMessage;
+
+  /// No description provided for @topupSheetContinueButton.
+  ///
+  /// In uz, this message translates to:
+  /// **'Xaridni davom ettirish'**
+  String get topupSheetContinueButton;
+
   /// No description provided for @profileUzdonateIdLabel.
   ///
   /// In uz, this message translates to:

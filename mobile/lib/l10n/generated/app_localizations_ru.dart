@@ -854,6 +854,20 @@ class AppLocalizationsRu extends AppLocalizations {
       'Номер чека отправлен. Баланс пополнится после проверки администратором.';
 
   @override
+  String get topupSheetTitle => 'Пополните баланс';
+
+  @override
+  String topupSheetShortfallLabel(String amount) {
+    return 'Для покупки нужно ещё минимум $amount';
+  }
+
+  @override
+  String get topupSheetSuccessMessage => 'Баланс пополнен. Продолжить покупку?';
+
+  @override
+  String get topupSheetContinueButton => 'Продолжить покупку';
+
+  @override
   String get profileUzdonateIdLabel => 'UZDONATE ID';
 
   @override

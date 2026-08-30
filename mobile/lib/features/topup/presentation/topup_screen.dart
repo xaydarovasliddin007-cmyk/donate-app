@@ -212,7 +212,7 @@ class _TopupScreenState extends ConsumerState<TopupScreen> {
 
     final Widget body;
     if (_reservation != null) {
-      body = _ReservationView(
+      body = TopUpReservationView(
         reservation: _reservation!,
         remaining: _remaining,
         onTryAgain: _reset,
@@ -470,8 +470,14 @@ class _MethodOptionTile extends StatelessWidget {
 /// the background. Tapping "I've paid" never credits anything by itself —
 /// only a matching bank transaction (or a manual admin review) does that;
 /// it just switches the waiting copy to something less generic.
-class _ReservationView extends ConsumerStatefulWidget {
-  const _ReservationView({
+///
+/// Public (not file-private) because [TopUpBottomSheet] reuses it verbatim
+/// for the in-checkout top-up flow — the reservation UI (card/QR list,
+/// countdown, receipt field) is identical there, only who owns the
+/// poll/countdown timers and what happens on success differs.
+class TopUpReservationView extends ConsumerStatefulWidget {
+  const TopUpReservationView({
+    super.key,
     required this.reservation,
     required this.remaining,
     required this.onTryAgain,
@@ -482,10 +488,10 @@ class _ReservationView extends ConsumerStatefulWidget {
   final VoidCallback onTryAgain;
 
   @override
-  ConsumerState<_ReservationView> createState() => _ReservationViewState();
+  ConsumerState<TopUpReservationView> createState() => _TopUpReservationViewState();
 }
 
-class _ReservationViewState extends ConsumerState<_ReservationView> {
+class _TopUpReservationViewState extends ConsumerState<TopUpReservationView> {
   String? _selectedMethodId;
   bool _confirmedPaid = false;
 

@@ -860,6 +860,21 @@ class AppLocalizationsUz extends AppLocalizations {
       'Chek raqami yuborildi. Admin tekshirishi bilan balansingiz to\'ldiriladi.';
 
   @override
+  String get topupSheetTitle => 'Balansni to\'ldiring';
+
+  @override
+  String topupSheetShortfallLabel(String amount) {
+    return 'Xarid uchun kamida $amount kerak';
+  }
+
+  @override
+  String get topupSheetSuccessMessage =>
+      'Balans to\'ldirildi. Xaridni davom ettirmoqchimisiz?';
+
+  @override
+  String get topupSheetContinueButton => 'Xaridni davom ettirish';
+
+  @override
   String get profileUzdonateIdLabel => 'UZDONATE ID';
 
   @override
