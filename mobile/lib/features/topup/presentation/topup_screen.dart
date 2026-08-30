@@ -26,6 +26,21 @@ const _presetAmounts = [50000, 100000, 200000, 500000, 1000000];
 
 const _pollInterval = Duration(seconds: 4);
 
+/// Every valid EMVCo Merchant Presented QR payload starts with tag "00"
+/// (Payload Format Indicator), length "02", value "01" — i.e. the literal
+/// substring "000201". A bank app's own "pay by QR" scanner expects to see
+/// that from byte zero and rejects anything else (a URL, in particular) as
+/// an invalid QR, even though the same bytes are present a little further
+/// in. Stored receiving-method payloads sometimes come as a
+/// "https://app.paynet.uz/qr-online/000201..." link instead of the raw
+/// string — this strips down to the raw EMV payload the QR image should
+/// actually encode, regardless of which form was pasted into the admin
+/// panel. A no-op if the payload is already raw.
+String _emvPayloadOf(String raw) {
+  final start = raw.indexOf('000201');
+  return start <= 0 ? raw : raw.substring(start);
+}
+
 class TopupScreen extends ConsumerStatefulWidget {
   const TopupScreen({super.key});
 
@@ -664,7 +679,7 @@ class _TopUpReservationViewState extends ConsumerState<TopUpReservationView> {
                     ],
                   ),
                   child: QrImageView(
-                    data: methods.first.qrPayload!,
+                    data: _emvPayloadOf(methods.first.qrPayload!),
                     size: 220,
                     backgroundColor: Colors.white,
                   ),
