@@ -87,9 +87,10 @@ class _TopUpBottomSheetState extends ConsumerState<TopUpBottomSheet> {
 
     try {
       // Card-transfer-only here (no method picker) — the sheet is a fast
-      // path for "I'm mid-purchase and just need a bit more," and card
-      // transfer is this app's one always-active method (see
-      // TopupScreen._onContinue for the full multi-method picker).
+      // path for "I'm mid-purchase and just need a bit more." Card transfer
+      // is always active in practice; if it's ever the only method turned
+      // off, this reserve call fails with "no receiving methods configured"
+      // (see TopupScreen for the full method-then-amount picker).
       final reservation = await ref
           .read(topupApiProvider)
           .reserveTopUp(

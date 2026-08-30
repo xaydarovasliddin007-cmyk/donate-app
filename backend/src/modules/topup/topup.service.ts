@@ -59,13 +59,28 @@ export async function createTopUpRequest(ctx: TopUpContext, userId: string, inpu
 
 const MAX_AMOUNT_BUMP_ATTEMPTS = 100;
 
+// Bump granularity in minor units (1 so'm) — a collision must still land on
+// a whole-so'm amount, since that's the only precision any banking app, the
+// Paynet QR flow, or a human typing a transfer actually supports. Bumping by
+// raw minor units (tiyin) used to produce amounts like 50 000,03 UZS, which
+// nobody can actually pay — see the bug this replaced.
+const AMOUNT_BUMP_STEP_MINOR = 100;
+
 /**
  * Finds an amountMinor no other currently-live PENDING request is using,
- * starting from what the user asked for and adding a 1-99 tiyin bump only
+ * starting from what the user asked for and adding a whole-so'm bump only
  * if that exact amount is already spoken for. This — not a card exclusively
  * reserved to one request — is what lets reserveTopUpRequest() show every
  * active card as a valid transfer target: whichever card the matching
  * transaction actually lands on, the amount alone identifies the request.
+ *
+ * CARD_TRANSFER only (see reserveTopUpRequest) — it's the one type
+ * autoVerifyFromCardTransaction() auto-credits by amount alone, so its
+ * amount must stay unique or a bank SMS could match more than one pending
+ * request. QR/terminal top-ups are always reviewed manually against the
+ * specific request row (no amount-matching feed exists for them), so
+ * bumping their amount bought nothing and only left the client staring at
+ * a figure they didn't type.
  *
  * Known small race window: two concurrent reservations could both pass this
  * check for the same amount before either commits. That never causes a
@@ -75,7 +90,7 @@ const MAX_AMOUNT_BUMP_ATTEMPTS = 100;
  */
 async function pickUniqueAmount(ctx: TopUpContext, requestedAmountMinor: number, now: Date): Promise<number> {
   for (let bump = 0; bump < MAX_AMOUNT_BUMP_ATTEMPTS; bump++) {
-    const candidate = requestedAmountMinor + bump;
+    const candidate = requestedAmountMinor + bump * AMOUNT_BUMP_STEP_MINOR;
     const clash = await ctx.prisma.topUpRequest.findFirst({
       where: { status: 'PENDING', amountMinor: candidate, expiresAt: { gt: now } },
       select: { id: true },
@@ -116,13 +131,17 @@ export async function reserveTopUpRequest(
     throw new ConflictError('No receiving methods are configured right now — please try again later');
   }
 
-  const uniqueAmountMinor = await pickUniqueAmount(ctx, amountMinor, now);
-  const ttlMs = RESERVATION_TTL_MS[activeMethods[0]!.type];
+  const resolvedType = activeMethods[0]!.type;
+  // Only CARD_TRANSFER needs its amount deconflicted (see pickUniqueAmount)
+  // — every other type keeps exactly what the user typed.
+  const resolvedAmountMinor =
+    resolvedType === 'CARD_TRANSFER' ? await pickUniqueAmount(ctx, amountMinor, now) : amountMinor;
+  const ttlMs = RESERVATION_TTL_MS[resolvedType];
 
   const request = await ctx.prisma.topUpRequest.create({
     data: {
       userId,
-      amountMinor: uniqueAmountMinor,
+      amountMinor: resolvedAmountMinor,
       expiresAt: new Date(now.getTime() + ttlMs),
     },
   });

@@ -257,6 +257,7 @@
   "topupAmountLabel": "Сумма",
   "topupAmountHint": "Например: 50000",
   "topupSelectMethodTitle": "Выберите способ пополнения",
+  "topupChangeMethodButton": "Изменить способ",
   "topupBankLabel": "Банк",
   "topupSubmitButton": "Получить карту",
   "topupContinueButton": "Продолжить",

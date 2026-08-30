@@ -715,6 +715,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get topupSelectMethodTitle => 'Выберите способ пополнения';
 
   @override
+  String get topupChangeMethodButton => 'Изменить способ';
+
+  @override
   String get topupBankLabel => 'Банк';
 
   @override

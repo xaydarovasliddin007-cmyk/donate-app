@@ -1430,6 +1430,12 @@ abstract class AppLocalizations {
   /// **'To\'ldirish usulini tanlang'**
   String get topupSelectMethodTitle;
 
+  /// No description provided for @topupChangeMethodButton.
+  ///
+  /// In uz, this message translates to:
+  /// **'Usulni almashtirish'**
+  String get topupChangeMethodButton;
+
   /// No description provided for @topupBankLabel.
   ///
   /// In uz, this message translates to:

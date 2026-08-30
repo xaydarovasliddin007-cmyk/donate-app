@@ -720,6 +720,9 @@ class AppLocalizationsUz extends AppLocalizations {
   String get topupSelectMethodTitle => 'To\'ldirish usulini tanlang';
 
   @override
+  String get topupChangeMethodButton => 'Usulni almashtirish';
+
+  @override
   String get topupBankLabel => 'Bank';
 
   @override

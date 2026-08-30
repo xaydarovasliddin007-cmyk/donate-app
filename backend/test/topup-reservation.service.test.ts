@@ -116,15 +116,18 @@ describe('topup reservation + auto-verification (live DB)', () => {
     expect(reservation.receivingMethods.map((m) => m.id).sort()).toEqual([testCardAId, testCardBId].sort());
   });
 
-  it('bumps the amount by a few tiyin when it collides with another live pending request', async () => {
+  it('bumps the amount by a whole so\'m — never a fraction — when it collides with another live pending request', async () => {
     const user1 = await makeUser();
     const user2 = await makeUser();
     const first = await topupService.reserveTopUpRequest(ctx, user1.id, 10000_00);
     const second = await topupService.reserveTopUpRequest(ctx, user2.id, 10000_00);
 
     expect(first.amountMinor).toBe(1000000);
+    // A bump anywhere but on a whole-so'm boundary would produce an amount
+    // (e.g. 10 000,03 UZS) nobody can actually transfer.
+    expect(second.amountMinor % 100).toBe(0);
     expect(second.amountMinor).toBeGreaterThan(first.amountMinor);
-    expect(second.amountMinor).toBeLessThan(first.amountMinor + 100);
+    expect(second.amountMinor).toBeLessThan(first.amountMinor + 100 * 100);
   });
 
   it('auto-verifies on a matching amount + one of our active cards, credits the wallet, and records which card', async () => {
@@ -199,6 +202,16 @@ describe('topup reservation + auto-verification (live DB)', () => {
 
       expect(reservation.receivingMethods).toHaveLength(1);
       expect(reservation.receivingMethods[0]!.id).toBe(qrMethodId);
+    });
+
+    it('never bumps a QR/terminal amount, even on collision — those are always reviewed manually', async () => {
+      const user1 = await makeUser();
+      const user2 = await makeUser();
+      const first = await topupService.reserveTopUpRequest(ctx, user1.id, 35000_00, 'QR_CODE');
+      const second = await topupService.reserveTopUpRequest(ctx, user2.id, 35000_00, 'QR_CODE');
+
+      expect(first.amountMinor).toBe(3500000);
+      expect(second.amountMinor).toBe(3500000);
     });
 
     it('rejects a type with no active methods instead of silently falling back to another type', async () => {

@@ -47,11 +47,10 @@ class _TopupScreenState extends ConsumerState<TopupScreen> {
   Timer? _countdownTimer;
   Duration? _remaining;
 
-  // Set (to more than one type) only when more than one receiving-method
-  // type is currently active — the method-type picker step. Skipped
-  // entirely when zero or one type is active, so today's card-only setup
-  // behaves exactly as before.
-  List<ReceivingMethodType>? _availableTypes;
+  // Which receiving-method type the user is topping up through. Null means
+  // "not chosen yet" — only meaningful while more than one type is active,
+  // since with zero or one type there's nothing to choose (see build()).
+  ReceivingMethodType? _selectedType;
 
   void _pickPreset(int amount) {
     setState(() {
@@ -69,41 +68,14 @@ class _TopupScreenState extends ConsumerState<TopupScreen> {
     super.dispose();
   }
 
-  Future<void> _onContinue() async {
+  void _onAmountSubmit(ReceivingMethodType? type) {
     final l10n = AppLocalizations.of(context);
     final amountMajor = double.tryParse(_amountController.text.trim());
     if (amountMajor == null || amountMajor <= 0) {
       setState(() => _errorMessage = l10n.topupValidationError);
       return;
     }
-
-    setState(() {
-      _submitting = true;
-      _errorMessage = null;
-    });
-
-    try {
-      final methods = await ref.read(topupApiProvider).listReceivingMethods();
-      final types = methods.map((m) => m.type).toSet().toList();
-      if (!mounted) return;
-      if (types.length > 1) {
-        setState(() {
-          _submitting = false;
-          _availableTypes = types;
-        });
-      } else {
-        await _reserve(types.isEmpty ? null : types.first);
-      }
-    } catch (error) {
-      final failure = Failure.from(error);
-      if (!mounted) return;
-      setState(() {
-        _submitting = false;
-        _errorMessage = failure.isNetworkError
-            ? l10n.errorNoConnectionMessage
-            : failure.message;
-      });
-    }
+    _reserve(type);
   }
 
   Future<void> _reserve(ReceivingMethodType? type) async {
@@ -122,7 +94,6 @@ class _TopupScreenState extends ConsumerState<TopupScreen> {
       if (!mounted) return;
       setState(() {
         _reservation = reservation;
-        _availableTypes = null;
         _submitting = false;
       });
       _startCountdown(reservation.expiresAt);
@@ -195,12 +166,14 @@ class _TopupScreenState extends ConsumerState<TopupScreen> {
     if (mounted) Navigator.of(context).pop();
   }
 
+  // Keeps the chosen method (so cancelling/retrying a reservation returns to
+  // the amount step, not all the way back to re-picking a method) — only the
+  // reservation itself and the amount form's own error state reset.
   void _reset() {
     _pollTimer?.cancel();
     _countdownTimer?.cancel();
     setState(() {
       _reservation = null;
-      _availableTypes = null;
       _remaining = null;
       _errorMessage = null;
     });
@@ -209,37 +182,93 @@ class _TopupScreenState extends ConsumerState<TopupScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final methodsAsync = ref.watch(receivingMethodsProvider);
 
-    final Widget body;
+    Widget body;
     if (_reservation != null) {
       body = TopUpReservationView(
         reservation: _reservation!,
         remaining: _remaining,
         onTryAgain: _reset,
       );
-    } else if (_availableTypes != null) {
-      body = _MethodPickerView(
-        types: _availableTypes!,
-        submitting: _submitting,
-        errorMessage: _errorMessage,
-        onPickType: _reserve,
-        onBack: () => setState(() => _availableTypes = null),
-      );
     } else {
-      body = _AmountEntryView(
-        amountController: _amountController,
-        selectedPreset: _selectedPreset,
-        submitting: _submitting,
-        errorMessage: _errorMessage,
-        onPickPreset: _pickPreset,
-        onAmountChanged: () => setState(() => _errorMessage = null),
-        onSubmit: _onContinue,
+      body = methodsAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, _) => _LoadMethodsError(
+          message: Failure.from(error).isNetworkError
+              ? l10n.errorNoConnectionMessage
+              : Failure.from(error).message,
+          onRetry: () => ref.invalidate(receivingMethodsProvider),
+        ),
+        data: (methods) {
+          final types = methods.map((m) => m.type).toSet().toList();
+          // Only ever a real choice when more than one type is active — with
+          // zero or one, there's nothing to pick, so this goes straight to
+          // the amount step exactly like the single-method setup always has.
+          if (types.length > 1 && _selectedType == null) {
+            return _MethodPickerView(
+              types: types,
+              onPickType: (type) => setState(() => _selectedType = type),
+            );
+          }
+          final effectiveType = types.length > 1
+              ? _selectedType
+              : (types.isEmpty ? null : types.first);
+          return _AmountEntryView(
+            amountController: _amountController,
+            selectedPreset: _selectedPreset,
+            submitting: _submitting,
+            errorMessage: _errorMessage,
+            onPickPreset: _pickPreset,
+            onAmountChanged: () => setState(() => _errorMessage = null),
+            onSubmit: () => _onAmountSubmit(effectiveType),
+            onChangeMethod: types.length > 1
+                ? () => setState(() => _selectedType = null)
+                : null,
+          );
+        },
       );
     }
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.topupTitle)),
       body: SafeArea(child: body),
+    );
+  }
+}
+
+class _LoadMethodsError extends StatelessWidget {
+  const _LoadMethodsError({required this.message, required this.onRetry});
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.error_outline_rounded,
+              size: 40,
+              color: theme.colorScheme.error,
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Text(message, textAlign: TextAlign.center),
+            const SizedBox(height: AppSpacing.md),
+            FilledButton(
+              onPressed: onRetry,
+              child: Text(l10n.topupTryAgainButton),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -253,6 +282,7 @@ class _AmountEntryView extends StatelessWidget {
     required this.onPickPreset,
     required this.onAmountChanged,
     required this.onSubmit,
+    this.onChangeMethod,
   });
 
   final TextEditingController amountController;
@@ -262,6 +292,11 @@ class _AmountEntryView extends StatelessWidget {
   final ValueChanged<int> onPickPreset;
   final VoidCallback onAmountChanged;
   final VoidCallback onSubmit;
+
+  /// Non-null only when more than one receiving-method type is active —
+  /// lets the user step back to the method picker without leaving the
+  /// screen. Null (single-method setups) hides the affordance entirely.
+  final VoidCallback? onChangeMethod;
 
   @override
   Widget build(BuildContext context) {
@@ -282,6 +317,15 @@ class _AmountEntryView extends StatelessWidget {
       child: ListView(
         padding: const EdgeInsets.all(AppSpacing.lg),
         children: [
+          if (onChangeMethod != null) ...[
+            TextButton.icon(
+              onPressed: onChangeMethod,
+              icon: const Icon(Icons.arrow_back_rounded, size: 18),
+              label: Text(l10n.topupChangeMethodButton),
+              style: TextButton.styleFrom(padding: EdgeInsets.zero),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+          ],
           // Explained up front, before the form — the point raised was that
           // users don't clearly understand how a top-up actually reaches
           // their balance, so this leads the screen instead of being a
@@ -335,23 +379,16 @@ class _AmountEntryView extends StatelessWidget {
   }
 }
 
-/// The method-type picker — shown only when more than one receiving-method
-/// type is currently active, letting the user choose how they want to pay
-/// before an amount is reserved against that type.
+/// The method-type picker — shown first whenever more than one
+/// receiving-method type is currently active, so the user commits to *how*
+/// they'll pay before typing an amount. A pure local selection (no network
+/// call happens here — see [_TopupScreenState._onAmountSubmit]), so there's
+/// nothing to submit or fail.
 class _MethodPickerView extends StatelessWidget {
-  const _MethodPickerView({
-    required this.types,
-    required this.submitting,
-    required this.errorMessage,
-    required this.onPickType,
-    required this.onBack,
-  });
+  const _MethodPickerView({required this.types, required this.onPickType});
 
   final List<ReceivingMethodType> types;
-  final bool submitting;
-  final String? errorMessage;
   final ValueChanged<ReceivingMethodType> onPickType;
-  final VoidCallback onBack;
 
   static const _icons = {
     ReceivingMethodType.cardTransfer: Icons.credit_card_rounded,
@@ -374,36 +411,16 @@ class _MethodPickerView extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.lg),
       children: [
-        Row(
-          children: [
-            IconButton(
-              onPressed: submitting ? null : onBack,
-              icon: const Icon(Icons.arrow_back_rounded),
-            ),
-            const SizedBox(width: 4),
-            Text(l10n.topupSelectMethodTitle, style: theme.textTheme.titleMedium),
-          ],
-        ),
+        Text(l10n.topupSelectMethodTitle, style: theme.textTheme.titleMedium),
         const SizedBox(height: AppSpacing.lg),
         for (final type in types) ...[
           _MethodOptionTile(
             icon: _icons[type]!,
             label: _labelOf(l10n, type),
-            enabled: !submitting,
+            enabled: true,
             onTap: () => onPickType(type),
           ),
           const SizedBox(height: AppSpacing.sm),
-        ],
-        if (submitting) ...[
-          const SizedBox(height: AppSpacing.md),
-          const Center(child: CircularProgressIndicator(strokeWidth: 2)),
-        ],
-        if (errorMessage != null) ...[
-          const SizedBox(height: AppSpacing.md),
-          Text(
-            errorMessage!,
-            style: TextStyle(color: theme.colorScheme.error),
-          ),
         ],
       ],
     );

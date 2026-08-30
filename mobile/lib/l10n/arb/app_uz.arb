@@ -270,6 +270,7 @@
   "topupAmountLabel": "Summa",
   "topupAmountHint": "Masalan: 50000",
   "topupSelectMethodTitle": "To'ldirish usulini tanlang",
+  "topupChangeMethodButton": "Usulni almashtirish",
   "topupBankLabel": "Bank",
   "topupSubmitButton": "Karta olish",
   "topupContinueButton": "Davom etish",
