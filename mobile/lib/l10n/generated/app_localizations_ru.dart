@@ -833,6 +833,18 @@ class AppLocalizationsRu extends AppLocalizations {
   String get topupMethodPaynetTerminal => 'Через терминал Paynet';
 
   @override
+  String get topupSubtitleCardTransfer => 'Перевод на карту';
+
+  @override
+  String get topupSubtitleQrCode => 'Через любое банковское приложение';
+
+  @override
+  String get topupSubtitlePaynetTerminal => 'Через терминал, по чеку';
+
+  @override
+  String get topupSubtitleInternational => 'Международные карты';
+
+  @override
   String get topupQrInstructions =>
       'Отсканируйте этот QR-код в любом банковском приложении и оплатите указанную ниже точную сумму.';
 

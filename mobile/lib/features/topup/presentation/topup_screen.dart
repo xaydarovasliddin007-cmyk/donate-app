@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../../../core/errors/failure.dart';
 import '../../../core/theme/app_colors.dart';
@@ -41,6 +42,188 @@ String _emvPayloadOf(String raw) {
   return start <= 0 ? raw : raw.substring(start);
 }
 
+/// One row in the method picker. Card-transfer methods are split one option
+/// per distinct bank (so "Humo" and "Uzcard" show as separate, recognizable
+/// choices instead of one generic "card" tile) — [bankFilter] is what
+/// [TopUpReservationView] later uses to show only that bank's cards. Options
+/// with [type] null (Visa, USDT) are purely decorative "coming soon" rows —
+/// there's no backend support for them yet, so they're never tappable.
+class _PaymentOption {
+  const _PaymentOption({
+    required this.key,
+    required this.logo,
+    required this.title,
+    required this.subtitle,
+    this.type,
+    this.bankFilter,
+  });
+
+  final String key;
+  final Widget logo;
+  final String title;
+  final String subtitle;
+  final ReceivingMethodType? type;
+  final String? bankFilter;
+
+  bool get enabled => type != null;
+}
+
+/// Builds the flattened, data-driven option list — a bank only appears here
+/// if a real active [ReceivingMethod] for it exists (never fabricated), so
+/// adding a real Uzcard card in the admin panel is all it takes for a
+/// "Uzcard" tile to show up here automatically.
+List<_PaymentOption> _paymentOptionsOf(
+  AppLocalizations l10n,
+  List<ReceivingMethod> methods,
+) {
+  final options = <_PaymentOption>[];
+
+  final cardBanks = methods
+      .where((m) => m.type == ReceivingMethodType.cardTransfer)
+      .map((m) => m.bankName ?? l10n.topupMethodCardTransfer)
+      .toSet();
+  for (final bank in cardBanks) {
+    options.add(
+      _PaymentOption(
+        key: 'card-$bank',
+        logo: _logoForBank(bank),
+        title: bank,
+        subtitle: l10n.topupSubtitleCardTransfer,
+        type: ReceivingMethodType.cardTransfer,
+        bankFilter: bank,
+      ),
+    );
+  }
+  if (methods.any((m) => m.type == ReceivingMethodType.qrCode)) {
+    options.add(
+      _PaymentOption(
+        key: 'qr',
+        logo: const _IconLogoBadge(
+          icon: Icons.qr_code_2_rounded,
+          color: AppColors.brandPrimary,
+        ),
+        title: l10n.topupMethodQrCode,
+        subtitle: l10n.topupSubtitleQrCode,
+        type: ReceivingMethodType.qrCode,
+      ),
+    );
+  }
+  if (methods.any((m) => m.type == ReceivingMethodType.paynetTerminal)) {
+    options.add(
+      _PaymentOption(
+        key: 'terminal',
+        logo: const _IconLogoBadge(
+          icon: Icons.receipt_long_rounded,
+          color: AppColors.brandWarm,
+        ),
+        title: l10n.topupMethodPaynetTerminal,
+        subtitle: l10n.topupSubtitlePaynetTerminal,
+        type: ReceivingMethodType.paynetTerminal,
+      ),
+    );
+  }
+  // Always-shown, always-disabled — honestly labeled "coming soon" rather
+  // than hidden, since the reference layout this was modeled on always
+  // shows every payment brand it supports, active or not.
+  options.add(
+    const _PaymentOption(
+      key: 'visa',
+      logo: _AssetLogoBadge(assetPath: 'assets/payment_logos/visa.svg'),
+      title: 'Visa',
+      subtitle: '',
+    ),
+  );
+  options.add(
+    const _PaymentOption(
+      key: 'usdt',
+      logo: _AssetLogoBadge(assetPath: 'assets/payment_logos/tether.svg'),
+      title: 'USDT (BEP20)',
+      subtitle: '',
+    ),
+  );
+  return options;
+}
+
+Widget _logoForBank(String bank) {
+  final normalized = bank.toLowerCase();
+  if (normalized.contains('humo')) {
+    return const _AssetLogoBadge(
+      assetPath: 'assets/payment_logos/humo.png',
+      isSvg: false,
+    );
+  }
+  if (normalized.contains('uzcard') || normalized.contains('uzkard')) {
+    return const _AssetLogoBadge(
+      assetPath: 'assets/payment_logos/uzcard.svg',
+      background: Color(0xFFFF5C00),
+    );
+  }
+  return _IconLogoBadge(
+    icon: Icons.credit_card_rounded,
+    color: AppColors.brandPrimary,
+    label: bank.isNotEmpty ? bank[0].toUpperCase() : null,
+  );
+}
+
+/// Fixed-footprint badge every payment-method row uses, so a wordmark-shaped
+/// logo (Uzcard, Visa) and a squarer one (the Humo card mockup) sit at the
+/// same visual weight without either being cropped.
+class _AssetLogoBadge extends StatelessWidget {
+  const _AssetLogoBadge({
+    required this.assetPath,
+    this.isSvg = true,
+    this.background,
+  });
+
+  final String assetPath;
+  final bool isSvg;
+  final Color? background;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      width: 56,
+      height: 44,
+      padding: const EdgeInsets.all(6),
+      decoration: BoxDecoration(
+        color: background ?? theme.colorScheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+      ),
+      child: isSvg
+          ? SvgPicture.asset(assetPath, fit: BoxFit.contain)
+          : Image.asset(assetPath, fit: BoxFit.contain),
+    );
+  }
+}
+
+class _IconLogoBadge extends StatelessWidget {
+  const _IconLogoBadge({required this.icon, required this.color, this.label});
+
+  final IconData icon;
+  final Color color;
+  final String? label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 56,
+      height: 44,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(AppRadius.md),
+      ),
+      child: label != null
+          ? Text(
+              label!,
+              style: TextStyle(color: color, fontWeight: FontWeight.w800),
+            )
+          : Icon(icon, color: color, size: 22),
+    );
+  }
+}
+
 class TopupScreen extends ConsumerStatefulWidget {
   const TopupScreen({super.key});
 
@@ -66,6 +249,12 @@ class _TopupScreenState extends ConsumerState<TopupScreen> {
   // "not chosen yet" — only meaningful while more than one type is active,
   // since with zero or one type there's nothing to choose (see build()).
   ReceivingMethodType? _selectedType;
+
+  // Set alongside _selectedType only when the chosen option was a specific
+  // bank's card tile (see _paymentOptionsOf) — purely a display filter for
+  // TopUpReservationView, since the server reserves against every active
+  // card regardless of bank.
+  String? _selectedBank;
 
   void _pickPreset(int amount) {
     setState(() {
@@ -205,6 +394,7 @@ class _TopupScreenState extends ConsumerState<TopupScreen> {
         reservation: _reservation!,
         remaining: _remaining,
         onTryAgain: _reset,
+        bankFilter: _selectedBank,
       );
     } else {
       body = methodsAsync.when(
@@ -216,19 +406,23 @@ class _TopupScreenState extends ConsumerState<TopupScreen> {
           onRetry: () => ref.invalidate(receivingMethodsProvider),
         ),
         data: (methods) {
-          final types = methods.map((m) => m.type).toSet().toList();
-          // Only ever a real choice when more than one type is active — with
-          // zero or one, there's nothing to pick, so this goes straight to
-          // the amount step exactly like the single-method setup always has.
-          if (types.length > 1 && _selectedType == null) {
+          final options = _paymentOptionsOf(l10n, methods);
+          // The method picker is always the first thing shown — per the
+          // reference this was modeled on, "how do you want to pay" comes
+          // before "how much," never the reverse.
+          if (_selectedType == null) {
             return _MethodPickerView(
-              types: types,
-              onPickType: (type) => setState(() => _selectedType = type),
+              options: options,
+              onPick: (option) => setState(() {
+                _selectedType = option.type;
+                _selectedBank = option.bankFilter;
+              }),
             );
           }
-          final effectiveType = types.length > 1
-              ? _selectedType
-              : (types.isEmpty ? null : types.first);
+          final selected = options.firstWhere(
+            (o) => o.type == _selectedType && o.bankFilter == _selectedBank,
+            orElse: () => options.first,
+          );
           return _AmountEntryView(
             amountController: _amountController,
             selectedPreset: _selectedPreset,
@@ -236,10 +430,12 @@ class _TopupScreenState extends ConsumerState<TopupScreen> {
             errorMessage: _errorMessage,
             onPickPreset: _pickPreset,
             onAmountChanged: () => setState(() => _errorMessage = null),
-            onSubmit: () => _onAmountSubmit(effectiveType),
-            onChangeMethod: types.length > 1
-                ? () => setState(() => _selectedType = null)
-                : null,
+            onSubmit: () => _onAmountSubmit(_selectedType),
+            selectedOption: selected,
+            onChangeMethod: () => setState(() {
+              _selectedType = null;
+              _selectedBank = null;
+            }),
           );
         },
       );
@@ -297,7 +493,8 @@ class _AmountEntryView extends StatelessWidget {
     required this.onPickPreset,
     required this.onAmountChanged,
     required this.onSubmit,
-    this.onChangeMethod,
+    required this.selectedOption,
+    required this.onChangeMethod,
   });
 
   final TextEditingController amountController;
@@ -308,10 +505,13 @@ class _AmountEntryView extends StatelessWidget {
   final VoidCallback onAmountChanged;
   final VoidCallback onSubmit;
 
-  /// Non-null only when more than one receiving-method type is active —
-  /// lets the user step back to the method picker without leaving the
-  /// screen. Null (single-method setups) hides the affordance entirely.
-  final VoidCallback? onChangeMethod;
+  /// Which tile the user picked on the method screen — shown here as a
+  /// small recap row so it's always visible which method the amount is
+  /// about to be reserved against.
+  final _PaymentOption selectedOption;
+
+  /// Steps back to the method picker without leaving the screen.
+  final VoidCallback onChangeMethod;
 
   @override
   Widget build(BuildContext context) {
@@ -332,15 +532,47 @@ class _AmountEntryView extends StatelessWidget {
       child: ListView(
         padding: const EdgeInsets.all(AppSpacing.lg),
         children: [
-          if (onChangeMethod != null) ...[
-            TextButton.icon(
-              onPressed: onChangeMethod,
-              icon: const Icon(Icons.arrow_back_rounded, size: 18),
-              label: Text(l10n.topupChangeMethodButton),
-              style: TextButton.styleFrom(padding: EdgeInsets.zero),
+          PressableScale(
+            onTap: onChangeMethod,
+            child: Container(
+              padding: const EdgeInsets.all(AppSpacing.sm),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHighest.withValues(
+                  alpha: 0.5,
+                ),
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                border: Border.all(color: theme.colorScheme.outlineVariant),
+              ),
+              child: Row(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
+                    child: SizedBox(
+                      width: 40,
+                      height: 32,
+                      child: FittedBox(child: selectedOption.logo),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(
+                    child: Text(
+                      selectedOption.title,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    l10n.topupChangeMethodButton,
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: theme.colorScheme.primary,
+                    ),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: AppSpacing.sm),
-          ],
+          ),
+          const SizedBox(height: AppSpacing.lg),
           // Explained up front, before the form — the point raised was that
           // users don't clearly understand how a top-up actually reaches
           // their balance, so this leads the screen instead of being a
@@ -394,46 +626,47 @@ class _AmountEntryView extends StatelessWidget {
   }
 }
 
-/// The method-type picker — shown first whenever more than one
-/// receiving-method type is currently active, so the user commits to *how*
-/// they'll pay before typing an amount. A pure local selection (no network
-/// call happens here — see [_TopupScreenState._onAmountSubmit]), so there's
-/// nothing to submit or fail.
-class _MethodPickerView extends StatelessWidget {
-  const _MethodPickerView({required this.types, required this.onPickType});
+/// The method picker — always the first screen of the top-up flow, so the
+/// user commits to *how* they'll pay before typing an amount. Every active
+/// method (and, for honesty, every announced-but-not-yet-active one) shows
+/// here; nothing is hidden. A pure local selection — no network call
+/// happens until the amount step submits (see
+/// [_TopupScreenState._onAmountSubmit]), so there's nothing to fail here.
+class _MethodPickerView extends ConsumerWidget {
+  const _MethodPickerView({required this.options, required this.onPick});
 
-  final List<ReceivingMethodType> types;
-  final ValueChanged<ReceivingMethodType> onPickType;
-
-  static const _icons = {
-    ReceivingMethodType.cardTransfer: Icons.credit_card_rounded,
-    ReceivingMethodType.qrCode: Icons.qr_code_2_rounded,
-    ReceivingMethodType.paynetTerminal: Icons.receipt_long_rounded,
-  };
-
-  String _labelOf(AppLocalizations l10n, ReceivingMethodType type) =>
-      switch (type) {
-        ReceivingMethodType.cardTransfer => l10n.topupMethodCardTransfer,
-        ReceivingMethodType.qrCode => l10n.topupMethodQrCode,
-        ReceivingMethodType.paynetTerminal => l10n.topupMethodPaynetTerminal,
-      };
+  final List<_PaymentOption> options;
+  final ValueChanged<_PaymentOption> onPick;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final reduceMotion = ref.watch(reduceMotionProvider);
 
     return ListView(
       padding: const EdgeInsets.all(AppSpacing.lg),
       children: [
         Text(l10n.topupSelectMethodTitle, style: theme.textTheme.titleMedium),
         const SizedBox(height: AppSpacing.lg),
-        for (final type in types) ...[
-          _MethodOptionTile(
-            icon: _icons[type]!,
-            label: _labelOf(l10n, type),
-            enabled: true,
-            onTap: () => onPickType(type),
+        for (var i = 0; i < options.length; i++) ...[
+          TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0, end: 1),
+            duration: reduceMotion
+                ? Duration.zero
+                : AppMotion.fast + Duration(milliseconds: i * 60),
+            curve: AppMotion.standard,
+            builder: (context, t, child) => Opacity(
+              opacity: t,
+              child: Transform.translate(
+                offset: Offset(0, (1 - t) * 10),
+                child: child,
+              ),
+            ),
+            child: _MethodOptionTile(
+              option: options[i],
+              onTap: () => onPick(options[i]),
+            ),
           ),
           const SizedBox(height: AppSpacing.sm),
         ],
@@ -443,52 +676,81 @@ class _MethodPickerView extends StatelessWidget {
 }
 
 class _MethodOptionTile extends StatelessWidget {
-  const _MethodOptionTile({
-    required this.icon,
-    required this.label,
-    required this.enabled,
-    required this.onTap,
-  });
+  const _MethodOptionTile({required this.option, required this.onTap});
 
-  final IconData icon;
-  final String label;
-  final bool enabled;
+  final _PaymentOption option;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final enabled = option.enabled;
 
     return PressableScale(
       onTap: enabled ? onTap : null,
-      child: Container(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-          borderRadius: BorderRadius.circular(AppRadius.lg),
-          border: Border.all(color: theme.colorScheme.outlineVariant),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: theme.colorScheme.primaryContainer,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, size: 20, color: theme.colorScheme.onPrimaryContainer),
+      child: AnimatedOpacity(
+        duration: AppMotion.fast,
+        opacity: enabled ? 1 : 0.5,
+        child: Container(
+          padding: const EdgeInsets.all(AppSpacing.md),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surfaceContainerHighest.withValues(
+              alpha: 0.5,
             ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: Text(
-                label,
-                style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w700),
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            border: Border.all(color: theme.colorScheme.outlineVariant),
+          ),
+          child: Row(
+            children: [
+              option.logo,
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      option.title,
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    if (option.subtitle.isNotEmpty)
+                      Text(
+                        option.subtitle,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                  ],
+                ),
               ),
-            ),
-            Icon(Icons.chevron_right_rounded, color: theme.colorScheme.onSurfaceVariant),
-          ],
+              if (enabled)
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: theme.colorScheme.onSurfaceVariant,
+                )
+              else
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.sm,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(AppRadius.pill),
+                  ),
+                  child: Text(
+                    l10n.commonComingSoon,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -513,11 +775,19 @@ class TopUpReservationView extends ConsumerStatefulWidget {
     required this.reservation,
     required this.remaining,
     required this.onTryAgain,
+    this.bankFilter,
   });
 
   final TopUpRequest reservation;
   final Duration? remaining;
   final VoidCallback onTryAgain;
+
+  /// Narrows a card-transfer reservation down to the one bank the user
+  /// actually picked on the method screen (e.g. "Humo" only, even though
+  /// the server reserved against every active card) — null shows every
+  /// card as before, which is what [TopUpBottomSheet] wants since it never
+  /// shows a method/bank picker of its own.
+  final String? bankFilter;
 
   @override
   ConsumerState<TopUpReservationView> createState() => _TopUpReservationViewState();
@@ -581,11 +851,21 @@ class _TopUpReservationViewState extends ConsumerState<TopUpReservationView> {
     final reduceMotion = ref.watch(reduceMotionProvider);
     final reservation = widget.reservation;
     final remaining = widget.remaining;
-    final methods =
+    final allMethods =
         reservation.receivingMethods ??
         (reservation.receivingMethod != null
             ? [reservation.receivingMethod!]
-            : const []);
+            : const <ReceivingMethod>[]);
+    final bankFilter = widget.bankFilter;
+    final filtered = bankFilter == null
+        ? allMethods
+        : allMethods
+              .where((m) => (m.bankName ?? l10n.topupMethodCardTransfer) == bankFilter)
+              .toList();
+    // Falls back to the unfiltered list if the filter somehow matches
+    // nothing (e.g. the bank was deactivated between picking it and
+    // reserving) — showing every card beats showing none.
+    final methods = filtered.isNotEmpty ? filtered : allMethods;
     final type = methods.isNotEmpty
         ? methods.first.type
         : ReceivingMethodType.cardTransfer;

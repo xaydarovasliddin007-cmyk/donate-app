@@ -839,6 +839,18 @@ class AppLocalizationsUz extends AppLocalizations {
   String get topupMethodPaynetTerminal => 'Paynet terminali';
 
   @override
+  String get topupSubtitleCardTransfer => 'Karta orqali o\'tkazma';
+
+  @override
+  String get topupSubtitleQrCode => 'Istalgan bank ilovasi orqali';
+
+  @override
+  String get topupSubtitlePaynetTerminal => 'Terminal orqali, chek bilan';
+
+  @override
+  String get topupSubtitleInternational => 'Xalqaro kartalar';
+
+  @override
   String get topupQrInstructions =>
       'Ushbu QR-kodni istalgan bank ilovasi orqali skanerlang va quyida ko\'rsatilgan aniq summani to\'lang.';
 

@@ -1646,6 +1646,30 @@ abstract class AppLocalizations {
   /// **'Paynet terminali'**
   String get topupMethodPaynetTerminal;
 
+  /// No description provided for @topupSubtitleCardTransfer.
+  ///
+  /// In uz, this message translates to:
+  /// **'Karta orqali o\'tkazma'**
+  String get topupSubtitleCardTransfer;
+
+  /// No description provided for @topupSubtitleQrCode.
+  ///
+  /// In uz, this message translates to:
+  /// **'Istalgan bank ilovasi orqali'**
+  String get topupSubtitleQrCode;
+
+  /// No description provided for @topupSubtitlePaynetTerminal.
+  ///
+  /// In uz, this message translates to:
+  /// **'Terminal orqali, chek bilan'**
+  String get topupSubtitlePaynetTerminal;
+
+  /// No description provided for @topupSubtitleInternational.
+  ///
+  /// In uz, this message translates to:
+  /// **'Xalqaro kartalar'**
+  String get topupSubtitleInternational;
+
   /// No description provided for @topupQrInstructions.
   ///
   /// In uz, this message translates to:
