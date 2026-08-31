@@ -315,6 +315,7 @@
   "topupSubtitleQrCode": "Istalgan bank ilovasi orqali",
   "topupSubtitlePaynetTerminal": "Terminal orqali, chek bilan",
   "topupSubtitleInternational": "Xalqaro kartalar",
+  "topupSubtitleCrypto": "Kriptovalyuta",
   "topupQrInstructions": "Ushbu QR-kodni istalgan bank ilovasi orqali skanerlang va quyida ko'rsatilgan aniq summani to'lang.",
   "topupTerminalInstructions": "Eng yaqin Paynet terminaliga boring, ushbu QR-kodni ko'rsatib naqd to'lang va chekni saqlab qoling.",
   "topupReceiptNumberLabel": "Chek raqami",

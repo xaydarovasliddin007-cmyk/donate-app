@@ -851,6 +851,9 @@ class AppLocalizationsUz extends AppLocalizations {
   String get topupSubtitleInternational => 'Xalqaro kartalar';
 
   @override
+  String get topupSubtitleCrypto => 'Kriptovalyuta';
+
+  @override
   String get topupQrInstructions =>
       'Ushbu QR-kodni istalgan bank ilovasi orqali skanerlang va quyida ko\'rsatilgan aniq summani to\'lang.';
 

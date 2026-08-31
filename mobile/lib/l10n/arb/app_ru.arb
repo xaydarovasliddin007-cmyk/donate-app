@@ -302,6 +302,7 @@
   "topupSubtitleQrCode": "Через любое банковское приложение",
   "topupSubtitlePaynetTerminal": "Через терминал, по чеку",
   "topupSubtitleInternational": "Международные карты",
+  "topupSubtitleCrypto": "Криптовалюта",
   "topupQrInstructions": "Отсканируйте этот QR-код в любом банковском приложении и оплатите указанную ниже точную сумму.",
   "topupTerminalInstructions": "Подойдите к ближайшему терминалу Paynet, покажите этот QR-код, оплатите наличными и сохраните чек.",
   "topupReceiptNumberLabel": "Номер чека",

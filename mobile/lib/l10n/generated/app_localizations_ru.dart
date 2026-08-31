@@ -845,6 +845,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get topupSubtitleInternational => 'Международные карты';
 
   @override
+  String get topupSubtitleCrypto => 'Криптовалюта';
+
+  @override
   String get topupQrInstructions =>
       'Отсканируйте этот QR-код в любом банковском приложении и оплатите указанную ниже точную сумму.';
 

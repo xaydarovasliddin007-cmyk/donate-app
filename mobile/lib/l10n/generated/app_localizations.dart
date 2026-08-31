@@ -1670,6 +1670,12 @@ abstract class AppLocalizations {
   /// **'Xalqaro kartalar'**
   String get topupSubtitleInternational;
 
+  /// No description provided for @topupSubtitleCrypto.
+  ///
+  /// In uz, this message translates to:
+  /// **'Kriptovalyuta'**
+  String get topupSubtitleCrypto;
+
   /// No description provided for @topupQrInstructions.
   ///
   /// In uz, this message translates to:

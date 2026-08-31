@@ -126,19 +126,21 @@ List<_PaymentOption> _paymentOptionsOf(
   // than hidden, since the reference layout this was modeled on always
   // shows every payment brand it supports, active or not.
   options.add(
-    const _PaymentOption(
+    _PaymentOption(
       key: 'visa',
-      logo: _AssetLogoBadge(assetPath: 'assets/payment_logos/visa.svg'),
+      logo: const _AssetLogoBadge(assetPath: 'assets/payment_logos/visa.svg'),
       title: 'Visa',
-      subtitle: '',
+      subtitle: l10n.topupSubtitleInternational,
     ),
   );
   options.add(
-    const _PaymentOption(
+    _PaymentOption(
       key: 'usdt',
-      logo: _AssetLogoBadge(assetPath: 'assets/payment_logos/tether.svg'),
+      logo: const _AssetLogoBadge(
+        assetPath: 'assets/payment_logos/tether.svg',
+      ),
       title: 'USDT (BEP20)',
-      subtitle: '',
+      subtitle: l10n.topupSubtitleCrypto,
     ),
   );
   return options;
@@ -484,7 +486,7 @@ class _LoadMethodsError extends StatelessWidget {
   }
 }
 
-class _AmountEntryView extends StatelessWidget {
+class _AmountEntryView extends ConsumerWidget {
   const _AmountEntryView({
     required this.amountController,
     required this.selectedPreset,
@@ -514,13 +516,14 @@ class _AmountEntryView extends StatelessWidget {
   final VoidCallback onChangeMethod;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
+    final reduceMotion = ref.watch(reduceMotionProvider);
 
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: 1),
-      duration: AppMotion.entrance,
+      duration: reduceMotion ? Duration.zero : AppMotion.entrance,
       curve: AppMotion.standard,
       builder: (context, t, child) => Opacity(
         opacity: t,
