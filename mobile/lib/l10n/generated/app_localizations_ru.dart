@@ -788,6 +788,13 @@ class AppLocalizationsRu extends AppLocalizations {
   String get topupNoCommissionNote => 'Перевод без комиссии на любую карту';
 
   @override
+  String get topupTerminalCardTitle => 'Введите этот номер карты в терминале';
+
+  @override
+  String get topupTerminalCardNote =>
+      'Подойдите к ближайшему терминалу Paynet и оплатите наличными';
+
+  @override
   String get topupExactAmountLabel => 'Переведите ровно эту сумму';
 
   @override
@@ -850,10 +857,6 @@ class AppLocalizationsRu extends AppLocalizations {
   @override
   String get topupQrInstructions =>
       'Отсканируйте этот QR-код в любом банковском приложении и оплатите указанную ниже точную сумму.';
-
-  @override
-  String get topupTerminalInstructions =>
-      'Подойдите к ближайшему терминалу Paynet, покажите этот QR-код, оплатите наличными и сохраните чек.';
 
   @override
   String get topupReceiptNumberLabel => 'Номер чека';

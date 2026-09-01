@@ -42,12 +42,16 @@ String _emvPayloadOf(String raw) {
   return start <= 0 ? raw : raw.substring(start);
 }
 
-/// One row in the method picker. Card-transfer methods are split one option
-/// per distinct bank (so "Humo" and "Uzcard" show as separate, recognizable
-/// choices instead of one generic "card" tile) — [bankFilter] is what
-/// [TopUpReservationView] later uses to show only that bank's cards. Options
-/// with [type] null (Visa, USDT) are purely decorative "coming soon" rows —
-/// there's no backend support for them yet, so they're never tappable.
+/// One row in the method picker. [type] is what actually gets sent to
+/// [TopupApi.reserveTopUp] — Humo and Uzcard both submit
+/// [ReceivingMethodType.cardTransfer] and land on the exact same card list,
+/// since a card-to-card transfer reaches the same recipient card over
+/// NBU's interbank rails no matter which network's app the payer used.
+/// [key] (not [type]) is what the screen uses to remember which tile was
+/// actually tapped, so the amount step's recap row can still say "Uzcard"
+/// rather than always falling back to "Humo". Options with [type] null
+/// (Visa, USDT) are purely decorative "coming soon" rows — there's no
+/// backend support for them yet, so they're never tappable.
 class _PaymentOption {
   const _PaymentOption({
     required this.key,
@@ -55,7 +59,6 @@ class _PaymentOption {
     required this.title,
     required this.subtitle,
     this.type,
-    this.bankFilter,
   });
 
   final String key;
@@ -63,34 +66,47 @@ class _PaymentOption {
   final String title;
   final String subtitle;
   final ReceivingMethodType? type;
-  final String? bankFilter;
 
   bool get enabled => type != null;
 }
 
-/// Builds the flattened, data-driven option list — a bank only appears here
-/// if a real active [ReceivingMethod] for it exists (never fabricated), so
-/// adding a real Uzcard card in the admin panel is all it takes for a
-/// "Uzcard" tile to show up here automatically.
+/// Builds the flattened, data-driven option list. Humo/Uzcard/Paynet
+/// terminal all show up together, or not at all, based on whether any
+/// CARD_TRANSFER method is active — the terminal option has no receiving
+/// data of its own (see reserveTopUpRequest's doc comment on the backend),
+/// so there's nothing to check for it independently.
 List<_PaymentOption> _paymentOptionsOf(
   AppLocalizations l10n,
   List<ReceivingMethod> methods,
 ) {
   final options = <_PaymentOption>[];
 
-  final cardBanks = methods
-      .where((m) => m.type == ReceivingMethodType.cardTransfer)
-      .map((m) => m.bankName ?? l10n.topupMethodCardTransfer)
-      .toSet();
-  for (final bank in cardBanks) {
+  final hasCards = methods.any(
+    (m) => m.type == ReceivingMethodType.cardTransfer,
+  );
+  if (hasCards) {
     options.add(
       _PaymentOption(
-        key: 'card-$bank',
-        logo: _logoForBank(bank),
-        title: bank,
+        key: 'humo',
+        logo: const _AssetLogoBadge(
+          assetPath: 'assets/payment_logos/humo.png',
+          isSvg: false,
+        ),
+        title: 'Humo',
         subtitle: l10n.topupSubtitleCardTransfer,
         type: ReceivingMethodType.cardTransfer,
-        bankFilter: bank,
+      ),
+    );
+    options.add(
+      _PaymentOption(
+        key: 'uzcard',
+        logo: const _AssetLogoBadge(
+          assetPath: 'assets/payment_logos/uzcard.svg',
+          background: Color(0xFFFF5C00),
+        ),
+        title: 'Uzcard',
+        subtitle: l10n.topupSubtitleCardTransfer,
+        type: ReceivingMethodType.cardTransfer,
       ),
     );
   }
@@ -108,7 +124,7 @@ List<_PaymentOption> _paymentOptionsOf(
       ),
     );
   }
-  if (methods.any((m) => m.type == ReceivingMethodType.paynetTerminal)) {
+  if (hasCards) {
     options.add(
       _PaymentOption(
         key: 'terminal',
@@ -146,27 +162,6 @@ List<_PaymentOption> _paymentOptionsOf(
   return options;
 }
 
-Widget _logoForBank(String bank) {
-  final normalized = bank.toLowerCase();
-  if (normalized.contains('humo')) {
-    return const _AssetLogoBadge(
-      assetPath: 'assets/payment_logos/humo.png',
-      isSvg: false,
-    );
-  }
-  if (normalized.contains('uzcard') || normalized.contains('uzkard')) {
-    return const _AssetLogoBadge(
-      assetPath: 'assets/payment_logos/uzcard.svg',
-      background: Color(0xFFFF5C00),
-    );
-  }
-  return _IconLogoBadge(
-    icon: Icons.credit_card_rounded,
-    color: AppColors.brandPrimary,
-    label: bank.isNotEmpty ? bank[0].toUpperCase() : null,
-  );
-}
-
 /// Fixed-footprint badge every payment-method row uses, so a wordmark-shaped
 /// logo (Uzcard, Visa) and a squarer one (the Humo card mockup) sit at the
 /// same visual weight without either being cropped.
@@ -200,11 +195,10 @@ class _AssetLogoBadge extends StatelessWidget {
 }
 
 class _IconLogoBadge extends StatelessWidget {
-  const _IconLogoBadge({required this.icon, required this.color, this.label});
+  const _IconLogoBadge({required this.icon, required this.color});
 
   final IconData icon;
   final Color color;
-  final String? label;
 
   @override
   Widget build(BuildContext context) {
@@ -216,12 +210,7 @@ class _IconLogoBadge extends StatelessWidget {
         color: color.withValues(alpha: 0.14),
         borderRadius: BorderRadius.circular(AppRadius.md),
       ),
-      child: label != null
-          ? Text(
-              label!,
-              style: TextStyle(color: color, fontWeight: FontWeight.w800),
-            )
-          : Icon(icon, color: color, size: 22),
+      child: Icon(icon, color: color, size: 22),
     );
   }
 }
@@ -247,16 +236,11 @@ class _TopupScreenState extends ConsumerState<TopupScreen> {
   Timer? _countdownTimer;
   Duration? _remaining;
 
-  // Which receiving-method type the user is topping up through. Null means
-  // "not chosen yet" — only meaningful while more than one type is active,
-  // since with zero or one type there's nothing to choose (see build()).
-  ReceivingMethodType? _selectedType;
-
-  // Set alongside _selectedType only when the chosen option was a specific
-  // bank's card tile (see _paymentOptionsOf) — purely a display filter for
-  // TopUpReservationView, since the server reserves against every active
-  // card regardless of bank.
-  String? _selectedBank;
+  // Which tile in _paymentOptionsOf the user tapped. Null means "not chosen
+  // yet." Keyed by _PaymentOption.key rather than its type, since Humo and
+  // Uzcard share a type (both submit CARD_TRANSFER) but still need to be
+  // told apart for the amount step's recap row.
+  String? _selectedOptionKey;
 
   void _pickPreset(int amount) {
     setState(() {
@@ -396,7 +380,6 @@ class _TopupScreenState extends ConsumerState<TopupScreen> {
         reservation: _reservation!,
         remaining: _remaining,
         onTryAgain: _reset,
-        bankFilter: _selectedBank,
       );
     } else {
       body = methodsAsync.when(
@@ -412,17 +395,15 @@ class _TopupScreenState extends ConsumerState<TopupScreen> {
           // The method picker is always the first thing shown — per the
           // reference this was modeled on, "how do you want to pay" comes
           // before "how much," never the reverse.
-          if (_selectedType == null) {
+          if (_selectedOptionKey == null) {
             return _MethodPickerView(
               options: options,
-              onPick: (option) => setState(() {
-                _selectedType = option.type;
-                _selectedBank = option.bankFilter;
-              }),
+              onPick: (option) =>
+                  setState(() => _selectedOptionKey = option.key),
             );
           }
           final selected = options.firstWhere(
-            (o) => o.type == _selectedType && o.bankFilter == _selectedBank,
+            (o) => o.key == _selectedOptionKey,
             orElse: () => options.first,
           );
           return _AmountEntryView(
@@ -432,12 +413,9 @@ class _TopupScreenState extends ConsumerState<TopupScreen> {
             errorMessage: _errorMessage,
             onPickPreset: _pickPreset,
             onAmountChanged: () => setState(() => _errorMessage = null),
-            onSubmit: () => _onAmountSubmit(_selectedType),
+            onSubmit: () => _onAmountSubmit(selected.type),
             selectedOption: selected,
-            onChangeMethod: () => setState(() {
-              _selectedType = null;
-              _selectedBank = null;
-            }),
+            onChangeMethod: () => setState(() => _selectedOptionKey = null),
           );
         },
       );
@@ -778,19 +756,11 @@ class TopUpReservationView extends ConsumerStatefulWidget {
     required this.reservation,
     required this.remaining,
     required this.onTryAgain,
-    this.bankFilter,
   });
 
   final TopUpRequest reservation;
   final Duration? remaining;
   final VoidCallback onTryAgain;
-
-  /// Narrows a card-transfer reservation down to the one bank the user
-  /// actually picked on the method screen (e.g. "Humo" only, even though
-  /// the server reserved against every active card) — null shows every
-  /// card as before, which is what [TopUpBottomSheet] wants since it never
-  /// shows a method/bank picker of its own.
-  final String? bankFilter;
 
   @override
   ConsumerState<TopUpReservationView> createState() => _TopUpReservationViewState();
@@ -854,24 +824,24 @@ class _TopUpReservationViewState extends ConsumerState<TopUpReservationView> {
     final reduceMotion = ref.watch(reduceMotionProvider);
     final reservation = widget.reservation;
     final remaining = widget.remaining;
-    final allMethods =
+    final methods =
         reservation.receivingMethods ??
         (reservation.receivingMethod != null
             ? [reservation.receivingMethod!]
             : const <ReceivingMethod>[]);
-    final bankFilter = widget.bankFilter;
-    final filtered = bankFilter == null
-        ? allMethods
-        : allMethods
-              .where((m) => (m.bankName ?? l10n.topupMethodCardTransfer) == bankFilter)
-              .toList();
-    // Falls back to the unfiltered list if the filter somehow matches
-    // nothing (e.g. the bank was deactivated between picking it and
-    // reserving) — showing every card beats showing none.
-    final methods = filtered.isNotEmpty ? filtered : allMethods;
-    final type = methods.isNotEmpty
-        ? methods.first.type
-        : ReceivingMethodType.cardTransfer;
+    // The request's own type, not the returned methods' type — for
+    // PAYNET_TERMINAL those are ordinary CARD_TRANSFER rows (see
+    // reserveTopUpRequest's doc comment on the backend), so only
+    // reservation.type reliably says which UI to render. Falls back to the
+    // methods' type for requests made before this field existed.
+    final type =
+        reservation.type ??
+        (methods.isNotEmpty
+            ? methods.first.type
+            : ReceivingMethodType.cardTransfer);
+    final showsCards =
+        type == ReceivingMethodType.cardTransfer ||
+        type == ReceivingMethodType.paynetTerminal;
     final isExpired =
         reservation.status == TopUpRequestStatus.expired ||
         (remaining != null && remaining <= Duration.zero);
@@ -892,8 +862,13 @@ class _TopUpReservationViewState extends ConsumerState<TopUpReservationView> {
       child: ListView(
         padding: const EdgeInsets.all(AppSpacing.lg),
         children: [
-          if (type == ReceivingMethodType.cardTransfer) ...[
-            Text(l10n.topupReservedCardTitle, style: theme.textTheme.titleSmall),
+          if (showsCards) ...[
+            Text(
+              type == ReceivingMethodType.paynetTerminal
+                  ? l10n.topupTerminalCardTitle
+                  : l10n.topupReservedCardTitle,
+              style: theme.textTheme.titleSmall,
+            ),
             const SizedBox(height: 4),
             Row(
               children: [
@@ -904,7 +879,9 @@ class _TopUpReservationViewState extends ConsumerState<TopUpReservationView> {
                 ),
                 const SizedBox(width: 4),
                 Text(
-                  l10n.topupNoCommissionNote,
+                  type == ReceivingMethodType.paynetTerminal
+                      ? l10n.topupTerminalCardNote
+                      : l10n.topupNoCommissionNote,
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
@@ -930,17 +907,12 @@ class _TopUpReservationViewState extends ConsumerState<TopUpReservationView> {
                 ),
               ),
           ] else ...[
-            Text(
-              type == ReceivingMethodType.qrCode
-                  ? l10n.topupMethodQrCode
-                  : l10n.topupMethodPaynetTerminal,
-              style: theme.textTheme.titleSmall,
-            ),
+            // The only type left once showsCards is false — QR_CODE is the
+            // one option with genuinely distinct receiving-method data.
+            Text(l10n.topupMethodQrCode, style: theme.textTheme.titleSmall),
             const SizedBox(height: 4),
             Text(
-              type == ReceivingMethodType.qrCode
-                  ? l10n.topupQrInstructions
-                  : l10n.topupTerminalInstructions,
+              l10n.topupQrInstructions,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),

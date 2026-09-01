@@ -791,6 +791,15 @@ model TopUpRequest {
   // being tied to one exclusive card up front.
   receivingMethodId String?            @map("receiving_method_id") @db.Uuid
   receivingMethod   ReceivingMethod?   @relation(fields: [receivingMethodId], references: [id])
+  // What the user actually asked to pay with. Card-shaped options
+  // (CARD_TRANSFER, and PAYNET_TERMINAL — cash deposited at a Paynet kiosk
+  // still lands on the same card via NBU's interbank rails) all hand back
+  // the same `receivingMethods` card list, so this is the only reliable
+  // signal for which UI the client should render (card tiles + reference
+  // field vs a QR image) — `receivingMethods.first.type` can't be trusted
+  // for that once PAYNET_TERMINAL started reusing CARD_TRANSFER rows.
+  // Nullable because rows created before this column existed have none.
+  type              ReceivingMethodType? @map("type")
   amountMinor       Int                @map("amount_minor")
   currency          String             @default("UZS")
   status            TopUpRequestStatus @default(PENDING)

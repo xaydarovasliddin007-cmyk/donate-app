@@ -43,6 +43,7 @@ export async function createTopUpRequest(ctx: TopUpContext, userId: string, inpu
     data: {
       userId,
       receivingMethodId: method.id,
+      type: method.type,
       amountMinor: input.amountMinor,
       userReference: input.userReference,
     },
@@ -126,12 +127,26 @@ export async function reserveTopUpRequest(
   });
 
   const allActiveMethods = await listActiveReceivingMethods(ctx);
-  const activeMethods = type ? allActiveMethods.filter((m) => m.type === type) : allActiveMethods;
+  // PAYNET_TERMINAL has no receiving-method data of its own — cash dropped
+  // at a Paynet kiosk against a card number lands on that card exactly the
+  // same way an app-to-app CARD_TRANSFER does (both ride NBU's interbank
+  // rails), so it reuses the CARD_TRANSFER card pool rather than needing
+  // its own admin-managed row. Only QR_CODE has genuinely distinct data
+  // (the Paynet merchant QR). `type` omitted entirely is the one legacy
+  // case that still means "every active method, whatever type."
+  const activeMethods = !type
+    ? allActiveMethods
+    : type === 'QR_CODE'
+      ? allActiveMethods.filter((m) => m.type === 'QR_CODE')
+      : allActiveMethods.filter((m) => m.type === 'CARD_TRANSFER');
   if (activeMethods.length === 0) {
     throw new ConflictError('No receiving methods are configured right now — please try again later');
   }
 
-  const resolvedType = activeMethods[0]!.type;
+  // The caller's requested type, not the returned rows' own type — those
+  // two now diverge for PAYNET_TERMINAL (see above), and this is what
+  // determines both the TTL and which UI the client renders.
+  const resolvedType = type ?? activeMethods[0]!.type;
   // Only CARD_TRANSFER needs its amount deconflicted (see pickUniqueAmount)
   // — every other type keeps exactly what the user typed.
   const resolvedAmountMinor =
@@ -141,6 +156,7 @@ export async function reserveTopUpRequest(
   const request = await ctx.prisma.topUpRequest.create({
     data: {
       userId,
+      type: resolvedType,
       amountMinor: resolvedAmountMinor,
       expiresAt: new Date(now.getTime() + ttlMs),
     },

@@ -8,7 +8,11 @@ import { ConfirmDialog } from '../components/ConfirmDialog';
 import { SkeletonRows } from '../components/SkeletonRows';
 import { useLocale } from '../i18n/LocaleContext';
 
-const TYPES: ReceivingMethodType[] = ['CARD_TRANSFER', 'QR_CODE', 'PAYNET_TERMINAL'];
+// PAYNET_TERMINAL isn't creatable here — cash dropped at a Paynet kiosk
+// lands on a card the exact same way an app-to-app transfer does, so the
+// mobile "Paynet terminali" option just reuses whatever CARD_TRANSFER rows
+// already exist below instead of needing its own admin-managed entry.
+const TYPES: ReceivingMethodType[] = ['CARD_TRANSFER', 'QR_CODE'];
 
 export function ReceivingMethodsPage() {
   const { t } = useLocale();

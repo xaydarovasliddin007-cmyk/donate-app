@@ -214,11 +214,28 @@ describe('topup reservation + auto-verification (live DB)', () => {
       expect(second.amountMinor).toBe(3500000);
     });
 
-    it('rejects a type with no active methods instead of silently falling back to another type', async () => {
+    it('rejects QR_CODE when no QR method is active, instead of silently falling back', async () => {
+      await prisma.receivingMethod.update({ where: { id: qrMethodId }, data: { isActive: false } });
+      try {
+        const user = await makeUser();
+        await expect(
+          topupService.reserveTopUpRequest(ctx, user.id, 30000_00, 'QR_CODE'),
+        ).rejects.toThrow(/no receiving methods/i);
+      } finally {
+        await prisma.receivingMethod.update({ where: { id: qrMethodId }, data: { isActive: true } });
+      }
+    });
+
+    it('PAYNET_TERMINAL reuses the CARD_TRANSFER pool — cash at a kiosk lands on the same cards', async () => {
       const user = await makeUser();
-      await expect(
-        topupService.reserveTopUpRequest(ctx, user.id, 30000_00, 'PAYNET_TERMINAL'),
-      ).rejects.toThrow(/no receiving methods/i);
+      const reservation = await topupService.reserveTopUpRequest(ctx, user.id, 30000_00, 'PAYNET_TERMINAL');
+
+      // The request itself remembers what was actually asked for...
+      expect(reservation.type).toBe('PAYNET_TERMINAL');
+      // ...even though the cards it hands back are ordinary CARD_TRANSFER rows.
+      const ids = reservation.receivingMethods.map((m) => m.id).sort();
+      expect(ids).toEqual([testCardAId, testCardBId].sort());
+      expect(reservation.receivingMethods.every((m) => m.type === 'CARD_TRANSFER')).toBe(true);
     });
 
     it('defaults to any active type when none is given, same as before this feature existed', async () => {

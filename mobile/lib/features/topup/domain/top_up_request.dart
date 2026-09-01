@@ -15,6 +15,7 @@ class TopUpRequest {
     required this.amountMinor,
     required this.currency,
     required this.status,
+    this.type,
     this.receivingMethod,
     this.receivingMethods,
     required this.createdAt,
@@ -26,6 +27,13 @@ class TopUpRequest {
   final int amountMinor;
   final String currency;
   final TopUpRequestStatus status;
+
+  /// What was actually requested — the only reliable signal for which UI
+  /// to render. PAYNET_TERMINAL reuses CARD_TRANSFER's [receivingMethods]
+  /// (cash at a Paynet kiosk lands on the same card an app transfer would),
+  /// so `receivingMethods.first.type` can't tell the two apart; this can.
+  /// Null only for requests created before this field existed.
+  final ReceivingMethodType? type;
 
   /// The specific card a matching bank transaction (or a manual admin
   /// review) identified as the one that actually received the transfer —
@@ -52,6 +60,9 @@ class TopUpRequest {
     amountMinor: json['amountMinor'] as int,
     currency: json['currency'] as String,
     status: _statusFromJson(json['status'] as String),
+    type: json['type'] != null
+        ? receivingMethodTypeFromJson(json['type'] as String)
+        : null,
     receivingMethod: json['receivingMethod'] != null
         ? ReceivingMethod.fromJson(
             json['receivingMethod'] as Map<String, dynamic>,

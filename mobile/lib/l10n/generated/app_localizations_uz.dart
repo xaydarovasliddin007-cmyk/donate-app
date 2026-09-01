@@ -794,6 +794,13 @@ class AppLocalizationsUz extends AppLocalizations {
       'Barcha kartalar orqali komissiyasiz o\'tkazma';
 
   @override
+  String get topupTerminalCardTitle => 'Terminalda shu karta raqamini kiriting';
+
+  @override
+  String get topupTerminalCardNote =>
+      'Eng yaqin Paynet terminaliga boring va naqd to\'lang';
+
+  @override
   String get topupExactAmountLabel => 'Aynan shu summani o\'tkazing';
 
   @override
@@ -856,10 +863,6 @@ class AppLocalizationsUz extends AppLocalizations {
   @override
   String get topupQrInstructions =>
       'Ushbu QR-kodni istalgan bank ilovasi orqali skanerlang va quyida ko\'rsatilgan aniq summani to\'lang.';
-
-  @override
-  String get topupTerminalInstructions =>
-      'Eng yaqin Paynet terminaliga boring, ushbu QR-kodni ko\'rsatib naqd to\'lang va chekni saqlab qoling.';
 
   @override
   String get topupReceiptNumberLabel => 'Chek raqami';

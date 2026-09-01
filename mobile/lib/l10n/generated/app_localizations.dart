@@ -1568,6 +1568,18 @@ abstract class AppLocalizations {
   /// **'Barcha kartalar orqali komissiyasiz o\'tkazma'**
   String get topupNoCommissionNote;
 
+  /// No description provided for @topupTerminalCardTitle.
+  ///
+  /// In uz, this message translates to:
+  /// **'Terminalda shu karta raqamini kiriting'**
+  String get topupTerminalCardTitle;
+
+  /// No description provided for @topupTerminalCardNote.
+  ///
+  /// In uz, this message translates to:
+  /// **'Eng yaqin Paynet terminaliga boring va naqd to\'lang'**
+  String get topupTerminalCardNote;
+
   /// No description provided for @topupExactAmountLabel.
   ///
   /// In uz, this message translates to:
@@ -1681,12 +1693,6 @@ abstract class AppLocalizations {
   /// In uz, this message translates to:
   /// **'Ushbu QR-kodni istalgan bank ilovasi orqali skanerlang va quyida ko\'rsatilgan aniq summani to\'lang.'**
   String get topupQrInstructions;
-
-  /// No description provided for @topupTerminalInstructions.
-  ///
-  /// In uz, this message translates to:
-  /// **'Eng yaqin Paynet terminaliga boring, ushbu QR-kodni ko\'rsatib naqd to\'lang va chekni saqlab qoling.'**
-  String get topupTerminalInstructions;
 
   /// No description provided for @topupReceiptNumberLabel.
   ///
