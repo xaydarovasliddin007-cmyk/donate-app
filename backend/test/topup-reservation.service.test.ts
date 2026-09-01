@@ -238,6 +238,23 @@ describe('topup reservation + auto-verification (live DB)', () => {
       expect(reservation.receivingMethods.every((m) => m.type === 'CARD_TRANSFER')).toBe(true);
     });
 
+    it('never lets a card SMS auto-credit a pending PAYNET_TERMINAL reservation, even on an exact amount match', async () => {
+      const user = await makeUser();
+      const reservation = await topupService.reserveTopUpRequest(ctx, user.id, 36000_00, 'PAYNET_TERMINAL');
+
+      // An unrelated real card transfer happens to land on the same round
+      // amount the terminal user picked — this must not credit them, since
+      // they haven't actually paid anything at a kiosk yet.
+      const result = await topupService.autoVerifyFromCardTransaction(ctx, {
+        cardHint: '5353',
+        amountMinor: reservation.amountMinor,
+      });
+
+      expect(result).toBeNull();
+      const stillPending = await prisma.topUpRequest.findUniqueOrThrow({ where: { id: reservation.id } });
+      expect(stillPending.status).toBe('PENDING');
+    });
+
     it('defaults to any active type when none is given, same as before this feature existed', async () => {
       const user = await makeUser();
       const reservation = await topupService.reserveTopUpRequest(ctx, user.id, 30000_00);

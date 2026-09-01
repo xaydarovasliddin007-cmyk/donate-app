@@ -237,8 +237,13 @@ async function finalizeVerification(ctx: TopUpContext, requestId: string, option
  * actually landed on one of OUR currently-active cards — a coincidental
  * amount match on an unrelated card must never auto-credit anyone — then
  * matches purely on exact amount + still-pending reservation, since
- * reserveTopUpRequest() already guarantees that amount is unique across
- * every concurrently pending request rather than tying it to one card. If
+ * pickUniqueAmount() guarantees a CARD_TRANSFER request's amount is unique
+ * among concurrently pending ones. Matching is scoped to type: 'CARD_TRANSFER'
+ * for exactly that reason — QR_CODE and PAYNET_TERMINAL amounts get no such
+ * guarantee (see pickUniqueAmount's doc comment) and PAYNET_TERMINAL sits
+ * PENDING for up to an hour, so without this filter an unrelated real card
+ * transfer that happens to share a round amount with someone's still-unpaid
+ * terminal reservation would silently credit the wrong person's wallet. If
  * that's not exactly one request (should only happen from the narrow race
  * window noted on pickUniqueAmount, or a stale/duplicate notification),
  * this deliberately does nothing rather than guess — it falls back to
@@ -257,7 +262,15 @@ export async function autoVerifyFromCardTransaction(ctx: TopUpContext, input: Hu
   }
 
   const matches = await ctx.prisma.topUpRequest.findMany({
-    where: { status: 'PENDING', amountMinor: input.amountMinor, expiresAt: { gt: now } },
+    where: {
+      status: 'PENDING',
+      // Every request predating the `type` column was card-transfer-only
+      // by construction (QR/terminal didn't exist yet), so a null here is
+      // as safe to match as an explicit CARD_TRANSFER.
+      OR: [{ type: 'CARD_TRANSFER' }, { type: null }],
+      amountMinor: input.amountMinor,
+      expiresAt: { gt: now },
+    },
   });
 
   const [match] = matches;
