@@ -162,6 +162,12 @@ export interface TopUpRequestAdmin {
   // identifies which of the shown cards actually received the transfer —
   // the reservation flow no longer locks the user to one card up front.
   receivingMethodId: string | null;
+  // What the user actually asked to pay with. PAYNET_TERMINAL requests
+  // show the exact same real card as a CARD_TRANSFER one (cash at a kiosk
+  // lands on that card too), so this is the only way to tell "review this
+  // against the SMS bot" apart from "review this against the receipt
+  // number in userReference" — null only for requests older than this field.
+  type: ReceivingMethodType | null;
   amountMinor: number;
   currency: string;
   status: TopUpRequestStatus;

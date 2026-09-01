@@ -193,6 +193,7 @@ const en: Dict = {
   'topups.blurb':
     "Wallets are credited only after an admin verifies the transfer against a real bank statement — a user's claim alone never credits a wallet.",
   'topups.colUser': 'User',
+  'topups.colType': 'Type',
   'topups.colAmount': 'Amount',
   'topups.colMethod': 'Receiving method',
   'topups.methodNotYetMatched': 'Not matched yet',
@@ -540,6 +541,7 @@ const uz: Dict = {
   'topups.blurb':
     "Hamyon faqat admin o'tkazmani haqiqiy bank ko'chirmasi bilan tasdiqlagandan so'ng to'ldiriladi — foydalanuvchining o'zi aytishi hamyonni to'ldirmaydi.",
   'topups.colUser': 'Foydalanuvchi',
+  'topups.colType': 'Turi',
   'topups.colAmount': 'Summa',
   'topups.colMethod': 'Qabul usuli',
   'topups.methodNotYetMatched': 'Hali aniqlanmagan',
@@ -880,6 +882,7 @@ const ru: Dict = {
   'topups.blurb':
     'Кошелёк пополняется только после того, как администратор подтвердит перевод по реальной банковской выписке — одного заявления пользователя недостаточно.',
   'topups.colUser': 'Пользователь',
+  'topups.colType': 'Тип',
   'topups.colAmount': 'Сумма',
   'topups.colMethod': 'Способ приёма',
   'topups.methodNotYetMatched': 'Пока не определён',

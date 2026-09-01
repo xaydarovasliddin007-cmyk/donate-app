@@ -9,6 +9,19 @@ import { useLocale } from '../i18n/LocaleContext';
 
 const STATUSES: TopUpRequestStatus[] = ['PENDING', 'VERIFIED', 'REJECTED', 'EXPIRED'];
 
+function typeLabel(t: (key: string) => string, type: TopUpRequestAdmin['type']) {
+  switch (type) {
+    case 'QR_CODE':
+      return t('receivingMethods.typeQrCode');
+    case 'PAYNET_TERMINAL':
+      return t('receivingMethods.typePaynetTerminal');
+    case 'CARD_TRANSFER':
+      return t('receivingMethods.typeCardTransfer');
+    default:
+      return '—';
+  }
+}
+
 function TopUpRow({ request, onChanged }: { request: TopUpRequestAdmin; onChanged: () => void }) {
   const { t } = useLocale();
   const [rejecting, setRejecting] = useState(false);
@@ -49,6 +62,7 @@ function TopUpRow({ request, onChanged }: { request: TopUpRequestAdmin; onChange
   return (
     <tr>
       <td>{request.user.displayName ?? request.user.email ?? request.user.phone ?? request.user.publicId}</td>
+      <td>{typeLabel(t, request.type)}</td>
       <td>{formatMinor(request.amountMinor, request.currency)}</td>
       <td>
         {request.receivingMethod ? (
@@ -139,6 +153,7 @@ export function TopUpsPage() {
           <thead>
             <tr>
               <th>{t('topups.colUser')}</th>
+              <th>{t('topups.colType')}</th>
               <th>{t('topups.colAmount')}</th>
               <th>{t('topups.colMethod')}</th>
               <th>{t('topups.colReference')}</th>
@@ -148,7 +163,7 @@ export function TopUpsPage() {
             </tr>
           </thead>
           <tbody>
-            <SkeletonRows columns={7} />
+            <SkeletonRows columns={8} />
           </tbody>
         </table>
       )}
@@ -158,6 +173,7 @@ export function TopUpsPage() {
           <thead>
             <tr>
               <th>{t('topups.colUser')}</th>
+              <th>{t('topups.colType')}</th>
               <th>{t('topups.colAmount')}</th>
               <th>{t('topups.colMethod')}</th>
               <th>{t('topups.colReference')}</th>
@@ -172,7 +188,7 @@ export function TopUpsPage() {
             ))}
             {data.topUps.length === 0 && (
               <tr>
-                <td colSpan={7} className="muted">
+                <td colSpan={8} className="muted">
                   {t('topups.empty')}
                 </td>
               </tr>
