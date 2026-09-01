@@ -825,7 +825,7 @@ class _PaymentStep extends ConsumerWidget {
     final localeName = Localizations.localeOf(context).toString();
     final walletAsync = ref.watch(walletProvider);
 
-    final options = <(_PaymentMethod, IconData, String, String?)>[
+    final options = <(_PaymentMethod, IconData, String, String?, bool)>[
       (
         _PaymentMethod.wallet,
         Icons.account_balance_wallet_outlined,
@@ -837,18 +837,25 @@ class _PaymentStep extends ConsumerWidget {
             formatMoney(wallet.balanceMinor, wallet.currency, localeName),
           ),
         ),
+        true,
       ),
+      // Payme/Click show as "coming soon" rather than live options — no
+      // merchant credentials are configured for either yet (see
+      // registry.ts), so selecting one today would just fail at payment
+      // time. Flip to true the moment real credentials are wired up.
       (
         _PaymentMethod.payme,
         Icons.qr_code_rounded,
         l10n.checkoutPayWithPaymeLabel,
         l10n.checkoutPayWithPaymeSubtitle,
+        false,
       ),
       (
         _PaymentMethod.click,
         Icons.touch_app_rounded,
         l10n.checkoutPayWithClickLabel,
         l10n.checkoutPayWithClickSubtitle,
+        false,
       ),
     ];
 
@@ -871,6 +878,7 @@ class _PaymentStep extends ConsumerWidget {
                 subtitle: option.$4,
                 selected: method == option.$1,
                 onTap: () => onSelect(option.$1),
+                enabled: option.$5,
               ),
             ),
           if (kDebugMode)
@@ -902,6 +910,7 @@ class _PaymentRadioTile extends StatelessWidget {
     required this.subtitle,
     required this.selected,
     required this.onTap,
+    this.enabled = true,
   });
 
   final IconData icon;
@@ -910,63 +919,93 @@ class _PaymentRadioTile extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
 
+  /// False for a provider whose merchant credentials aren't configured yet
+  /// (see registry.ts) — selecting it would just fail at payment time, so
+  /// it's shown honestly labeled "coming soon" instead of as a live option
+  /// a real user (or a Play Store reviewer) could tap into a dead end.
+  final bool enabled;
+
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
 
     return PressableScale(
-      onTap: onTap,
-      child: AnimatedContainer(
+      onTap: enabled ? onTap : null,
+      child: AnimatedOpacity(
         duration: AppMotion.fast,
-        padding: const EdgeInsets.all(AppSpacing.md),
-        decoration: BoxDecoration(
-          color: selected
-              ? theme.colorScheme.primary.withValues(alpha: 0.08)
-              : theme.colorScheme.surface,
-          borderRadius: BorderRadius.circular(AppRadius.md),
-          border: Border.all(
+        opacity: enabled ? 1 : 0.5,
+        child: AnimatedContainer(
+          duration: AppMotion.fast,
+          padding: const EdgeInsets.all(AppSpacing.md),
+          decoration: BoxDecoration(
             color: selected
-                ? theme.colorScheme.primary
-                : theme.colorScheme.outlineVariant,
-            width: selected ? 1.5 : 1,
+                ? theme.colorScheme.primary.withValues(alpha: 0.08)
+                : theme.colorScheme.surface,
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            border: Border.all(
+              color: selected
+                  ? theme.colorScheme.primary
+                  : theme.colorScheme.outlineVariant,
+              width: selected ? 1.5 : 1,
+            ),
           ),
-        ),
-        child: Row(
-          children: [
-            AnimatedSwitcher(
-              duration: AppMotion.fast,
-              child: Icon(
-                selected
-                    ? Icons.radio_button_checked_rounded
-                    : Icons.radio_button_off_rounded,
-                key: ValueKey(selected),
-                color: selected
-                    ? theme.colorScheme.primary
-                    : theme.colorScheme.outlineVariant,
-              ),
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            Icon(icon, size: 18, color: theme.colorScheme.onSurfaceVariant),
-            const SizedBox(width: AppSpacing.sm),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(title, style: theme.textTheme.titleSmall),
-                  if (subtitle != null) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle!,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
+          child: Row(
+            children: [
+              if (enabled)
+                AnimatedSwitcher(
+                  duration: AppMotion.fast,
+                  child: Icon(
+                    selected
+                        ? Icons.radio_button_checked_rounded
+                        : Icons.radio_button_off_rounded,
+                    key: ValueKey(selected),
+                    color: selected
+                        ? theme.colorScheme.primary
+                        : theme.colorScheme.outlineVariant,
+                  ),
+                ),
+              const SizedBox(width: AppSpacing.sm),
+              Icon(icon, size: 18, color: theme.colorScheme.onSurfaceVariant),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(title, style: theme.textTheme.titleSmall),
+                    if (subtitle != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle!,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
                       ),
-                    ),
+                    ],
                   ],
-                ],
+                ),
               ),
-            ),
-          ],
+              if (!enabled)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.sm,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(AppRadius.pill),
+                  ),
+                  child: Text(
+                    l10n.commonComingSoon,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );

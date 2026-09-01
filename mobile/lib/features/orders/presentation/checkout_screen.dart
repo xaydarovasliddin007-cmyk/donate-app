@@ -166,7 +166,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
               ),
               const SizedBox(height: AppSpacing.sm),
               for (final (index, entry)
-                  in <(_PaymentMethod, IconData, String, String?)>[
+                  in <(_PaymentMethod, IconData, String, String?, bool)>[
                     (
                       _PaymentMethod.wallet,
                       Icons.account_balance_wallet_outlined,
@@ -182,18 +182,25 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                           ),
                         ),
                       ),
+                      true,
                     ),
+                    // Payme/Click show as "coming soon" — no merchant
+                    // credentials are configured for either yet (see
+                    // registry.ts), so selecting one today would just fail
+                    // at payment time.
                     (
                       _PaymentMethod.payme,
                       Icons.qr_code_rounded,
                       l10n.checkoutPayWithPaymeLabel,
                       l10n.checkoutPayWithPaymeSubtitle,
+                      false,
                     ),
                     (
                       _PaymentMethod.click,
                       Icons.touch_app_rounded,
                       l10n.checkoutPayWithClickLabel,
                       l10n.checkoutPayWithClickSubtitle,
+                      false,
                     ),
                   ].indexed)
                 Padding(
@@ -210,6 +217,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                         _errorMessage = null;
                         _insufficientBalance = false;
                       }),
+                      enabled: entry.$5,
                     ),
                   ),
                 ),
@@ -433,6 +441,7 @@ class _PaymentMethodTile extends StatelessWidget {
     required this.subtitle,
     required this.selected,
     required this.onTap,
+    this.enabled = true,
   });
 
   final IconData icon;
@@ -441,8 +450,15 @@ class _PaymentMethodTile extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
 
+  /// False for a provider whose merchant credentials aren't configured yet
+  /// (see registry.ts) — selecting it would just fail at payment time, so
+  /// it's shown honestly labeled "coming soon" instead of as a live option
+  /// a real user (or a Play Store reviewer) could tap into a dead end.
+  final bool enabled;
+
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final gradient = isDark
@@ -450,91 +466,114 @@ class _PaymentMethodTile extends StatelessWidget {
         : AppColors.heroGradientLight;
 
     return PressableScale(
-      onTap: onTap,
-      child: AnimatedContainer(
+      onTap: enabled ? onTap : null,
+      child: AnimatedOpacity(
         duration: AppMotion.fast,
-        padding: const EdgeInsets.all(AppSpacing.md),
-        decoration: BoxDecoration(
-          color: selected
-              ? theme.colorScheme.primary.withValues(alpha: 0.08)
-              : theme.colorScheme.surface,
-          borderRadius: BorderRadius.circular(AppRadius.md),
-          border: Border.all(
+        opacity: enabled ? 1 : 0.5,
+        child: AnimatedContainer(
+          duration: AppMotion.fast,
+          padding: const EdgeInsets.all(AppSpacing.md),
+          decoration: BoxDecoration(
             color: selected
-                ? theme.colorScheme.primary
-                : theme.colorScheme.outlineVariant,
-            width: selected ? 1.5 : 1,
+                ? theme.colorScheme.primary.withValues(alpha: 0.08)
+                : theme.colorScheme.surface,
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            border: Border.all(
+              color: selected
+                  ? theme.colorScheme.primary
+                  : theme.colorScheme.outlineVariant,
+              width: selected ? 1.5 : 1,
+            ),
+            boxShadow: selected
+                ? [
+                    BoxShadow(
+                      color: gradient.first.withValues(alpha: 0.18),
+                      blurRadius: 14,
+                      offset: const Offset(0, 4),
+                    ),
+                  ]
+                : null,
           ),
-          boxShadow: selected
-              ? [
-                  BoxShadow(
-                    color: gradient.first.withValues(alpha: 0.18),
-                    blurRadius: 14,
-                    offset: const Offset(0, 4),
-                  ),
-                ]
-              : null,
-        ),
-        child: Row(
-          children: [
-            AnimatedContainer(
-              duration: AppMotion.fast,
-              width: 36,
-              height: 36,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                gradient: selected ? LinearGradient(colors: gradient) : null,
-                color: selected
-                    ? null
-                    : theme.colorScheme.surfaceContainerHighest.withValues(
-                        alpha: 0.6,
-                      ),
-                borderRadius: BorderRadius.circular(AppRadius.sm),
+          child: Row(
+            children: [
+              AnimatedContainer(
+                duration: AppMotion.fast,
+                width: 36,
+                height: 36,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  gradient: selected ? LinearGradient(colors: gradient) : null,
+                  color: selected
+                      ? null
+                      : theme.colorScheme.surfaceContainerHighest.withValues(
+                          alpha: 0.6,
+                        ),
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                ),
+                child: Icon(
+                  icon,
+                  size: 18,
+                  color: selected
+                      ? Colors.white
+                      : theme.colorScheme.onSurfaceVariant,
+                ),
               ),
-              child: Icon(
-                icon,
-                size: 18,
-                color: selected
-                    ? Colors.white
-                    : theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(title, style: theme.textTheme.titleSmall),
-                  if (subtitle != null) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle!,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(title, style: theme.textTheme.titleSmall),
+                    if (subtitle != null) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle!,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
                       ),
-                    ),
+                    ],
                   ],
-                ],
+                ),
               ),
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            AnimatedSwitcher(
-              duration: AppMotion.fast,
-              child: selected
-                  ? Icon(
-                      Icons.check_circle_rounded,
-                      key: const ValueKey(true),
-                      color: theme.colorScheme.primary,
-                    )
-                  : Icon(
-                      Icons.circle_outlined,
-                      key: const ValueKey(false),
-                      size: 20,
-                      color: theme.colorScheme.outlineVariant,
+              const SizedBox(width: AppSpacing.sm),
+              if (enabled)
+                AnimatedSwitcher(
+                  duration: AppMotion.fast,
+                  child: selected
+                      ? Icon(
+                          Icons.check_circle_rounded,
+                          key: const ValueKey(true),
+                          color: theme.colorScheme.primary,
+                        )
+                      : Icon(
+                          Icons.circle_outlined,
+                          key: const ValueKey(false),
+                          size: 20,
+                          color: theme.colorScheme.outlineVariant,
+                        ),
+                )
+              else
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.sm,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(AppRadius.pill),
+                  ),
+                  child: Text(
+                    l10n.commonComingSoon,
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w700,
                     ),
-            ),
-          ],
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
