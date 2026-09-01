@@ -204,6 +204,20 @@ describe('topup reservation + auto-verification (live DB)', () => {
       expect(reservation.receivingMethods[0]!.id).toBe(qrMethodId);
     });
 
+    it('keeps returning only the QR method on every subsequent poll, not a mix with cards', async () => {
+      const user = await makeUser();
+      const reservation = await topupService.reserveTopUpRequest(ctx, user.id, 31000_00, 'QR_CODE');
+
+      // This is exactly what the mobile client calls every 4s while waiting
+      // — if it ever mixes in the CARD_TRANSFER rows, the QR image the
+      // user is looking at would silently disappear mid-wait.
+      const polled = await topupService.getTopUpRequestForUser(ctx, user.id, reservation.id);
+
+      expect(polled.receivingMethods).toHaveLength(1);
+      expect(polled.receivingMethods[0]!.id).toBe(qrMethodId);
+      expect(polled.receivingMethods[0]!.type).toBe('QR_CODE');
+    });
+
     it('never bumps a QR/terminal amount, even on collision — those are always reviewed manually', async () => {
       const user1 = await makeUser();
       const user2 = await makeUser();
@@ -236,6 +250,12 @@ describe('topup reservation + auto-verification (live DB)', () => {
       const ids = reservation.receivingMethods.map((m) => m.id).sort();
       expect(ids).toEqual([testCardAId, testCardBId].sort());
       expect(reservation.receivingMethods.every((m) => m.type === 'CARD_TRANSFER')).toBe(true);
+
+      // Polling must keep excluding the QR method — same bug as above,
+      // just from the other direction (a card list gaining a broken QR row).
+      const polled = await topupService.getTopUpRequestForUser(ctx, user.id, reservation.id);
+      expect(polled.receivingMethods.map((m) => m.id).sort()).toEqual(ids);
+      expect(polled.receivingMethods.some((m) => m.id === qrMethodId)).toBe(false);
     });
 
     it('never lets a card SMS auto-credit a pending PAYNET_TERMINAL reservation, even on an exact amount match', async () => {

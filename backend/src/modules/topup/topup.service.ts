@@ -1,4 +1,4 @@
-import type { PrismaClient, ReceivingMethodType } from '@prisma/client';
+import type { PrismaClient, ReceivingMethod, ReceivingMethodType } from '@prisma/client';
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../../lib/errors.js';
 import { formatMinorAmount } from '../../lib/money.js';
 import { notifyAdmins } from '../../lib/telegram.js';
@@ -109,6 +109,23 @@ async function pickUniqueAmount(ctx: TopUpContext, requestedAmountMinor: number,
  * which one actually got the transfer — see pickUniqueAmount() for how the
  * exact amount stays unambiguous across every concurrently pending request.
  */
+/**
+ * PAYNET_TERMINAL has no receiving-method data of its own — cash dropped at
+ * a Paynet kiosk against a card number lands on that card exactly the same
+ * way an app-to-app CARD_TRANSFER does (both ride NBU's interbank rails),
+ * so it reuses the CARD_TRANSFER card pool rather than needing its own
+ * admin-managed row. Only QR_CODE has genuinely distinct data (the Paynet
+ * merchant QR). `type` omitted entirely is the one legacy case that still
+ * means "every active method, whatever type" — used both by
+ * reserveTopUpRequest() up front and getTopUpRequestForUser() on every poll
+ * afterward, so the two never disagree about what a reservation should show.
+ */
+function receivingMethodsForType(allActiveMethods: ReceivingMethod[], type?: ReceivingMethodType) {
+  if (!type) return allActiveMethods;
+  if (type === 'QR_CODE') return allActiveMethods.filter((m) => m.type === 'QR_CODE');
+  return allActiveMethods.filter((m) => m.type === 'CARD_TRANSFER');
+}
+
 export async function reserveTopUpRequest(
   ctx: TopUpContext,
   userId: string,
@@ -127,18 +144,7 @@ export async function reserveTopUpRequest(
   });
 
   const allActiveMethods = await listActiveReceivingMethods(ctx);
-  // PAYNET_TERMINAL has no receiving-method data of its own — cash dropped
-  // at a Paynet kiosk against a card number lands on that card exactly the
-  // same way an app-to-app CARD_TRANSFER does (both ride NBU's interbank
-  // rails), so it reuses the CARD_TRANSFER card pool rather than needing
-  // its own admin-managed row. Only QR_CODE has genuinely distinct data
-  // (the Paynet merchant QR). `type` omitted entirely is the one legacy
-  // case that still means "every active method, whatever type."
-  const activeMethods = !type
-    ? allActiveMethods
-    : type === 'QR_CODE'
-      ? allActiveMethods.filter((m) => m.type === 'QR_CODE')
-      : allActiveMethods.filter((m) => m.type === 'CARD_TRANSFER');
+  const activeMethods = receivingMethodsForType(allActiveMethods, type);
   if (activeMethods.length === 0) {
     throw new ConflictError('No receiving methods are configured right now — please try again later');
   }
@@ -335,9 +341,14 @@ export async function getTopUpRequestForUser(ctx: TopUpContext, userId: string, 
   // Only the reservation flow (expiresAt set) needs the card list re-sent
   // on every poll, so the mobile UI doesn't lose it after the first
   // refresh — the older pick-one-method-up-front flow already committed
-  // to a single method at creation and doesn't use this field.
+  // to a single method at creation and doesn't use this field. Filtered by
+  // the same type the reservation was actually made against — without
+  // this, a QR reservation's card image would silently get replaced by an
+  // unfiltered card+QR mix the next time the client polls (a real bug this
+  // fixes: the client sets state from whatever this returns every 4s).
   if (request.expiresAt) {
-    const receivingMethods = await listActiveReceivingMethods(ctx);
+    const allActiveMethods = await listActiveReceivingMethods(ctx);
+    const receivingMethods = receivingMethodsForType(allActiveMethods, request.type ?? undefined);
     return { ...request, receivingMethods };
   }
   return request;
