@@ -193,6 +193,10 @@ export const adminWalletAdjustSchema = z.object({
   reason: z.string().trim().min(1).max(500),
 });
 
+export const adminUpdateUserDiscountSchema = z.object({
+  discountPercent: z.number().int().min(0).max(100),
+});
+
 export const adminRefundOrderSchema = z.object({
   reason: z.string().trim().min(1).max(500).optional(),
 });
@@ -242,6 +246,7 @@ export type AdminUpdatePromoCodeInput = z.infer<typeof adminUpdatePromoCodeSchem
 export type AdminCreateReceivingMethodInput = z.infer<typeof adminCreateReceivingMethodSchema>;
 export type AdminUpdateReceivingMethodInput = z.infer<typeof adminUpdateReceivingMethodSchema>;
 export type AdminWalletAdjustInput = z.infer<typeof adminWalletAdjustSchema>;
+export type AdminUpdateUserDiscountInput = z.infer<typeof adminUpdateUserDiscountSchema>;
 export type AdminRefundOrderInput = z.infer<typeof adminRefundOrderSchema>;
 export type AdminStatsQuery = z.infer<typeof adminStatsQuerySchema>;
 export type AdminCreateAdminInput = z.infer<typeof adminCreateAdminSchema>;

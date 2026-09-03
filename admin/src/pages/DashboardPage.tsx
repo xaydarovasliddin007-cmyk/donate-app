@@ -109,6 +109,58 @@ export function DashboardPage() {
               }))}
             />
           </div>
+          <div className="panel-grid">
+            <div className="panel">
+              <h3>{t('dashboard.topClients')}</h3>
+              {data.topClients.length === 0 ? (
+                <p className="muted">{t('dashboard.topClientsEmpty')}</p>
+              ) : (
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>{t('dashboard.colClient')}</th>
+                      <th>{t('dashboard.colOrders')}</th>
+                      <th>{t('dashboard.colSpent')}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.topClients.map((row, i) => (
+                      <tr key={row.user?.id ?? i}>
+                        <td>{row.user?.displayName ?? row.user?.email ?? row.user?.publicId ?? '—'}</td>
+                        <td>{row.orderCount}</td>
+                        <td>{formatMinor(row.totalSpentMinor, 'UZS')}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+            <div className="panel">
+              <h3>{t('dashboard.topGames')}</h3>
+              {data.topGames.length === 0 ? (
+                <p className="muted">{t('dashboard.topGamesEmpty')}</p>
+              ) : (
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>{t('dashboard.colGame')}</th>
+                      <th>{t('dashboard.colOrders')}</th>
+                      <th>{t('dashboard.colRevenue')}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.topGames.map((row, i) => (
+                      <tr key={row.game?.id ?? i}>
+                        <td>{row.game?.name ?? '—'}</td>
+                        <td>{row.orderCount}</td>
+                        <td>{formatMinor(row.revenueMinor, 'UZS')}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
         </>
       )}
     </div>

@@ -1,5 +1,6 @@
 import type { PrismaClient } from '@prisma/client';
 import { NotFoundError } from '../../lib/errors.js';
+import { applyDiscount } from '../../lib/money.js';
 
 function toPublicGame(game: {
   id: string;
@@ -26,21 +27,30 @@ function toPublicGameServer(server: { id: string; name: string; code: string }) 
   return { id: server.id, name: server.name, code: server.code };
 }
 
-function toPublicProduct(product: {
-  id: string;
-  name: string;
-  description: string | null;
-  amountMinor: number;
-  currency: string;
-  isTest: boolean;
-}) {
+function toPublicProduct(
+  product: {
+    id: string;
+    name: string;
+    description: string | null;
+    amountMinor: number;
+    currency: string;
+    isTest: boolean;
+  },
+  discountPercent = 0,
+) {
   return {
     id: product.id,
     name: product.name,
     description: product.description,
-    amountMinor: product.amountMinor,
+    // The price this specific viewer would actually be charged — see
+    // orders.service.ts's identical use of applyDiscount at order creation.
+    // Kept in sync with checkout on purpose: a reseller browsing the
+    // catalog should see the exact number they'll pay, not the list price
+    // followed by a surprise discount only visible after buying.
+    amountMinor: applyDiscount(product.amountMinor, discountPercent),
     currency: product.currency,
     isTest: product.isTest,
+    discountPercent,
   };
 }
 
@@ -81,7 +91,12 @@ export async function listGameServers(prisma: PrismaClient, gameId: string) {
  * purchase time, so "what's shown" and "what you can actually buy" never
  * disagree.
  */
-export async function listGameProducts(prisma: PrismaClient, gameId: string, serverCode?: string) {
+export async function listGameProducts(
+  prisma: PrismaClient,
+  gameId: string,
+  serverCode?: string,
+  viewerUserId?: string,
+) {
   const game = await prisma.game.findFirst({
     where: { id: gameId, availability: { not: 'DISABLED' } },
   });
@@ -104,9 +119,21 @@ export async function listGameProducts(prisma: PrismaClient, gameId: string, ser
     resolvedServerId = server.id;
   }
 
+  // Anonymous browsing (no token) or a regular customer both resolve to
+  // 0% here — only a signed-in reseller/partner account with a standing
+  // User.discountPercent sees anything different.
+  const discountPercent = viewerUserId
+    ? (
+        await prisma.user.findUnique({
+          where: { id: viewerUserId },
+          select: { discountPercent: true },
+        })
+      )?.discountPercent ?? 0
+    : 0;
+
   const products = await prisma.product.findMany({
     where: { gameId, isActive: true, serverId: resolvedServerId },
     orderBy: [{ sortOrder: 'asc' }, { amountMinor: 'asc' }],
   });
-  return products.map(toPublicProduct);
+  return products.map((product) => toPublicProduct(product, discountPercent));
 }

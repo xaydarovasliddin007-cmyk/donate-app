@@ -53,6 +53,10 @@ model User {
   locale          String     @default("uz")
   role            UserRole   @default(CUSTOMER)
   status          UserStatus @default(ACTIVE)
+  // Whole-percent discount (0-100) applied to every order this user places
+  // going forward — set by an admin for resellers/partner accounts, not
+  // redeemed via a code the way PromoCode is. 0 for everyone else.
+  discountPercent Int        @default(0) @map("discount_percent")
   // Set once the user enters a valid code sent to their email
   // (EmailVerificationToken below). Null forever for Google-only accounts'
   // email, since Google already verified it before we ever saw it.
@@ -433,8 +437,13 @@ model Order {
   // Zone ID) — sent to the fulfillment provider to identify the account.
   // Unrelated to serverId/GameServer, which is about pricing, not identity.
   zoneId         String?     @map("zone_id")
+  // The actual charged total, after any per-user discount — see User.discountPercent.
   amountMinor    Int         @map("amount_minor")
   currency       String      @default("UZS")
+  // Snapshot of the discount actually applied, in case the user's own
+  // discountPercent changes later — an old order must keep showing what it
+  // was charged at, not silently recompute against a different rate.
+  discountPercent Int        @default(0) @map("discount_percent")
   status         OrderStatus @default(PENDING)
   // Client-supplied key (e.g. a UUID generated once per checkout attempt) so
   // a retried "Buy now" tap can never create two orders.

@@ -63,6 +63,7 @@ export function toPublicUser(user: {
   avatarUrl: string | null;
   locale: string;
   role: string;
+  discountPercent?: number;
   googleId?: string | null;
   emailVerifiedAt?: Date | null;
 }) {
@@ -75,6 +76,9 @@ export function toPublicUser(user: {
     avatarUrl: user.avatarUrl,
     locale: user.locale,
     role: user.role,
+    // 0 for virtually everyone — only set for reseller/partner accounts an
+    // admin has given a standing discount to (see User.discountPercent).
+    discountPercent: user.discountPercent ?? 0,
     // Never the raw googleId — just whether an account is linked, for the
     // security center's "Google account connected" indicator.
     hasGoogleAccount: Boolean(user.googleId),

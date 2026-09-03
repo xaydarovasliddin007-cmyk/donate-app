@@ -27,6 +27,7 @@ import {
   adminUpdateProviderProductSchema,
   adminUpdateProviderSchema,
   adminUpdateReceivingMethodSchema,
+  adminUpdateUserDiscountSchema,
   adminWalletAdjustSchema,
 } from './admin.schemas.js';
 import * as adminService from './admin.service.js';
@@ -56,6 +57,7 @@ import type {
   AdminUpdateProviderInput,
   AdminUpdateProviderProductInput,
   AdminUpdateReceivingMethodInput,
+  AdminUpdateUserDiscountInput,
   AdminWalletAdjustInput,
 } from './admin.schemas.js';
 
@@ -135,6 +137,20 @@ export async function adminBusinessRoutes(app: FastifyInstance) {
     async (request) => {
       const body = request.body as AdminWalletAdjustInput;
       return adminService.adjustWalletAdmin(ctx, request.currentAdmin!.id, request.params.id, body);
+    },
+  );
+
+  app.patch<{ Params: { id: string } }>(
+    '/users/:id/discount',
+    { preHandler: [requireAdminRole(...FINANCE_ROLES), validateBody(adminUpdateUserDiscountSchema)] },
+    async (request) => {
+      const body = request.body as AdminUpdateUserDiscountInput;
+      return adminService.updateUserDiscountAdmin(
+        ctx,
+        request.currentAdmin!.id,
+        request.params.id,
+        body.discountPercent,
+      );
     },
   );
 

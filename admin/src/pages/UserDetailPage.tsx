@@ -22,6 +22,32 @@ export function UserDetailPage() {
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
+  const [discountInput, setDiscountInput] = useState('');
+  const [savingDiscount, setSavingDiscount] = useState(false);
+  const [discountError, setDiscountError] = useState<string | null>(null);
+  const [discountSaved, setDiscountSaved] = useState(false);
+
+  async function submitDiscount(event: FormEvent) {
+    event.preventDefault();
+    setDiscountError(null);
+    setDiscountSaved(false);
+    const pct = Number(discountInput);
+    if (!Number.isInteger(pct) || pct < 0 || pct > 100) {
+      setDiscountError(t('userDetail.discountOutOfRange'));
+      return;
+    }
+    setSavingDiscount(true);
+    try {
+      await api.patch(`/admin/users/${userId}/discount`, { discountPercent: pct });
+      setDiscountSaved(true);
+      reload();
+    } catch (err) {
+      setDiscountError(err instanceof ApiError ? err.message : t('userDetail.discountFailed'));
+    } finally {
+      setSavingDiscount(false);
+    }
+  }
+
   async function submitAdjustment(event: FormEvent) {
     event.preventDefault();
     setFormError(null);
@@ -77,7 +103,31 @@ export function UserDetailPage() {
             </dd>
             <dt>{t('userDetail.joined')}</dt>
             <dd>{formatDate(user.createdAt)}</dd>
+            <dt>{t('userDetail.discount')}</dt>
+            <dd>{user.discountPercent > 0 ? `${user.discountPercent}%` : t('userDetail.noDiscount')}</dd>
           </dl>
+          <form className="stack-form" onSubmit={submitDiscount}>
+            <div className="toolbar">
+              <input
+                type="number"
+                min="0"
+                max="100"
+                step="1"
+                placeholder={t('userDetail.discountPlaceholder')}
+                value={discountInput}
+                onChange={(e) => {
+                  setDiscountInput(e.target.value);
+                  setDiscountSaved(false);
+                }}
+              />
+              <button className="btn btn-secondary" type="submit" disabled={savingDiscount}>
+                {savingDiscount ? t('userDetail.applyingDiscount') : t('userDetail.applyDiscount')}
+              </button>
+            </div>
+            <p className="muted">{t('userDetail.discountHint')}</p>
+            {discountError && <div className="form-error">{discountError}</div>}
+            {discountSaved && !discountError && <div className="form-success">{t('userDetail.discountUpdated')}</div>}
+          </form>
         </div>
 
         <div className="panel">

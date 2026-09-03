@@ -2,7 +2,7 @@ import type { Order, OrderStatus, Prisma, PrismaClient } from '@prisma/client';
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../../lib/errors.js';
 import { generateOrderNumber } from '../../lib/order-number.js';
 import { notifyAdmins } from '../../lib/telegram.js';
-import { formatMinorAmount } from '../../lib/money.js';
+import { applyDiscount, formatMinorAmount } from '../../lib/money.js';
 import { getTopupProvider } from '../../providers/registry.js';
 import { createNotification } from '../notifications/notifications.service.js';
 import { recordPlayerProfileFromOrder } from '../saved-games/saved-games.service.js';
@@ -32,6 +32,7 @@ function toPublicOrder(
     zoneId: order.zoneId,
     amountMinor: order.amountMinor,
     currency: order.currency,
+    discountPercent: order.discountPercent,
     failureReason: order.failureReason,
     items: order.items,
     latestPayment: order.payments?.[0] ?? null,
@@ -134,6 +135,16 @@ export async function createOrder(ctx: OrderContext, userId: string, input: Crea
     throw new ConflictError(validation.reason ?? 'Player ID could not be validated');
   }
 
+  // Reseller/partner accounts get a flat percent off every purchase — set
+  // by an admin on the user directly (User.discountPercent), applied here
+  // so it's server-authoritative and can never be manipulated from the
+  // client.
+  const { discountPercent } = await ctx.prisma.user.findUniqueOrThrow({
+    where: { id: userId },
+    select: { discountPercent: true },
+  });
+  const chargedAmountMinor = applyDiscount(product.amountMinor, discountPercent);
+
   const order = await ctx.prisma.$transaction(async (tx) => {
     const created = await tx.order.create({
       data: {
@@ -143,8 +154,9 @@ export async function createOrder(ctx: OrderContext, userId: string, input: Crea
         playerId: input.playerId,
         serverId: input.serverId,
         zoneId: input.zoneId,
-        amountMinor: product.amountMinor,
+        amountMinor: chargedAmountMinor,
         currency: product.currency,
+        discountPercent,
         status: 'PENDING',
         idempotencyKey: input.idempotencyKey,
         items: {
@@ -152,8 +164,8 @@ export async function createOrder(ctx: OrderContext, userId: string, input: Crea
             productId: product.id,
             productName: product.name,
             quantity: 1,
-            unitAmountMinor: product.amountMinor,
-            totalAmountMinor: product.amountMinor,
+            unitAmountMinor: chargedAmountMinor,
+            totalAmountMinor: chargedAmountMinor,
           },
         },
       },

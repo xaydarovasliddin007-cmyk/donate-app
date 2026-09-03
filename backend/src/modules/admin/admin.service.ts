@@ -128,6 +128,7 @@ export async function listUsersAdmin(
         locale: true,
         role: true,
         status: true,
+        discountPercent: true,
         createdAt: true,
         _count: { select: { orders: true } },
       },
@@ -153,6 +154,7 @@ export async function getUserDetailAdmin(ctx: AdminContext, userId: string) {
       locale: true,
       role: true,
       status: true,
+      discountPercent: true,
       createdAt: true,
     },
   });
@@ -594,6 +596,9 @@ export function resolveStatsRange(input: { range: StatsRangePreset; from?: Date;
  * distribution doesn't mean much re-scoped to "last 7 days" the way a count
  * does, and the dashboard shows both side by side.
  */
+const TOP_CLIENTS_LIMIT = 10;
+const TOP_GAMES_LIMIT = 10;
+
 export async function getStatsAdmin(ctx: AdminContext, range: { from: Date; to: Date }) {
   const [
     ordersByStatus,
@@ -604,6 +609,8 @@ export async function getStatsAdmin(ctx: AdminContext, range: { from: Date; to: 
     walletLiability,
     topUpsByStatus,
     newUsersInRange,
+    topClientsRaw,
+    topGamesRaw,
   ] = await Promise.all([
     ctx.prisma.order.groupBy({ by: ['status'], _count: { _all: true } }),
     ctx.prisma.user.count(),
@@ -620,7 +627,45 @@ export async function getStatsAdmin(ctx: AdminContext, range: { from: Date; to: 
     ctx.prisma.wallet.groupBy({ by: ['currency'], _sum: { balanceMinor: true } }),
     ctx.prisma.topUpRequest.groupBy({ by: ['status'], _count: { _all: true } }),
     ctx.prisma.user.count({ where: { createdAt: { gte: range.from, lte: range.to } } }),
+    // Biggest spenders in the selected range — only COMPLETED orders count
+    // as real revenue, same rule as revenueInRangeByCurrency above. Not
+    // grouped by currency like that field is: every order is UZS today, so
+    // summing across users/games directly is safe. Revisit if a second
+    // currency is ever introduced.
+    ctx.prisma.order.groupBy({
+      by: ['userId'],
+      where: { status: 'COMPLETED', completedAt: { gte: range.from, lte: range.to } },
+      _sum: { amountMinor: true },
+      _count: { _all: true },
+      orderBy: { _sum: { amountMinor: 'desc' } },
+      take: TOP_CLIENTS_LIMIT,
+    }),
+    // Same shape, grouped by game instead of user — which titles are
+    // actually driving revenue this range.
+    ctx.prisma.order.groupBy({
+      by: ['gameId'],
+      where: { status: 'COMPLETED', completedAt: { gte: range.from, lte: range.to } },
+      _sum: { amountMinor: true },
+      _count: { _all: true },
+      orderBy: { _sum: { amountMinor: 'desc' } },
+      take: TOP_GAMES_LIMIT,
+    }),
   ]);
+
+  // groupBy can't join — a second lookup + in-memory merge keeps the two
+  // display fields (name, publicId/slug) without denormalizing the group.
+  const [clientUsers, games] = await Promise.all([
+    ctx.prisma.user.findMany({
+      where: { id: { in: topClientsRaw.map((row) => row.userId) } },
+      select: { id: true, publicId: true, displayName: true, email: true, discountPercent: true },
+    }),
+    ctx.prisma.game.findMany({
+      where: { id: { in: topGamesRaw.map((row) => row.gameId) } },
+      select: { id: true, name: true, slug: true },
+    }),
+  ]);
+  const userById = new Map(clientUsers.map((u) => [u.id, u]));
+  const gameById = new Map(games.map((g) => [g.id, g]));
 
   return {
     range: { from: range.from.toISOString(), to: range.to.toISOString() },
@@ -636,6 +681,16 @@ export async function getStatsAdmin(ctx: AdminContext, range: { from: Date; to: 
       walletLiability.map((row) => [row.currency, row._sum.balanceMinor ?? 0]),
     ),
     topUpsByStatus: Object.fromEntries(topUpsByStatus.map((row) => [row.status, row._count._all])),
+    topClients: topClientsRaw.map((row) => ({
+      user: userById.get(row.userId) ?? null,
+      totalSpentMinor: row._sum.amountMinor ?? 0,
+      orderCount: row._count._all,
+    })),
+    topGames: topGamesRaw.map((row) => ({
+      game: gameById.get(row.gameId) ?? null,
+      revenueMinor: row._sum.amountMinor ?? 0,
+      orderCount: row._count._all,
+    })),
   };
 }
 
@@ -705,6 +760,42 @@ export async function adjustWalletAdmin(
   });
 
   return entry;
+}
+
+/**
+ * Sets (or clears, at 0) a user's standing purchase discount — a flat
+ * percent off every order they place from now on, unlike PromoCode's
+ * one-time redeemed-by-code bonus. Meant for reseller/partner accounts
+ * ("donate admins" in the business's own terms), not end customers.
+ * Already-placed orders keep whatever discount they were charged at (see
+ * Order.discountPercent) — this only changes future ones.
+ */
+export async function updateUserDiscountAdmin(
+  ctx: AdminContext,
+  adminId: string,
+  userId: string,
+  discountPercent: number,
+) {
+  const user = await ctx.prisma.user.findUnique({ where: { id: userId } });
+  if (!user) {
+    throw new NotFoundError('User not found');
+  }
+
+  const updated = await ctx.prisma.user.update({
+    where: { id: userId },
+    data: { discountPercent },
+    select: { id: true, discountPercent: true },
+  });
+
+  await writeAuditLog(ctx.prisma, {
+    actorId: adminId,
+    action: 'user.discount',
+    entityType: 'User',
+    entityId: userId,
+    metadata: { from: user.discountPercent, to: discountPercent },
+  });
+
+  return updated;
 }
 
 // --- Top-ups ----------------------------------------------------------------

@@ -17,6 +17,22 @@ export interface Stats {
   ordersInRange: number;
   walletLiabilityByCurrency: Record<string, number>;
   topUpsByStatus: Record<string, number>;
+  topClients: {
+    user: {
+      id: string;
+      publicId: string;
+      displayName: string | null;
+      email: string | null;
+      discountPercent: number;
+    } | null;
+    totalSpentMinor: number;
+    orderCount: number;
+  }[];
+  topGames: {
+    game: { id: string; name: string; slug: string } | null;
+    revenueMinor: number;
+    orderCount: number;
+  }[];
 }
 
 export type OrderStatus = 'PENDING' | 'PAID' | 'FULFILLING' | 'COMPLETED' | 'FAILED' | 'REFUNDED';
@@ -34,6 +50,7 @@ export interface UserListItem {
   locale: string;
   role: string;
   status: string;
+  discountPercent: number;
   createdAt: string;
   _count: { orders: number };
 }
@@ -64,6 +81,7 @@ export interface OrderSummary {
   serverId: string | null;
   amountMinor: number;
   currency: string;
+  discountPercent: number;
   status: OrderStatus;
   failureReason: string | null;
   createdAt: string;
@@ -125,6 +143,7 @@ export interface UserDetail {
     locale: string;
     role: string;
     status: string;
+    discountPercent: number;
     createdAt: string;
   };
   wallet: WalletSummary;
