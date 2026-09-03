@@ -329,6 +329,14 @@ model Product {
   name        String
   description String?
   amountMinor Int         @map("amount_minor")
+  // What this actually costs (the supplier/provider price), separate from
+  // amountMinor (what the customer pays) — the input the profit stats on
+  // the admin dashboard are built from. Null means "not entered yet," not
+  // "free": every profit calculation explicitly excludes such products
+  // rather than treating the gap as pure margin. Snapshotted onto
+  // OrderItem.costMinorSnapshot at purchase time so a later cost change
+  // never rewrites a past order's already-reported profit.
+  costMinor   Int?        @map("cost_minor")
   currency    String      @default("UZS")
   isActive    Boolean     @default(true) @map("is_active")
   // Marks development/seed catalog data so it's never confused with a real,
@@ -477,6 +485,12 @@ model OrderItem {
   quantity         Int      @default(1)
   unitAmountMinor  Int      @map("unit_amount_minor")
   totalAmountMinor Int      @map("total_amount_minor")
+  // Snapshot of Product.costMinor at the moment this order was placed — per
+  // unit, same as unitAmountMinor. Null whenever the product's cost hadn't
+  // been entered yet at purchase time (including every order placed before
+  // this column existed); the profit stats treat that as "unknown," not
+  // "zero cost," and exclude the item rather than overstate margin.
+  costMinorSnapshot Int?    @map("cost_minor_snapshot")
   createdAt        DateTime @default(now()) @map("created_at")
 
   @@index([orderId])

@@ -32,7 +32,16 @@ export interface Stats {
     game: { id: string; name: string; slug: string } | null;
     revenueMinor: number;
     orderCount: number;
+    // 0 whenever every item sold for this game in range had no cost
+    // entered — same "unknown, not zero" caveat as profitInRangeMinor.
+    profitMinor: number;
   }[];
+  // UZS-only for now, same simplification topClients/topGames make.
+  profitInRangeMinor: number;
+  // How many sold items in range were excluded from profitInRangeMinor
+  // because their product had no cost entered at purchase time — show this
+  // next to the profit figure so it never reads as more final than it is.
+  profitCostUnknownItemCount: number;
 }
 
 export type OrderStatus = 'PENDING' | 'PAID' | 'FULFILLING' | 'COMPLETED' | 'FAILED' | 'REFUNDED';
@@ -231,6 +240,9 @@ export interface Product {
   name: string;
   description: string | null;
   amountMinor: number;
+  // What this actually costs (supplier/provider price) — null until an
+  // admin enters it. Feeds the dashboard's profit stats.
+  costMinor: number | null;
   currency: string;
   isActive: boolean;
   isTest: boolean;

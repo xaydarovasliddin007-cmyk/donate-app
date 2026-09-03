@@ -25,6 +25,8 @@ function ProductRow({
   const { showError } = useToast();
   const [amount, setAmount] = useState(String(product.amountMinor / 100));
   const [saving, setSaving] = useState(false);
+  const [cost, setCost] = useState(product.costMinor != null ? String(product.costMinor / 100) : '');
+  const [savingCost, setSavingCost] = useState(false);
 
   async function saveAmount() {
     const amountMajor = Number(amount);
@@ -37,6 +39,25 @@ function ProductRow({
       showError(err instanceof ApiError ? err.message : t('products.priceFailed'));
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function saveCost() {
+    // Blank clears the cost back to "unknown" — a real 0 (free) is
+    // vanishingly unlikely for a paid top-up product, so an empty field
+    // reads as "not entered" rather than "costs nothing."
+    const costMajor = cost.trim() === '' ? null : Number(cost);
+    if (costMajor !== null && (!Number.isFinite(costMajor) || costMajor < 0)) return;
+    setSavingCost(true);
+    try {
+      await api.patch(`/admin/products/${product.id}`, {
+        costMinor: costMajor === null ? null : Math.round(costMajor * 100),
+      });
+      onChanged();
+    } catch (err) {
+      showError(err instanceof ApiError ? err.message : t('products.costFailed'));
+    } finally {
+      setSavingCost(false);
     }
   }
 
@@ -66,6 +87,22 @@ function ProductRow({
       </td>
       <td>{formatMinor(product.amountMinor, product.currency)}</td>
       <td>
+        <div className="toolbar">
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            placeholder={t('products.costPlaceholder')}
+            value={cost}
+            onChange={(e) => setCost(e.target.value)}
+            style={{ width: 100 }}
+          />
+          <button className="btn btn-secondary" disabled={savingCost} onClick={saveCost}>
+            {t('common.save')}
+          </button>
+        </div>
+      </td>
+      <td>
         <ActiveBadge active={product.isActive} />
       </td>
       <td>
@@ -88,6 +125,7 @@ function CreateProductForm({ games, onCreated }: { games: Game[]; onCreated: () 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
+  const [cost, setCost] = useState('');
   const [currency, setCurrency] = useState('UZS');
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -117,17 +155,20 @@ function CreateProductForm({ games, onCreated }: { games: Game[]; onCreated: () 
     setSubmitting(true);
     setFormError(null);
     try {
+      const costMajor = cost.trim() === '' ? undefined : Number(cost);
       await api.post('/admin/products', {
         gameId,
         serverId: serverId || undefined,
         name: name.trim(),
         description: description.trim() || undefined,
         amountMinor: Math.round(amountMajor * 100),
+        costMinor: costMajor !== undefined && Number.isFinite(costMajor) ? Math.round(costMajor * 100) : undefined,
         currency,
       });
       setName('');
       setDescription('');
       setAmount('');
+      setCost('');
       onCreated();
     } catch (err) {
       setFormError(err instanceof ApiError ? err.message : t('products.createFailed'));
@@ -177,6 +218,15 @@ function CreateProductForm({ games, onCreated }: { games: Game[]; onCreated: () 
             placeholder={t('products.amountPlaceholder')}
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
+            style={{ width: 120 }}
+          />
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            placeholder={t('products.costPlaceholder')}
+            value={cost}
+            onChange={(e) => setCost(e.target.value)}
             style={{ width: 120 }}
           />
           <input
@@ -232,13 +282,14 @@ export function ProductsPage() {
               <th>{t('products.colProduct')}</th>
               <th>{t('products.colSetPrice')}</th>
               <th>{t('products.colCurrentPrice')}</th>
+              <th>{t('products.colCost')}</th>
               <th>{t('products.colStatus')}</th>
               <th>{t('products.colFulfillment')}</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
-            <SkeletonRows columns={8} />
+            <SkeletonRows columns={9} />
           </tbody>
         </table>
       )}
@@ -252,6 +303,7 @@ export function ProductsPage() {
               <th>{t('products.colProduct')}</th>
               <th>{t('products.colSetPrice')}</th>
               <th>{t('products.colCurrentPrice')}</th>
+              <th>{t('products.colCost')}</th>
               <th>{t('products.colStatus')}</th>
               <th>{t('products.colFulfillment')}</th>
               <th></th>
@@ -269,7 +321,7 @@ export function ProductsPage() {
             ))}
             {data.products.length === 0 && (
               <tr>
-                <td colSpan={8} className="muted">
+                <td colSpan={9} className="muted">
                   {t('products.empty')}
                 </td>
               </tr>

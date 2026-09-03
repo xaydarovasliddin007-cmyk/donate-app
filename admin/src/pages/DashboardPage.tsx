@@ -86,7 +86,11 @@ export function DashboardPage() {
                   .join(', ') || '—'
               }
             />
+            <StatCard label={t('dashboard.profitInRange')} value={formatMinor(data.profitInRangeMinor, 'UZS')} />
           </div>
+          {data.profitCostUnknownItemCount > 0 && (
+            <p className="muted">{t('dashboard.profitIncomplete', { count: data.profitCostUnknownItemCount })}</p>
+          )}
           <div className="panel-grid">
             <BreakdownChart
               title={t('dashboard.usersByStatus')}
@@ -146,6 +150,7 @@ export function DashboardPage() {
                       <th>{t('dashboard.colGame')}</th>
                       <th>{t('dashboard.colOrders')}</th>
                       <th>{t('dashboard.colRevenue')}</th>
+                      <th>{t('dashboard.colProfit')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -154,6 +159,7 @@ export function DashboardPage() {
                         <td>{row.game?.name ?? '—'}</td>
                         <td>{row.orderCount}</td>
                         <td>{formatMinor(row.revenueMinor, 'UZS')}</td>
+                        <td>{formatMinor(row.profitMinor, 'UZS')}</td>
                       </tr>
                     ))}
                   </tbody>

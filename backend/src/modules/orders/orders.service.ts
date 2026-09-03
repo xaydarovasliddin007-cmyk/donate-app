@@ -34,7 +34,16 @@ function toPublicOrder(
     currency: order.currency,
     discountPercent: order.discountPercent,
     failureReason: order.failureReason,
-    items: order.items,
+    // Explicitly whitelisted, not a bare spread — upstream queries fetch
+    // full OrderItem rows (include, not select), and costMinorSnapshot is
+    // internal margin data that must never reach a customer-facing response.
+    items: order.items.map((item) => ({
+      id: item.id,
+      productName: item.productName,
+      quantity: item.quantity,
+      unitAmountMinor: item.unitAmountMinor,
+      totalAmountMinor: item.totalAmountMinor,
+    })),
     latestPayment: order.payments?.[0] ?? null,
     statusHistory: order.statusHistory ?? [],
     createdAt: order.createdAt,
@@ -166,6 +175,10 @@ export async function createOrder(ctx: OrderContext, userId: string, input: Crea
             quantity: 1,
             unitAmountMinor: chargedAmountMinor,
             totalAmountMinor: chargedAmountMinor,
+            // Snapshotted now so a later edit to the product's cost never
+            // rewrites this order's already-reported profit — see
+            // OrderItem.costMinorSnapshot's doc comment.
+            costMinorSnapshot: product.costMinor,
           },
         },
       },

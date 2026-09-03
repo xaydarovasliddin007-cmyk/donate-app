@@ -338,7 +338,7 @@ export async function updateProductAdmin(
   ctx: AdminContext,
   adminId: string,
   productId: string,
-  changes: { isActive?: boolean; amountMinor?: number },
+  changes: { isActive?: boolean; amountMinor?: number; costMinor?: number | null },
 ) {
   const existing = await ctx.prisma.product.findUnique({ where: { id: productId } });
   if (!existing) {
@@ -355,7 +355,10 @@ export async function updateProductAdmin(
     action: 'product.update',
     entityType: 'Product',
     entityId: productId,
-    metadata: { before: { isActive: existing.isActive, amountMinor: existing.amountMinor }, after: changes },
+    metadata: {
+      before: { isActive: existing.isActive, amountMinor: existing.amountMinor, costMinor: existing.costMinor },
+      after: changes,
+    },
   });
 
   return updated;
@@ -652,6 +655,31 @@ export async function getStatsAdmin(ctx: AdminContext, range: { from: Date; to: 
     }),
   ]);
 
+  // Profit needs per-item arithmetic (charged total minus cost snapshot ×
+  // quantity) groupBy can't express, so it's a plain fetch + in-memory
+  // reduce instead — fine at this business's order volume. Items whose
+  // product never had a cost entered (costMinorSnapshot null) are excluded
+  // from the sum entirely, not treated as zero-cost/pure-margin — see
+  // OrderItem.costMinorSnapshot's doc comment. unknownCostItemCount lets the
+  // dashboard say "profit is incomplete" instead of presenting a partial
+  // number as if it were the whole picture.
+  const completedItemsInRange = await ctx.prisma.orderItem.findMany({
+    where: { order: { status: 'COMPLETED', completedAt: { gte: range.from, lte: range.to } } },
+    select: { quantity: true, totalAmountMinor: true, costMinorSnapshot: true, order: { select: { gameId: true } } },
+  });
+  let profitInRangeMinor = 0;
+  let unknownCostItemCount = 0;
+  const profitByGameId = new Map<string, number>();
+  for (const item of completedItemsInRange) {
+    if (item.costMinorSnapshot == null) {
+      unknownCostItemCount += 1;
+      continue;
+    }
+    const itemProfitMinor = item.totalAmountMinor - item.costMinorSnapshot * item.quantity;
+    profitInRangeMinor += itemProfitMinor;
+    profitByGameId.set(item.order.gameId, (profitByGameId.get(item.order.gameId) ?? 0) + itemProfitMinor);
+  }
+
   // groupBy can't join — a second lookup + in-memory merge keeps the two
   // display fields (name, publicId/slug) without denormalizing the group.
   const [clientUsers, games] = await Promise.all([
@@ -690,7 +718,18 @@ export async function getStatsAdmin(ctx: AdminContext, range: { from: Date; to: 
       game: gameById.get(row.gameId) ?? null,
       revenueMinor: row._sum.amountMinor ?? 0,
       orderCount: row._count._all,
+      // 0 whenever every item sold for this game in range had no cost
+      // entered — same "unknown, not zero" caveat as profitInRangeMinor
+      // below, just scoped to one game instead of the whole range.
+      profitMinor: profitByGameId.get(row.gameId) ?? 0,
     })),
+    // UZS-only for now, same simplification topClients/topGames already
+    // make — revisit if a second order currency is ever introduced.
+    profitInRangeMinor,
+    // How many sold items in this range were excluded from profitInRangeMinor
+    // because their product had no cost entered at purchase time — the
+    // dashboard uses this to flag the total as incomplete rather than final.
+    profitCostUnknownItemCount: unknownCostItemCount,
   };
 }
 
