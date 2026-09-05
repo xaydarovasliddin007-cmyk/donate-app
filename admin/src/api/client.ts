@@ -15,6 +15,15 @@ export class ApiError extends Error {
 
 let refreshPromise: Promise<boolean> | null = null;
 
+// AuthContext registers a handler here on mount so that a failed silent
+// refresh (expired/revoked session) clears its `admin` state too — without
+// this, the sidebar/logout button stay visible while every page just shows
+// a 401 error, instead of the app cleanly bouncing to /login.
+let onSessionExpired: (() => void) | null = null;
+export function setSessionExpiredHandler(handler: (() => void) | null) {
+  onSessionExpired = handler;
+}
+
 async function refreshAccessToken(): Promise<boolean> {
   const refreshToken = tokenStore.getRefreshToken();
   if (!refreshToken) return false;
@@ -26,6 +35,7 @@ async function refreshAccessToken(): Promise<boolean> {
   });
   if (!response.ok) {
     tokenStore.clear();
+    onSessionExpired?.();
     return false;
   }
   const data = (await response.json()) as { accessToken: string; refreshToken: string };

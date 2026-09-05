@@ -7,6 +7,7 @@ import { formatDate, formatMinor } from '../lib/money';
 import { StatusBadge } from '../components/StatusBadge';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { Loading } from '../components/Loading';
+import { ErrorRetry } from '../components/ErrorRetry';
 import { useLocale } from '../i18n/LocaleContext';
 
 export function OrderDetailPage() {
@@ -50,7 +51,8 @@ export function OrderDetailPage() {
   }
 
   if (loading) return <Loading />;
-  if (error || !data) return <p className="form-error">{error}</p>;
+  if (error) return <ErrorRetry error={error} onRetry={reload} />;
+  if (!data) return null;
 
   return (
     <div>

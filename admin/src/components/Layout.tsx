@@ -1,5 +1,6 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
+import { api } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import { useLocale } from '../i18n/LocaleContext';
 import { LanguageSwitcher } from './LanguageSwitcher';
@@ -42,6 +43,33 @@ const NAV_ITEMS: NavItem[] = [
 
 const SUPER_ADMIN_NAV_ITEMS: NavItem[] = [{ to: '/admins', labelKey: 'nav.admins', icon: <AdminsIcon /> }];
 
+const PENDING_TOPUPS_POLL_MS = 30_000;
+
+/** Polls the pending-top-up count so the sidebar badge stays current without a manual reload — the queue an operator needs to clear fast for a real-money app. */
+function usePendingTopUpsCount(): number {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function poll() {
+      try {
+        const result = await api.get<{ topUps: unknown[] }>('/admin/topups', { status: 'PENDING', limit: 100 });
+        if (!cancelled) setCount(result.topUps.length);
+      } catch {
+        // Best-effort — a stale/missing badge isn't worth surfacing an error for.
+      }
+    }
+    poll();
+    const interval = window.setInterval(poll, PENDING_TOPUPS_POLL_MS);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, []);
+
+  return count;
+}
+
 function initials(name: string | undefined): string {
   if (!name) return '?';
   const parts = name.trim().split(/\s+/);
@@ -54,6 +82,7 @@ export function Layout() {
   const { t } = useLocale();
   const [navOpen, setNavOpen] = useState(false);
   const navItems = admin?.role === 'SUPER_ADMIN' ? [...NAV_ITEMS, ...SUPER_ADMIN_NAV_ITEMS] : NAV_ITEMS;
+  const pendingTopUps = usePendingTopUpsCount();
 
   return (
     <div className="app-shell">
@@ -86,6 +115,9 @@ export function Layout() {
             >
               <span className="nav-icon">{item.icon}</span>
               {t(item.labelKey)}
+              {item.to === '/topups' && pendingTopUps > 0 && (
+                <span className="nav-badge">{pendingTopUps > 99 ? '99+' : pendingTopUps}</span>
+              )}
             </NavLink>
           ))}
         </nav>

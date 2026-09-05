@@ -4,12 +4,13 @@ import type { AuditLogEntry } from '../api/types';
 import { useAsync } from '../lib/useAsync';
 import { formatDate } from '../lib/money';
 import { SkeletonRows } from '../components/SkeletonRows';
+import { ErrorRetry } from '../components/ErrorRetry';
 import { useLocale } from '../i18n/LocaleContext';
 
 export function AuditLogsPage() {
   const { t } = useLocale();
   const [entityType, setEntityType] = useState('');
-  const { data, loading, error } = useAsync(
+  const { data, loading, error, reload } = useAsync(
     () => api.get<{ auditLogs: AuditLogEntry[] }>('/admin/audit-logs', { entityType: entityType || undefined, limit: 100 }),
     [entityType],
   );
@@ -46,7 +47,7 @@ export function AuditLogsPage() {
           </tbody>
         </table>
       )}
-      {error && <p className="form-error">{error}</p>}
+      {error && <ErrorRetry error={error} onRetry={reload} />}
       {data && (
         <table className="data-table">
           <thead>

@@ -6,6 +6,7 @@ import { useAsync } from '../lib/useAsync';
 import { formatDate } from '../lib/money';
 import { StatusBadge } from '../components/StatusBadge';
 import { SkeletonRows } from '../components/SkeletonRows';
+import { ErrorRetry } from '../components/ErrorRetry';
 import { useLocale } from '../i18n/LocaleContext';
 
 const PAGE_SIZE = 20;
@@ -16,7 +17,7 @@ export function UsersPage() {
   const [committedSearch, setCommittedSearch] = useState('');
   const [page, setPage] = useState(0);
 
-  const { data, loading, error } = useAsync(
+  const { data, loading, error, reload } = useAsync(
     () =>
       api.get<{ users: UserListItem[]; total: number }>('/admin/users', {
         search: committedSearch || undefined,
@@ -67,7 +68,7 @@ export function UsersPage() {
           </tbody>
         </table>
       )}
-      {error && <p className="form-error">{error}</p>}
+      {error && <ErrorRetry error={error} onRetry={reload} />}
       {data && (
         <>
           <table className="data-table">

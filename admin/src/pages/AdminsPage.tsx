@@ -8,6 +8,7 @@ import { ConfirmDialog } from '../components/ConfirmDialog';
 import { ActiveBadge } from '../components/ActiveBadge';
 import { useToast } from '../components/Toast';
 import { SkeletonRows } from '../components/SkeletonRows';
+import { ErrorRetry } from '../components/ErrorRetry';
 import { useLocale } from '../i18n/LocaleContext';
 
 const ROLES: AdminRole[] = ['SUPER_ADMIN', 'ADMIN', 'OPERATIONS', 'SUPPORT', 'FINANCE', 'CONTENT_MANAGER'];
@@ -122,7 +123,7 @@ export function AdminsPage() {
           </tbody>
         </table>
       )}
-      {error && <p className="form-error">{error}</p>}
+      {error && <ErrorRetry error={error} onRetry={reload} />}
       {data && (
         <table className="data-table">
           <thead>

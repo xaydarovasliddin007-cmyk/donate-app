@@ -8,6 +8,7 @@ import { useToast } from '../components/Toast';
 import { ActiveBadge } from '../components/ActiveBadge';
 import { SkeletonRows } from '../components/SkeletonRows';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { ErrorRetry } from '../components/ErrorRetry';
 import { useLocale } from '../i18n/LocaleContext';
 
 function ProductRow({
@@ -293,7 +294,7 @@ export function ProductsPage() {
           </tbody>
         </table>
       )}
-      {error && <p className="form-error">{error}</p>}
+      {error && <ErrorRetry error={error} onRetry={reload} />}
       {data && (
         <table className="data-table">
           <thead>

@@ -1,21 +1,28 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { api } from '../api/client';
+import { api, ApiError } from '../api/client';
 import type { OrderStatus, OrderSummary, Product } from '../api/types';
 import { useAsync } from '../lib/useAsync';
 import { formatDate, formatMinor } from '../lib/money';
+import { downloadCsv } from '../lib/csv';
 import { StatusBadge } from '../components/StatusBadge';
 import { SkeletonRows } from '../components/SkeletonRows';
+import { ErrorRetry } from '../components/ErrorRetry';
+import { useToast } from '../components/Toast';
 import { useLocale } from '../i18n/LocaleContext';
 
 const STATUSES: OrderStatus[] = ['PENDING', 'PAID', 'FULFILLING', 'COMPLETED', 'FAILED', 'REFUNDED'];
+// The server caps a single page at 100 — matches adminListOrdersQuerySchema's limit.
+const EXPORT_LIMIT = 100;
 
 export function OrdersPage() {
   const { t } = useLocale();
+  const { showError } = useToast();
   const [status, setStatus] = useState<OrderStatus | ''>('');
   const [gameId, setGameId] = useState('');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
+  const [exporting, setExporting] = useState(false);
 
   // Reused only to populate the game filter dropdown — there's no dedicated
   // admin games-list endpoint, and products already carry their game.
@@ -26,7 +33,7 @@ export function OrdersPage() {
     return [...byId.entries()];
   }, [productsData]);
 
-  const { data, loading, error } = useAsync(
+  const { data, loading, error, reload } = useAsync(
     () =>
       api.get<{ orders: OrderSummary[]; total: number }>('/admin/orders', {
         status: status || undefined,
@@ -37,6 +44,34 @@ export function OrdersPage() {
       }),
     [status, gameId, from, to],
   );
+
+  async function exportCsv() {
+    setExporting(true);
+    try {
+      const result = await api.get<{ orders: OrderSummary[] }>('/admin/orders', {
+        status: status || undefined,
+        gameId: gameId || undefined,
+        from: from || undefined,
+        to: to || undefined,
+        limit: EXPORT_LIMIT,
+      });
+      downloadCsv(
+        `orders-${new Date().toISOString().slice(0, 10)}.csv`,
+        result.orders.map((order) => ({
+          orderNumber: order.orderNumber,
+          user: order.user.displayName ?? order.user.email ?? order.user.phone ?? '',
+          game: order.game.name,
+          amount: formatMinor(order.amountMinor, order.currency),
+          status: order.status,
+          createdAt: order.createdAt,
+        })),
+      );
+    } catch (err) {
+      showError(err instanceof ApiError ? err.message : t('orders.exportFailed'));
+    } finally {
+      setExporting(false);
+    }
+  }
 
   return (
     <div>
@@ -61,7 +96,13 @@ export function OrdersPage() {
         <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
         <span className="muted">{t('common.to')}</span>
         <input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+        <button className="btn btn-secondary" disabled={exporting || !data} onClick={exportCsv}>
+          {t('common.exportCsv')}
+        </button>
       </div>
+      {data && data.total > EXPORT_LIMIT && (
+        <p className="muted">{t('orders.exportTruncatedNote', { limit: EXPORT_LIMIT })}</p>
+      )}
 
       {loading && !data && (
         <table className="data-table">
@@ -80,7 +121,7 @@ export function OrdersPage() {
           </tbody>
         </table>
       )}
-      {error && <p className="form-error">{error}</p>}
+      {error && <ErrorRetry error={error} onRetry={reload} />}
       {data && (
         <table className="data-table">
           <thead>

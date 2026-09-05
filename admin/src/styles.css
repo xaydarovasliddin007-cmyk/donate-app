@@ -230,6 +230,20 @@ a:hover {
   opacity: 1;
   color: #b3b1ff;
 }
+.nav-badge {
+  margin-left: auto;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--warning);
+  color: #1a1a1a;
+  font-size: 0.72rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
 
 .sidebar-footer {
   margin-top: auto;

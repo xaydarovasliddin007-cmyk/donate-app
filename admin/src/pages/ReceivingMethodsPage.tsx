@@ -6,6 +6,7 @@ import { useToast } from '../components/Toast';
 import { ActiveBadge } from '../components/ActiveBadge';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { SkeletonRows } from '../components/SkeletonRows';
+import { ErrorRetry } from '../components/ErrorRetry';
 import { useLocale } from '../i18n/LocaleContext';
 
 // PAYNET_TERMINAL isn't creatable here — cash dropped at a Paynet kiosk
@@ -158,7 +159,7 @@ export function ReceivingMethodsPage() {
           </tbody>
         </table>
       )}
-      {error && <p className="form-error">{error}</p>}
+      {error && <ErrorRetry error={error} onRetry={reload} />}
       {data && (
         <table className="data-table">
           <thead>

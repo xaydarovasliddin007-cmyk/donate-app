@@ -6,6 +6,7 @@ import { useAsync } from '../lib/useAsync';
 import { formatDate, formatMinor } from '../lib/money';
 import { StatusBadge } from '../components/StatusBadge';
 import { Loading } from '../components/Loading';
+import { ErrorRetry } from '../components/ErrorRetry';
 import { useLocale } from '../i18n/LocaleContext';
 
 export function UserDetailPage() {
@@ -78,7 +79,8 @@ export function UserDetailPage() {
   }
 
   if (loading) return <Loading />;
-  if (error || !data) return <p className="form-error">{error}</p>;
+  if (error) return <ErrorRetry error={error} onRetry={reload} />;
+  if (!data) return null;
 
   const { user, wallet, recentOrders, recentTransactions, activeSessions } = data;
 

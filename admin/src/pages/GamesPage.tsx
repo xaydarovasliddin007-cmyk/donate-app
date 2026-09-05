@@ -4,6 +4,7 @@ import { api, ApiError } from '../api/client';
 import type { Game, GameAvailability } from '../api/types';
 import { useAsync } from '../lib/useAsync';
 import { SkeletonRows } from '../components/SkeletonRows';
+import { ErrorRetry } from '../components/ErrorRetry';
 import { useLocale } from '../i18n/LocaleContext';
 
 const AVAILABILITY_VALUES: GameAvailability[] = ['ACTIVE', 'COMING_SOON', 'DISABLED'];
@@ -120,7 +121,7 @@ export function GamesPage() {
           </tbody>
         </table>
       )}
-      {error && <p className="form-error">{error}</p>}
+      {error && <ErrorRetry error={error} onRetry={reload} />}
       {data && (
         <table className="data-table">
           <thead>

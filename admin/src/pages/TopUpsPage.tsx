@@ -5,6 +5,7 @@ import { useAsync } from '../lib/useAsync';
 import { formatDate, formatMinor } from '../lib/money';
 import { StatusBadge } from '../components/StatusBadge';
 import { SkeletonRows } from '../components/SkeletonRows';
+import { ErrorRetry } from '../components/ErrorRetry';
 import { useLocale } from '../i18n/LocaleContext';
 
 const STATUSES: TopUpRequestStatus[] = ['PENDING', 'VERIFIED', 'REJECTED', 'EXPIRED'];
@@ -167,7 +168,7 @@ export function TopUpsPage() {
           </tbody>
         </table>
       )}
-      {error && <p className="form-error">{error}</p>}
+      {error && <ErrorRetry error={error} onRetry={reload} />}
       {data && (
         <table className="data-table">
           <thead>

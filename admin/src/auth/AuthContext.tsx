@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
-import { api, ApiError } from '../api/client';
+import { api, ApiError, setSessionExpiredHandler } from '../api/client';
 import { tokenStore } from '../api/tokenStore';
 import type { AdminUser } from '../api/types';
 
@@ -21,6 +21,11 @@ interface LoginResponse {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [admin, setAdmin] = useState<AdminUser | null>(null);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setSessionExpiredHandler(() => setAdmin(null));
+    return () => setSessionExpiredHandler(null);
+  }, []);
 
   useEffect(() => {
     if (!tokenStore.getAccessToken()) {

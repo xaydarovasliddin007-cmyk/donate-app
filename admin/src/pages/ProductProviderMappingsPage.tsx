@@ -6,6 +6,7 @@ import { useAsync } from '../lib/useAsync';
 import { ActiveBadge } from '../components/ActiveBadge';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { SkeletonRows } from '../components/SkeletonRows';
+import { ErrorRetry } from '../components/ErrorRetry';
 import { useToast } from '../components/Toast';
 import { useLocale } from '../i18n/LocaleContext';
 
@@ -143,7 +144,7 @@ export function ProductProviderMappingsPage() {
           </tbody>
         </table>
       )}
-      {error && <p className="form-error">{error}</p>}
+      {error && <ErrorRetry error={error} onRetry={reload} />}
       {data && (
         <table className="data-table">
           <thead>

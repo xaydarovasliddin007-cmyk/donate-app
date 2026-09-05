@@ -9,6 +9,7 @@ const en: Dict = {
   'common.loading': 'Loading…',
   'common.noData': 'No data',
   'common.retry': 'Retry',
+  'common.exportCsv': 'Export CSV',
   'common.save': 'Save',
   'common.cancel': 'Cancel',
   'common.confirm': 'Confirm',
@@ -185,6 +186,8 @@ const en: Dict = {
   'orders.colCreated': 'Created',
   'orders.empty': 'No orders found',
   'orders.matching': '{count} matching orders',
+  'orders.exportFailed': 'Failed to export orders',
+  'orders.exportTruncatedNote': 'Export is limited to the first {limit} matching orders — narrow the date range to get the rest.',
 
   // order detail
   'orderDetail.title': 'Order {orderNumber}',
@@ -390,6 +393,7 @@ const uz: Dict = {
   'common.loading': 'Yuklanmoqda…',
   'common.noData': "Ma'lumot yo'q",
   'common.retry': 'Qayta urinish',
+  'common.exportCsv': "CSV'ga eksport",
   'common.save': 'Saqlash',
   'common.cancel': 'Bekor qilish',
   'common.confirm': 'Tasdiqlash',
@@ -560,6 +564,8 @@ const uz: Dict = {
   'orders.colCreated': 'Yaratilgan',
   'orders.empty': 'Buyurtma topilmadi',
   'orders.matching': '{count} ta mos buyurtma',
+  'orders.exportFailed': 'Buyurtmalarni eksport qilib bo\'lmadi',
+  'orders.exportTruncatedNote': "Eksport faqat dastlabki {limit} ta mos buyurtmani o'z ichiga oladi — qolganini olish uchun sana oralig'ini qisqartiring.",
 
   'orderDetail.title': 'Buyurtma {orderNumber}',
   'orderDetail.summary': 'Xulosa',
@@ -756,6 +762,7 @@ const ru: Dict = {
   'common.loading': 'Загрузка…',
   'common.noData': 'Нет данных',
   'common.retry': 'Повторить',
+  'common.exportCsv': 'Экспорт в CSV',
   'common.save': 'Сохранить',
   'common.cancel': 'Отмена',
   'common.confirm': 'Подтвердить',
@@ -926,6 +933,8 @@ const ru: Dict = {
   'orders.colCreated': 'Создан',
   'orders.empty': 'Заказы не найдены',
   'orders.matching': '{count} подходящих заказов',
+  'orders.exportFailed': 'Не удалось экспортировать заказы',
+  'orders.exportTruncatedNote': 'Экспортируются только первые {limit} подходящих заказов — сузьте диапазон дат, чтобы получить остальные.',
 
   'orderDetail.title': 'Заказ {orderNumber}',
   'orderDetail.summary': 'Сводка',
