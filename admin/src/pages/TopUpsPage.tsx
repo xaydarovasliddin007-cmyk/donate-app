@@ -83,6 +83,11 @@ function TopUpRow({ request, onChanged }: { request: TopUpRequestAdmin; onChange
       <td className="muted">{request.userReference ?? '—'}</td>
       <td>
         <StatusBadge status={request.status} />
+        {request.status === 'PENDING' && request.userConfirmedPaidAt && (
+          <div className="badge badge-warning" style={{ marginTop: 4 }}>
+            {t('topups.userConfirmedPaid')}
+          </div>
+        )}
         {request.rejectionReason && <div className="muted">{request.rejectionReason}</div>}
       </td>
       <td>{formatDate(request.createdAt)}</td>

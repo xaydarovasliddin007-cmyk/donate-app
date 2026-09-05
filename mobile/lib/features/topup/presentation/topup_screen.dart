@@ -1083,7 +1083,16 @@ class _TopUpReservationViewState extends ConsumerState<TopUpReservationView> {
                 ),
               ] else ...[
                 FilledButton.icon(
-                  onPressed: () => setState(() => _confirmedPaid = true),
+                  onPressed: () {
+                    setState(() => _confirmedPaid = true);
+                    // Fire-and-forget: pings the admin queue, but this
+                    // button's whole job is switching to the waiting state
+                    // regardless of whether the ping itself succeeds.
+                    ref
+                        .read(topupApiProvider)
+                        .confirmPaid(widget.reservation.id)
+                        .catchError((_) {});
+                  },
                   icon: const Icon(Icons.check_circle_outline_rounded),
                   label: Text(l10n.topupIvePaidButton),
                 ),

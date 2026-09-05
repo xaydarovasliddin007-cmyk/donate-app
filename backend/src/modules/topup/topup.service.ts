@@ -323,11 +323,48 @@ export async function submitTopUpReference(
     throw new ConflictError(`Only PENDING top-up requests can be updated (this one is ${request.status})`);
   }
 
-  return ctx.prisma.topUpRequest.update({
+  const updated = await ctx.prisma.topUpRequest.update({
     where: { id: request.id },
-    data: { userReference },
+    data: { userReference, userConfirmedPaidAt: new Date() },
     include: { receivingMethod: true },
   });
+
+  notifyAdmins(
+    `🧾 <b>Terminal receipt submitted</b> — ${formatMinorAmount(request.amountMinor, request.currency)}\n` +
+      `Receipt #: ${userReference}\nNeeds review.`,
+  );
+
+  return updated;
+}
+
+/**
+ * Fired by the mobile "I've paid" tap for CARD_TRANSFER/QR_CODE — the two
+ * types with no automated proof-of-payment feed at all for QR (Paynet's own
+ * auto-verify webhook isn't built yet) and only a best-effort SMS listener
+ * for CARD_TRANSFER. Never credits anything by itself; just tells the admin
+ * queue this reservation is worth checking now instead of waiting out its
+ * countdown untouched. Safe to call more than once (e.g. the bot beats the
+ * tap to it) — it only ever updates a timestamp and sends one more alert.
+ */
+export async function confirmTopUpPaid(ctx: TopUpContext, userId: string, topUpRequestId: string) {
+  const request = await ctx.prisma.topUpRequest.findUnique({ where: { id: topUpRequestId } });
+  if (!request) throw new NotFoundError('Top-up request not found');
+  if (request.userId !== userId) throw new ForbiddenError('This top-up request does not belong to you');
+  if (request.status !== 'PENDING') {
+    throw new ConflictError(`Only PENDING top-up requests can be updated (this one is ${request.status})`);
+  }
+
+  const updated = await ctx.prisma.topUpRequest.update({
+    where: { id: request.id },
+    data: { userConfirmedPaidAt: new Date() },
+  });
+
+  notifyAdmins(
+    `🙋 <b>Customer says they've paid</b> — ${formatMinorAmount(request.amountMinor, request.currency)}\n` +
+      `Type: ${request.type ?? 'CARD_TRANSFER'}. Needs review if not auto-verified shortly.`,
+  );
+
+  return updated;
 }
 
 export async function getTopUpRequestForUser(ctx: TopUpContext, userId: string, topUpRequestId: string) {

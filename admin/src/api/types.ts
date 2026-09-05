@@ -200,6 +200,9 @@ export interface TopUpRequestAdmin {
   currency: string;
   status: TopUpRequestStatus;
   userReference: string | null;
+  // Set when the customer taps "I've paid" — a claim, not proof, but a
+  // useful signal for which PENDING rows are actually worth checking now.
+  userConfirmedPaidAt: string | null;
   reviewedByAdminId: string | null;
   reviewedAt: string | null;
   rejectionReason: string | null;

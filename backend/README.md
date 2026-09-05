@@ -336,13 +336,23 @@ To finish this:
 4. In the admin panel, map each `Product` to its real Apigames SKU code via `ProviderProduct`
    and flip the `APIGAMES` provider row's `isActive` to `true`.
 
-## FazerCards top-up setup (cheapest checked so far — MLBB)
+## FazerCards top-up setup (cheapest checked so far — MLBB, PUBG Mobile, Free Fire)
 
-Not configured yet — `src/providers/fazercards/fazercards-topup-provider.ts` implements the same
-`TopupProviderAdapter` interface. Built from FazerCards' own published REST v2 docs
-(reseller.fazercards.com/en/docs — real endpoint paths, `X-API-Key` auth, and request/response
-shapes, not guessed), but still unverified against a live account/order, same caveat as the other
-two adapters.
+**Status: configured and wired, but the reseller subscription is currently inactive.**
+`FAZERCARDS_API_KEY` is set in `backend/.env`, the `FAZERCARDS` provider row is active, and it's
+the priority-0 (preferred) supplier for real `ProviderProduct` mappings across MLBB (323
+denominations), PUBG Mobile (all 6 UC packages), and Free Fire (7 regions). A live call to
+`GET /topups/offers` on 2026-09-05 returned `403 {"code":"subscription_inactive"}` — the reseller
+account itself needs renewing/funding at [reseller.fazercards.com](https://reseller.fazercards.com)
+(USDT deposit) before any real order through it will actually succeed. Until that's done, every
+order on these three games silently falls through to the `DEV_MOCK_TOPUP` fallback mapping
+(priority 1) instead — check this before assuming a real customer order actually delivered.
+
+`src/providers/fazercards/fazercards-topup-provider.ts` implements the same `TopupProviderAdapter`
+interface, built from FazerCards' own published REST v2 docs (reseller.fazercards.com/en/docs —
+real endpoint paths, `X-API-Key` auth, and request/response shapes, not guessed), but still
+unverified against a live *order* (as opposed to the price-list call above), same caveat as the
+other two adapters.
 
 Why it's worth adding alongside Digiflazz/Apigames: checking a matching Mobile Legends
 denomination against MRCODA's consumer storefront put FazerCards' listed wholesale price roughly
@@ -352,7 +362,14 @@ which is actually reachable from Uzbekistan. This is the first of a planned mult
 lineup (one or two vetted suppliers per game, picking whichever is genuinely cheapest) rather
 than a wholesale replacement for Digiflazz.
 
-To finish this:
+Steps 1-4 below (account, API key, endpoint verification, product-code mapping) are already done.
+**The only remaining step is renewing/funding the reseller subscription** at
+[reseller.fazercards.com](https://reseller.fazercards.com) (USDT deposit) — do that, then re-check
+with `curl -H "X-API-Key: $FAZERCARDS_API_KEY" https://api.fzr.cards/api/v2/topups/offers` to
+confirm it no longer returns `subscription_inactive` before trusting these three games' orders to
+actually deliver.
+
+Original setup steps, kept for reference / re-doing this for a new account:
 
 1. Register a reseller account at [reseller.fazercards.com](https://reseller.fazercards.com) and
    fund the balance (USDT deposit).
@@ -392,29 +409,35 @@ How it works:
    Telegram alert to review manually (the request just sits there until it expires or an admin
    verifies it by hand, same as a regular top-up request).
 
-To finish this:
+**Status: fully configured and live.** `HUMO_WEBHOOK_SECRET`, `TELEGRAM_API_ID`/`TELEGRAM_API_HASH`/
+`TELEGRAM_SESSION` are all set in `backend/.env`, the 8 receiving cards are registered with
+`@HUMOcardbot`, and the parser in `src/lib/humo-message-parser.ts` is calibrated against a real
+notification (see the doc comment there) rather than a guess.
 
-1. Set `HUMO_WEBHOOK_SECRET` in `backend/.env` (see `.env.example`) — this is the only thing the
-   backend itself needs; without it the webhook route 404s and top-ups just fall back to manual
-   admin review, same "wired but inert without credentials" pattern as every other provider here.
-2. Add all 8 receiving cards as `ReceivingMethod` rows via the admin panel (masked PAN + holder
-   name + bank name each), same as any other top-up card.
-3. Confirm each of those 8 cards is already registered with `@HUMOcardbot` on Telegram and
-   receiving its transfer notifications (the user confirmed this is already done for all 8).
-4. Get `TELEGRAM_API_ID`/`TELEGRAM_API_HASH` from [my.telegram.org](https://my.telegram.org) →
-   "API development tools", logged in as the account registered with `@HUMOcardbot`, and set
-   both in `backend/.env`.
-5. Run `npm run humo:listener` (from `backend/`) somewhere long-lived (a small VPS, or the same
-   box as the backend). **The first run requires an interactive login** (phone number + the code
-   Telegram texts you, plus 2FA password if set) — this has to be done by the account owner in
-   person, in a real terminal; it is not something that can be scripted or done on someone's
-   behalf. That first run prints a session string — save it as `TELEGRAM_SESSION` in
-   `backend/.env` so every later run is unattended.
-6. `@HUMOcardbot`'s exact notification wording hasn't been seen yet, so the parser in
-   `humo-listener.ts` is a best-effort regex with clearly marked assumptions — after the first
-   real notification comes in, share its exact text so the parser can be corrected to match it
-   precisely (a wrong parse just means the amount doesn't match anything and the top-up
-   waits for manual review — it can't misfire a wrong credit).
+The listener itself runs as its own `humo-listener` service in `docker-compose.yml`
+(`restart: unless-stopped`, same as `backend`) — **not** a manually-opened terminal running
+`npm run humo:listener` anymore. That mattered: nothing was supervising the old setup, so any
+crash, reboot, or network blip silently reverted every card-transfer top-up to manual-only review
+with no alert that auto-verify had stopped. The listener's own event handler is also now wrapped
+in try/catch so one malformed/unexpected message can't take the whole process down.
+
+To set this up again from scratch (e.g. a new deployment, or rotating the Telegram session):
+
+1. Set `HUMO_WEBHOOK_SECRET` in `backend/.env` — without it the webhook route 404s and top-ups
+   fall back to manual admin review, same "wired but inert without credentials" pattern as every
+   other provider here.
+2. Add the receiving cards as `ReceivingMethod` rows via the admin panel (masked PAN + holder name
+   + bank name each), and confirm each is registered with `@HUMOcardbot` on Telegram.
+3. Get `TELEGRAM_API_ID`/`TELEGRAM_API_HASH` from [my.telegram.org](https://my.telegram.org) →
+   "API development tools", logged in as the account registered with `@HUMOcardbot`.
+4. Run `npm run humo:listener` (from `backend/`) directly on the host once, interactively — first
+   run has no `TELEGRAM_SESSION` yet, so GramJS prompts for the phone number, the login code
+   Telegram texts you, and the 2FA password if set. This has to be done by the account owner in
+   person; it can't be scripted or delegated. It prints a session string at the end.
+5. Save that string as `TELEGRAM_SESSION` in `backend/.env`, then bring up the supervised
+   container instead: `docker compose up -d --build humo-listener`. Check
+   `docker logs donate_app_humo_listener` for `connected as <username>, watching messages from
+   @HUMOcardbot` to confirm it's live.
 
 ## Environment
 

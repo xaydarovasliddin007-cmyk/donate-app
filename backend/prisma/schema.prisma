@@ -837,6 +837,12 @@ model TopUpRequest {
   // proof; only `reviewedByAdminId`+`status=VERIFIED` actually credits the
   // wallet.
   userReference     String?            @map("user_reference")
+  // Set when the customer taps "I've paid" (CARD_TRANSFER/QR_CODE — the
+  // types with no automated proof-of-payment feed). A claim, not proof:
+  // credits nothing by itself, just tells the admin queue this one is
+  // worth checking now rather than a still-unpaid reservation sitting out
+  // its countdown.
+  userConfirmedPaidAt DateTime?        @map("user_confirmed_paid_at")
   // Set only by reserveTopUpRequest() (the "assign me one free card"
   // flow) — null for the older free-pick flow. A PENDING request past this
   // time no longer blocks its amount from being reserved by someone else,

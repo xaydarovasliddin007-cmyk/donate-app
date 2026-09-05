@@ -72,4 +72,11 @@ class TopupApi {
     );
     return TopUpRequest.fromJson(json);
   }
+
+  /// Pings the admin queue that the user tapped "I've paid" — a courtesy
+  /// signal only (nothing is credited by it), so callers should treat
+  /// failures here as non-fatal to the top-up flow.
+  Future<void> confirmPaid(String id) async {
+    await _client.post('/topups/$id/confirm-paid');
+  }
 }

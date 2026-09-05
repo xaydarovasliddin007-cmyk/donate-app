@@ -25,6 +25,7 @@ import { createInterface } from 'node:readline/promises';
 import { TelegramClient } from 'telegram';
 import { StringSession } from 'telegram/sessions/index.js';
 import { NewMessage, type NewMessageEvent } from 'telegram/events/index.js';
+import { parseHumoMessage } from '../src/lib/humo-message-parser.js';
 
 const apiId = Number(process.env.TELEGRAM_API_ID ?? '');
 const apiHash = process.env.TELEGRAM_API_HASH ?? '';
@@ -52,45 +53,6 @@ async function prompt(question: string): Promise<string> {
   } finally {
     rl.close();
   }
-}
-
-/**
- * Parser for @HUMOcardbot's notification text. Calibrated against a real
- * message:
- *   Пополнение
- *   1.000,00 UZS
- *   NBU P2P HUMOHUMO>tas
- *   HUMOCARD *8882
- *   17:16 25.08.2026
- * — dot is the thousands separator, comma introduces the 2-digit tiyin
- * part (European-style formatting, not the "1,000.00" US style the first
- * pass assumed — that mismatch was silently multiplying every amount by
- * 100). A message that fails to parse is simply skipped (logged, not
- * forwarded) — that top-up just waits for manual admin review, it never
- * causes a wrong credit.
- */
-function parseHumoMessage(text: string): { cardHint: string; amountMinor: number } | null {
-  // Amount: an integer part with optional space/dot thousands separators,
-  // an optional ",NN" tiyin part, followed by a currency marker so we
-  // don't accidentally match a card number as an amount.
-  const amountMatch = text.match(/([\d](?:[\d.\s]*\d)?)(?:,(\d{1,2}))?\s*(?:so'?m|sum|uzs)/i);
-  const integerRaw = amountMatch?.[1];
-  if (!integerRaw) return null;
-  const integerDigits = integerRaw.replace(/[.\s]/g, '');
-  if (!integerDigits) return null;
-  const fractionRaw = amountMatch![2];
-  const fractionTiyin = fractionRaw ? Number(fractionRaw.padEnd(2, '0').slice(0, 2)) : 0;
-  const amountMinor = Number(integerDigits) * 100 + fractionTiyin;
-  if (!Number.isFinite(amountMinor) || amountMinor <= 0) return null;
-
-  // Card hint: the last group of 4+ digits appearing near "karta"/"card"/
-  // "*"/"№", falling back to the last 4-digit group anywhere in the message.
-  const cardMatch =
-    text.match(/(?:karta|card|№|\*)\D{0,10}(\d{4,})/i) ?? [...text.matchAll(/(\d{4,})/g)].pop();
-  const cardHint = cardMatch?.[1]?.slice(-4);
-  if (!cardHint || cardHint.length < 4) return null;
-
-  return { cardHint, amountMinor };
 }
 
 async function forwardTransaction(payload: { cardHint: string; amountMinor: number; rawMessage: string }) {
@@ -129,23 +91,38 @@ async function main() {
   console.log(`[humo-listener] connected as ${me.username ?? me.id}, watching messages from @${botUsername}`);
 
   client.addEventHandler(async (event: NewMessageEvent) => {
-    const message = event.message;
-    const sender = await message.getSender();
-    const senderUsername = sender && 'username' in sender ? sender.username : undefined;
-    if (!senderUsername || senderUsername.toLowerCase() !== botUsername.toLowerCase()) return;
+    // This process runs unattended for days/weeks at a time watching every
+    // single incoming Telegram message — one bad message (a weird sender
+    // object, a getSender() network hiccup) throwing here must never take
+    // the whole listener down, or every card-transfer top-up silently
+    // reverts to manual-only with nobody watching.
+    try {
+      const message = event.message;
+      const sender = await message.getSender();
+      const senderUsername = sender && 'username' in sender ? sender.username : undefined;
+      if (!senderUsername || senderUsername.toLowerCase() !== botUsername.toLowerCase()) return;
 
-    const text = message.message ?? '';
-    const parsed = parseHumoMessage(text);
-    if (!parsed) {
-      console.log('[humo-listener] could not parse message, skipping:', text);
-      return;
+      const text = message.message ?? '';
+      const parsed = parseHumoMessage(text);
+      if (!parsed) {
+        console.log('[humo-listener] could not parse message, skipping:', text);
+        return;
+      }
+
+      console.log('[humo-listener] parsed transaction', parsed);
+      await forwardTransaction({ ...parsed, rawMessage: text });
+    } catch (error) {
+      console.error('[humo-listener] error handling message, continuing to listen', error);
     }
-
-    console.log('[humo-listener] parsed transaction', parsed);
-    await forwardTransaction({ ...parsed, rawMessage: text });
   }, new NewMessage({}));
 
   console.log('[humo-listener] listening... (Ctrl+C to stop)');
+
+  // Without this, main() returns once client.start() resolves and Node
+  // exits as soon as the last GramJS-internal keepalive timer lets go —
+  // under process supervision (see docker-compose's humo-listener service)
+  // that means a restart loop instead of a listener that actually stays up.
+  await new Promise(() => {});
 }
 
 main().catch((error) => {

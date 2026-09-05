@@ -42,6 +42,30 @@ services:
       postgres:
         condition: service_healthy
 
+  humo-listener:
+    build:
+      context: ./backend
+    container_name: donate_app_humo_listener
+    # Card-transfer auto-verification depends entirely on this process
+    # staying up — without restart:unless-stopped it was only ever running
+    # in a manually-opened terminal, so any crash/reboot/network blip
+    # silently reverted every card-transfer top-up to manual-only review
+    # with nobody notified.
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    environment:
+      # "localhost" would mean this container's own loopback, not backend's
+      # — same reasoning as the backend service's DATABASE_URL override.
+      HUMO_WEBHOOK_URL: http://backend:4000/api/v1/payments/webhooks/humo-transaction
+    volumes:
+      - ./backend:/app
+      - donate_app_backend_node_modules:/app/node_modules
+    depends_on:
+      backend:
+        condition: service_started
+    command: ['npx', 'tsx', 'scripts/humo-listener.ts']
+
 volumes:
   donate_app_postgres_data:
   donate_app_backend_node_modules:
