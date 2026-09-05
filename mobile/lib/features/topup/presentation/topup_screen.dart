@@ -189,7 +189,9 @@ class _AssetLogoBadge extends StatelessWidget {
       ),
       child: isSvg
           ? SvgPicture.asset(assetPath, fit: BoxFit.contain)
-          : Image.asset(assetPath, fit: BoxFit.contain),
+          // Width only, not both — cacheHeight alongside it would force an
+          // exact decode box and distort humo.png's non-square aspect ratio.
+          : Image.asset(assetPath, fit: BoxFit.contain, cacheWidth: 168),
     );
   }
 }

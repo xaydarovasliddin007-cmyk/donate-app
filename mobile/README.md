@@ -146,11 +146,20 @@ Sign-In on a real device after any proguard-rules.pro change** — a missing kee
 sign-in time, not at build time.
 
 Measured (`flutter build apk --release --target-platform=android-arm64 --analyze-size`):
-single-ABI release APK is **~19 MB**, comfortably under a 30–50 MB target. The Flutter engine +
+single-ABI release APK is **~21 MB**, comfortably under a 30–50 MB target. The Flutter engine +
 framework (`libflutter.so`, `package:flutter`) accounts for the large majority of that — the
-app's own Dart code (`package:donate_app`) is ~239 KB, and bundled assets are ~150 KB total
-(icon font is tree-shaken 99.5% by Flutter's build system automatically). There's no realistic
+app's own Dart code (`package:donate_app`) is ~447 KB, and bundled assets are ~347 KB total
+(icon font is tree-shaken 99.2% by Flutter's build system automatically). There's no realistic
 lever left to shrink this further without dropping Flutter itself.
+
+Bundled assets used to be ~1.4 MB before a pass that found several PNGs stored at 5–10× the
+resolution they're actually displayed at — `assets/payment_logos/humo.png` was a 2000×1199,
+900 KB source rendered into a 56×44 badge, and the five MLBB tier icons in `assets/icons/`
+(`diamondpile`/`moneybag`/`pass`/`safe`/`truck`) were each 240–285 px, 50–80 KB rendered into a
+30×30 box. Resized every one to roughly 2–3× its actual display resolution (still crisp on the
+highest-DPI devices) — down to ~270 KB combined, a ~1.1 MB save with no visible quality loss.
+If a new image asset gets added, size it to its real display box before committing it, not
+whatever resolution it was exported at.
 
 The `.aab` (`flutter build appbundle --release`) is ~52 MB as a **raw upload artifact** because
 it bundles all four ABIs (arm64-v8a, armeabi-v7a, x86, x86_64) for Play Store to split from —

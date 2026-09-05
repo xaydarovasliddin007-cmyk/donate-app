@@ -105,6 +105,11 @@ class _CoverArt extends StatelessWidget {
     return CachedNetworkImage(
       imageUrl: logoUrl,
       fit: BoxFit.cover,
+      // Caps the decoded bitmap size — without this, a full-resolution
+      // source image gets decoded at its native size for every tile in the
+      // grid, even though it only ever renders at a fraction of that.
+      memCacheWidth: 300,
+      memCacheHeight: 300,
       placeholder: (context, _) => _FallbackTile(gradient: gradient),
       errorWidget: (context, _, _) => _FallbackTile(gradient: gradient),
     );

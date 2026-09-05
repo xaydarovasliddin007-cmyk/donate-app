@@ -154,7 +154,15 @@ class ProductCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(AppRadius.sm),
                   ),
                   padding: const EdgeInsets.all(3),
-                  child: Image.asset(style.iconAsset, fit: BoxFit.contain),
+                  child: Image.asset(
+                    style.iconAsset,
+                    fit: BoxFit.contain,
+                    // Width only — these source images aren't square (e.g.
+                    // truck.png), and specifying both cacheWidth/cacheHeight
+                    // would decode to that exact box and distort non-square
+                    // ones. Height alone still auto-scales proportionally.
+                    cacheWidth: 90,
+                  ),
                 ),
                 const SizedBox(width: AppSpacing.sm),
                 Expanded(

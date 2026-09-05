@@ -1220,6 +1220,8 @@ class _ProductSummaryCard extends StatelessWidget {
                   ? CachedNetworkImage(
                       imageUrl: game.logoUrl!,
                       fit: BoxFit.cover,
+                      memCacheWidth: 140,
+                      memCacheHeight: 140,
                     )
                   : DecoratedBox(
                       decoration: BoxDecoration(

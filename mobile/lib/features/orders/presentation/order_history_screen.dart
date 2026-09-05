@@ -120,83 +120,100 @@ class _OrderHistoryScreenState extends ConsumerState<OrderHistoryScreen> {
                               .where((o) => _matchesFilter(o.status, _filter))
                               .toList();
 
+                    // CustomScrollView + SliverList.builder here (not a plain
+                    // ListView with a `for` loop building every OrderCard up
+                    // front) — the eager version rebuilt and replayed every
+                    // card's StaggeredEntrance timer on each filter-chip tap,
+                    // and only got worse as order history grew. This lazily
+                    // builds just the visible cards, matching the pattern
+                    // wallet_history_screen.dart/notifications_screen.dart
+                    // already use.
                     return RefreshIndicator(
                       onRefresh: () async => ref.invalidate(myOrdersProvider),
-                      child: ListView(
-                        padding: const EdgeInsets.only(
-                          top: AppSpacing.md,
-                          bottom: AppSpacing.lg,
-                        ),
-                        children: [
-                          _SummaryHeader(orders: orders),
-                          const SizedBox(height: AppSpacing.md),
-                          SizedBox(
-                            height: 40,
-                            child: ListView(
-                              scrollDirection: Axis.horizontal,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: AppSpacing.lg,
-                              ),
-                              children: [
-                                for (final f in _OrderFilter.values)
-                                  Padding(
-                                    padding: const EdgeInsets.only(
-                                      right: AppSpacing.sm,
-                                    ),
-                                    child: SelectableChip(
-                                      label: switch (f) {
-                                        _OrderFilter.all => l10n.orderFilterAll,
-                                        _OrderFilter.pending =>
-                                          l10n.orderFilterPending,
-                                        _OrderFilter.completed =>
-                                          l10n.orderFilterCompleted,
-                                        _OrderFilter.failed =>
-                                          l10n.orderFilterFailed,
-                                      },
-                                      selected: _filter == f,
-                                      onTap: () => setState(() => _filter = f),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: AppSpacing.md),
-                          if (filtered.isEmpty)
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: AppSpacing.lg,
-                                vertical: AppSpacing.xl,
-                              ),
-                              child: EmptyView(
-                                icon: Icons.filter_alt_off_outlined,
-                                title: l10n.orderHistoryEmptyFilteredTitle,
-                              ),
-                            )
-                          else
-                            Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: AppSpacing.lg,
-                              ),
+                      child: CustomScrollView(
+                        slivers: [
+                          SliverPadding(
+                            padding: const EdgeInsets.only(top: AppSpacing.md),
+                            sliver: SliverToBoxAdapter(
                               child: Column(
                                 children: [
-                                  for (final (index, order) in filtered.indexed)
-                                    Padding(
-                                      padding: const EdgeInsets.only(
-                                        bottom: AppSpacing.sm,
+                                  _SummaryHeader(orders: orders),
+                                  const SizedBox(height: AppSpacing.md),
+                                  SizedBox(
+                                    height: 40,
+                                    child: ListView(
+                                      scrollDirection: Axis.horizontal,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: AppSpacing.lg,
                                       ),
-                                      child: StaggeredEntrance(
-                                        index: index,
-                                        child: OrderCard(
-                                          order: order,
-                                          onTap: () => context.push(
-                                            '/orders/${order.id}',
+                                      children: [
+                                        for (final f in _OrderFilter.values)
+                                          Padding(
+                                            padding: const EdgeInsets.only(
+                                              right: AppSpacing.sm,
+                                            ),
+                                            child: SelectableChip(
+                                              label: switch (f) {
+                                                _OrderFilter.all =>
+                                                  l10n.orderFilterAll,
+                                                _OrderFilter.pending =>
+                                                  l10n.orderFilterPending,
+                                                _OrderFilter.completed =>
+                                                  l10n.orderFilterCompleted,
+                                                _OrderFilter.failed =>
+                                                  l10n.orderFilterFailed,
+                                              },
+                                              selected: _filter == f,
+                                              onTap: () =>
+                                                  setState(() => _filter = f),
+                                            ),
                                           ),
-                                        ),
-                                      ),
+                                      ],
                                     ),
+                                  ),
+                                  const SizedBox(height: AppSpacing.md),
                                 ],
                               ),
                             ),
+                          ),
+                          if (filtered.isEmpty)
+                            SliverToBoxAdapter(
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: AppSpacing.lg,
+                                  vertical: AppSpacing.xl,
+                                ),
+                                child: EmptyView(
+                                  icon: Icons.filter_alt_off_outlined,
+                                  title: l10n.orderHistoryEmptyFilteredTitle,
+                                ),
+                              ),
+                            )
+                          else
+                            SliverPadding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppSpacing.lg,
+                              ),
+                              sliver: SliverList.separated(
+                                itemCount: filtered.length,
+                                separatorBuilder: (context, index) =>
+                                    const SizedBox(height: AppSpacing.sm),
+                                itemBuilder: (context, index) {
+                                  final order = filtered[index];
+                                  return StaggeredEntrance(
+                                    index: index,
+                                    child: OrderCard(
+                                      order: order,
+                                      onTap: () =>
+                                          context.push('/orders/${order.id}'),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          const SliverToBoxAdapter(
+                            child: SizedBox(height: AppSpacing.lg),
+                          ),
                         ],
                       ),
                     );

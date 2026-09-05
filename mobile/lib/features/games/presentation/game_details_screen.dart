@@ -146,6 +146,8 @@ class _GameDetailsBodyState extends ConsumerState<_GameDetailsBody> {
                             ? CachedNetworkImage(
                                 imageUrl: widget.game.logoUrl!,
                                 fit: BoxFit.cover,
+                                memCacheWidth: 280,
+                                memCacheHeight: 280,
                               )
                             : ColoredBox(
                                 color: Colors.white.withValues(alpha: 0.18),

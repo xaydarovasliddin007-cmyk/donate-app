@@ -198,6 +198,8 @@ class _GameIcon extends StatelessWidget {
             : CachedNetworkImage(
                 imageUrl: logoUrl,
                 fit: BoxFit.cover,
+                memCacheWidth: 90,
+                memCacheHeight: 90,
                 placeholder: (context, _) => _fallback(gradient, null),
                 errorWidget: (context, _, _) =>
                     _fallback(gradient, game.logoEmoji),
