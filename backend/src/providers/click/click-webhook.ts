@@ -33,7 +33,7 @@ interface ClickWebhookBody {
   error?: string;
 }
 
-function verifySignature(body: ClickWebhookBody, secretKey: string): boolean {
+export function verifySignature(body: ClickWebhookBody, secretKey: string): boolean {
   const isComplete = body.action === '1';
   const parts = isComplete
     ? [body.click_trans_id, body.service_id, secretKey, body.merchant_trans_id, body.merchant_prepare_id ?? '', body.amount, body.action, body.sign_time]

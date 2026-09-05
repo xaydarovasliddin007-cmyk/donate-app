@@ -863,6 +863,12 @@ model TopUpRequest {
 
   @@index([userId])
   @@index([status])
+  // Every incoming bank SMS (autoVerifyFromCardTransaction) and every new
+  // reservation (pickUniqueAmount) queries exactly this combination —
+  // status='PENDING' + an exact amountMinor match. Real money's automatic
+  // crediting latency depends on this being an index lookup, not a scan
+  // over every currently-pending row.
+  @@index([status, amountMinor])
   @@map("top_up_requests")
 }
 
