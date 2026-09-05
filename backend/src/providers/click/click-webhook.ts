@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { env } from '../../config/env.js';
+import { safeEqual } from '../../lib/crypto.js';
 import { processPaymentWebhook } from '../../modules/payments/payments.service.js';
 
 /**
@@ -38,7 +39,7 @@ function verifySignature(body: ClickWebhookBody, secretKey: string): boolean {
     ? [body.click_trans_id, body.service_id, secretKey, body.merchant_trans_id, body.merchant_prepare_id ?? '', body.amount, body.action, body.sign_time]
     : [body.click_trans_id, body.service_id, secretKey, body.merchant_trans_id, body.amount, body.action, body.sign_time];
   const expected = createHash('md5').update(parts.join('')).digest('hex');
-  return expected === body.sign_string;
+  return safeEqual(expected, body.sign_string);
 }
 
 export async function clickWebhookRoutes(app: FastifyInstance) {

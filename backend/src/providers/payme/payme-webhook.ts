@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { env } from '../../config/env.js';
+import { safeEqual } from '../../lib/crypto.js';
 import { processPaymentWebhook } from '../../modules/payments/payments.service.js';
 
 /**
@@ -41,7 +42,7 @@ function isAuthorized(request: FastifyRequest): boolean {
   if (!header?.startsWith('Basic ') || !env.PAYME_SECRET_KEY) return false;
   const decoded = Buffer.from(header.slice('Basic '.length), 'base64').toString('utf8');
   const [login, password] = decoded.split(':');
-  return login === 'Paycom' && password === env.PAYME_SECRET_KEY;
+  return login === 'Paycom' && !!password && safeEqual(password, env.PAYME_SECRET_KEY);
 }
 
 async function findPaymentAndAttempt(app: FastifyInstance, transactionId: string) {

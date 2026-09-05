@@ -38,7 +38,11 @@ export async function authRoutes(app: FastifyInstance) {
 
   app.post(
     '/auth/register/complete',
-    { preHandler: validateBody(registerCompleteSchema) },
+    {
+      // Guards the 6-digit email code from brute-forcing within its TTL.
+      config: { rateLimit: { max: 8, timeWindow: 60_000 } },
+      preHandler: validateBody(registerCompleteSchema),
+    },
     async (request, reply) => {
       const body = request.body as RegisterCompleteInput;
       const result = await authService.completeRegistration(ctx, body, {
@@ -49,13 +53,22 @@ export async function authRoutes(app: FastifyInstance) {
     },
   );
 
-  app.post('/auth/login', { preHandler: validateBody(loginSchema) }, async (request) => {
-    const body = request.body as LoginInput;
-    return authService.login(ctx, body, {
-      userAgent: request.headers['user-agent'],
-      ipAddress: request.ip,
-    });
-  });
+  app.post(
+    '/auth/login',
+    {
+      // Tighter than the global default — customer accounts hold real wallet
+      // balances, so login is a brute-force target just like admin login.
+      config: { rateLimit: { max: 10, timeWindow: 60_000 } },
+      preHandler: validateBody(loginSchema),
+    },
+    async (request) => {
+      const body = request.body as LoginInput;
+      return authService.login(ctx, body, {
+        userAgent: request.headers['user-agent'],
+        ipAddress: request.ip,
+      });
+    },
+  );
 
   app.post(
     '/auth/password/reset-request',
@@ -108,7 +121,11 @@ export async function authRoutes(app: FastifyInstance) {
 
   app.post(
     '/auth/verify-email',
-    { preHandler: [authenticate, validateBody(verifyEmailSchema)] },
+    {
+      // Guards the 6-digit email code from brute-forcing within its TTL.
+      config: { rateLimit: { max: 8, timeWindow: 60_000 } },
+      preHandler: [authenticate, validateBody(verifyEmailSchema)],
+    },
     async (request, reply) => {
       const body = request.body as VerifyEmailInput;
       await authService.verifyEmail(ctx, request.currentUser!.id, body.code);

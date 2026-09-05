@@ -11,6 +11,14 @@ interface AdminAuthContext {
   prisma: PrismaClient;
 }
 
+// Brute-force lockout: after this many consecutive bad attempts, the
+// account is locked for LOCKOUT_DURATION_MS regardless of a correct
+// password — admin accounts can credit real money via top-up verification
+// and discounts, so they're a higher-value target than the per-IP rate
+// limit alone accounts for.
+const MAX_FAILED_ATTEMPTS = 5;
+const LOCKOUT_DURATION_MS = 15 * 60_000;
+
 function toPublicAdmin(admin: { id: string; email: string; fullName: string; role: string }) {
   return { id: admin.id, email: admin.email, fullName: admin.fullName, role: admin.role };
 }
@@ -30,6 +38,10 @@ async function issueAdminTokenPair(ctx: AdminAuthContext, admin: { id: string; r
 export async function adminLogin(ctx: AdminAuthContext, input: AdminLoginInput) {
   const admin = await ctx.prisma.adminUser.findUnique({ where: { email: input.email } });
 
+  if (admin?.lockedUntil && admin.lockedUntil > new Date()) {
+    throw new UnauthorizedError('Account temporarily locked due to too many failed attempts');
+  }
+
   // Constant-shape response for unknown admin vs wrong password.
   const passwordMatches = admin
     ? await verifyPassword(admin.passwordHash, input.password)
@@ -39,7 +51,24 @@ export async function adminLogin(ctx: AdminAuthContext, input: AdminLoginInput) 
       );
 
   if (!admin || !passwordMatches || !admin.isActive) {
+    if (admin?.isActive) {
+      const attempts = admin.failedLoginAttempts + 1;
+      await ctx.prisma.adminUser.update({
+        where: { id: admin.id },
+        data:
+          attempts >= MAX_FAILED_ATTEMPTS
+            ? { failedLoginAttempts: 0, lockedUntil: new Date(Date.now() + LOCKOUT_DURATION_MS) }
+            : { failedLoginAttempts: attempts },
+      });
+    }
     throw new UnauthorizedError('Invalid credentials');
+  }
+
+  if (admin.failedLoginAttempts > 0 || admin.lockedUntil) {
+    await ctx.prisma.adminUser.update({
+      where: { id: admin.id },
+      data: { failedLoginAttempts: 0, lockedUntil: null },
+    });
   }
 
   const tokens = await issueAdminTokenPair(ctx, admin);

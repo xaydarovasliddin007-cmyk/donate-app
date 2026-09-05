@@ -49,7 +49,13 @@ export async function topupRoutes(app: FastifyInstance) {
   // them pick freely (see topup.service.ts reserveTopUpRequest doc comment).
   app.post(
     '/topups/reserve',
-    { preHandler: [authenticate, validateBody(reserveTopUpRequestSchema)] },
+    {
+      // Each reservation scans for a free unique amount and writes a row —
+      // cap it so spamming this endpoint can't exhaust available amounts or
+      // load the DB.
+      config: { rateLimit: { max: 15, timeWindow: 60_000 } },
+      preHandler: [authenticate, validateBody(reserveTopUpRequestSchema)],
+    },
     async (request, reply) => {
       const body = request.body as ReserveTopUpRequestInput;
       const topUp = await topupService.reserveTopUpRequest(ctx, request.currentUser!.id, body.amountMinor, body.type);

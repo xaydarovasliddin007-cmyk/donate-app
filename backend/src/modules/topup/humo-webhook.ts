@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { env } from '../../config/env.js';
+import { safeEqual } from '../../lib/crypto.js';
 import { humoTransactionSchema } from './topup.schemas.js';
 import * as topupService from './topup.service.js';
 
@@ -19,7 +20,7 @@ export async function humoWebhookRoutes(app: FastifyInstance) {
     }
 
     const providedSecret = request.headers['x-webhook-secret'];
-    if (providedSecret !== env.HUMO_WEBHOOK_SECRET) {
+    if (typeof providedSecret !== 'string' || !safeEqual(providedSecret, env.HUMO_WEBHOOK_SECRET)) {
       return reply.status(401).send({ error: 'Invalid webhook secret' });
     }
 

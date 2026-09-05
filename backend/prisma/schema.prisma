@@ -191,6 +191,12 @@ model AdminUser {
   fullName     String    @map("full_name")
   role         AdminRole @default(SUPPORT)
   isActive     Boolean   @default(true) @map("is_active")
+  // Brute-force lockout: counts consecutive bad-password attempts since the
+  // last success, reset to 0 on any successful login. lockedUntil is set
+  // once the count hits the threshold and blocks login until it passes,
+  // regardless of correct password.
+  failedLoginAttempts Int       @default(0) @map("failed_login_attempts")
+  lockedUntil         DateTime? @map("locked_until")
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @map("updated_at")
 
