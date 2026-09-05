@@ -36,9 +36,14 @@ class SecurityCenterScreen extends ConsumerWidget {
         ],
       ),
     );
-    if (confirmed == true) {
+    if (confirmed != true || !context.mounted) return;
+
+    final messenger = ScaffoldMessenger.of(context);
+    try {
       await ref.read(authApiProvider).logoutAllDevices();
       await ref.read(authControllerProvider.notifier).logout();
+    } catch (error) {
+      messenger.showSnackBar(SnackBar(content: Text(Failure.from(error).message)));
     }
   }
 
@@ -429,8 +434,15 @@ class _SessionTile extends ConsumerWidget {
           if (!session.isCurrent)
             TextButton(
               onPressed: () async {
-                await ref.read(authApiProvider).revokeSession(session.id);
-                ref.invalidate(sessionsProvider);
+                final messenger = ScaffoldMessenger.of(context);
+                try {
+                  await ref.read(authApiProvider).revokeSession(session.id);
+                  ref.invalidate(sessionsProvider);
+                } catch (error) {
+                  messenger.showSnackBar(
+                    SnackBar(content: Text(Failure.from(error).message)),
+                  );
+                }
               },
               child: Text(l10n.securitySessionRevokeButton),
             ),

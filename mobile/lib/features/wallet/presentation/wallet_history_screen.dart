@@ -58,25 +58,28 @@ class WalletHistoryScreen extends ConsumerWidget {
             if (transactions.isEmpty) {
               return EmptyView(title: l10n.walletTransactionHistoryEmpty);
             }
-            return TweenAnimationBuilder<double>(
-              tween: Tween(begin: 0, end: 1),
-              duration: reduceMotion ? Duration.zero : AppMotion.entrance,
-              curve: AppMotion.standard,
-              builder: (context, t, child) => Opacity(
-                opacity: t,
-                child: Transform.translate(
-                  offset: Offset(0, (1 - t) * 12),
-                  child: child,
+            return RefreshIndicator(
+              onRefresh: () async => ref.invalidate(walletTransactionsProvider),
+              child: TweenAnimationBuilder<double>(
+                tween: Tween(begin: 0, end: 1),
+                duration: reduceMotion ? Duration.zero : AppMotion.entrance,
+                curve: AppMotion.standard,
+                builder: (context, t, child) => Opacity(
+                  opacity: t,
+                  child: Transform.translate(
+                    offset: Offset(0, (1 - t) * 12),
+                    child: child,
+                  ),
                 ),
-              ),
-              child: ListView.separated(
-                padding: const EdgeInsets.all(AppSpacing.lg),
-                itemCount: transactions.length,
-                separatorBuilder: (_, _) =>
-                    const SizedBox(height: AppSpacing.sm),
-                itemBuilder: (context, index) => StaggeredEntrance(
-                  index: index,
-                  child: _TransactionTile(transaction: transactions[index]),
+                child: ListView.separated(
+                  padding: const EdgeInsets.all(AppSpacing.lg),
+                  itemCount: transactions.length,
+                  separatorBuilder: (_, _) =>
+                      const SizedBox(height: AppSpacing.sm),
+                  itemBuilder: (context, index) => StaggeredEntrance(
+                    index: index,
+                    child: _TransactionTile(transaction: transactions[index]),
+                  ),
                 ),
               ),
             );

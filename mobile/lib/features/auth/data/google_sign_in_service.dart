@@ -33,9 +33,7 @@ class GoogleSignInService {
       final idToken = account.authentication.idToken;
       if (idToken == null) {
         // ignore: avoid_print
-        print(
-          'GoogleSignInService: succeeded but returned a null ID token for ${account.email}',
-        );
+        print('GoogleSignInService: succeeded but returned a null ID token');
         throw ApiException.googleSignInFailed();
       }
       return idToken;

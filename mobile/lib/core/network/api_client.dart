@@ -27,7 +27,15 @@ class ApiClient {
     );
     if (kDebugMode) {
       _dio.interceptors.add(
-        LogInterceptor(requestBody: true, responseBody: true),
+        LogInterceptor(
+          requestBody: true,
+          responseBody: true,
+          // Headers carry the bearer/refresh token and, on login/register,
+          // the request body carries the raw password — none of that
+          // belongs in logcat even on a debug build handed to QA.
+          requestHeader: false,
+          responseHeader: false,
+        ),
       );
     }
   }
