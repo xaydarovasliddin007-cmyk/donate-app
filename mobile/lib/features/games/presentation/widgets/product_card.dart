@@ -26,9 +26,11 @@ import '../../domain/product.dart';
 /// custom-drawn icon too (see _currencyIconFor): PUBG's UC (gold coin),
 /// Roblox's Robux (silver gem), Supercell's Gems (purple gem, shared by
 /// Clash of Clans/Royale and Brawl Stars), Genshin's Genesis Crystals
-/// (cyan crystal), and CODM's CP (green gem). Currencies with no
-/// dedicated art yet (Honor of Kings' Tokens, 8 Ball Pool's Cash, EA
-/// FC's FC Points) keep the neutral Fluent coin.
+/// (cyan crystal), CODM's CP (green gem), 8 Ball Pool's Cash (green
+/// coin), EA FC's FC Points (blue coin), and Honor of Kings' Tokens
+/// (red/orange coin — no natural 1-2 letter abbreviation, so a star
+/// mark instead of lettering). The neutral Fluent coin is now only a
+/// fallback for a currency name none of these match.
 enum _TierKind { bonus, elitePass, weeklyPass, hotPass, plain }
 
 _TierKind _kindOf(String name) {
@@ -65,14 +67,17 @@ String _gemIconFor(int amountMinor) {
 /// got one for. Matched on a standalone word (split on spaces) rather
 /// than a bare substring check, so e.g. "CP" can never misfire on some
 /// future currency name that merely contains "cp" inside a longer word.
-/// Falls back to the neutral coin for currencies with no dedicated art
-/// yet (Honor of Kings' Tokens, 8 Ball Pool's Cash, EA FC's FC Points).
+/// Falls back to the neutral coin only if a future game introduces a
+/// currency name none of these match.
 String _currencyIconFor(String name) {
   final words = name.toUpperCase().split(' ');
   if (words.contains('UC')) return 'assets/icons/uc_coin.png';
   if (words.contains('ROBUX')) return 'assets/icons/gem_silver.png';
   if (words.contains('GEMS')) return 'assets/icons/gem_purple.png';
   if (words.contains('CP')) return 'assets/icons/gem_green.png';
+  if (words.contains('CASH')) return 'assets/icons/coin_cash.png';
+  if (words.contains('FC')) return 'assets/icons/coin_fc.png';
+  if (words.contains('TOKENS')) return 'assets/icons/coin_token.png';
   if (name.toLowerCase().contains('genesis crystal')) return 'assets/icons/crystal_cyan.png';
   return 'assets/icons/coin.png';
 }
