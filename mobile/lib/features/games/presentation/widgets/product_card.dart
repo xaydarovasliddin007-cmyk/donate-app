@@ -21,10 +21,14 @@ import '../../domain/product.dart';
 /// storefront looks like — see assets/icons/{moneybag,pass,diamondpile,
 /// safe,truck}.png. Twilight Pass keeps a bundled Fluent Emoji 3D flame
 /// (Microsoft/MIT-licensed) since the reference's own art there is a
-/// Moonton character portrait, not ours to copy. PUBG's UC gets its own
-/// custom-drawn gold coin (assets/icons/uc_coin.png) since it's a
-/// prominent, recognizable currency in its own right — every other
-/// non-gem currency (Robux, Tokens, CP…) keeps the neutral Fluent coin.
+/// Moonton character portrait, not ours to copy. Every other currency
+/// prominent enough to look wrong wearing a generic coin gets its own
+/// custom-drawn icon too (see _currencyIconFor): PUBG's UC (gold coin),
+/// Roblox's Robux (silver gem), Supercell's Gems (purple gem, shared by
+/// Clash of Clans/Royale and Brawl Stars), Genshin's Genesis Crystals
+/// (cyan crystal), and CODM's CP (green gem). Currencies with no
+/// dedicated art yet (Honor of Kings' Tokens, 8 Ball Pool's Cash, EA
+/// FC's FC Points) keep the neutral Fluent coin.
 enum _TierKind { bonus, elitePass, weeklyPass, hotPass, plain }
 
 _TierKind _kindOf(String name) {
@@ -56,6 +60,23 @@ String _gemIconFor(int amountMinor) {
   return 'assets/icons/diamondpile.png';
 }
 
+/// Every currency prominent enough to be visually confusing wearing a
+/// generic coin gets its own icon, the same reasoning PUBG's UC already
+/// got one for. Matched on a standalone word (split on spaces) rather
+/// than a bare substring check, so e.g. "CP" can never misfire on some
+/// future currency name that merely contains "cp" inside a longer word.
+/// Falls back to the neutral coin for currencies with no dedicated art
+/// yet (Honor of Kings' Tokens, 8 Ball Pool's Cash, EA FC's FC Points).
+String _currencyIconFor(String name) {
+  final words = name.toUpperCase().split(' ');
+  if (words.contains('UC')) return 'assets/icons/uc_coin.png';
+  if (words.contains('ROBUX')) return 'assets/icons/gem_silver.png';
+  if (words.contains('GEMS')) return 'assets/icons/gem_purple.png';
+  if (words.contains('CP')) return 'assets/icons/gem_green.png';
+  if (name.toLowerCase().contains('genesis crystal')) return 'assets/icons/crystal_cyan.png';
+  return 'assets/icons/coin.png';
+}
+
 _KindStyle _styleOf(_TierKind kind, bool isDark, String name, int amountMinor) {
   switch (kind) {
     case _TierKind.bonus:
@@ -85,28 +106,16 @@ _KindStyle _styleOf(_TierKind kind, bool isDark, String name, int amountMinor) {
     case _TierKind.plain:
       // Every non-MLBB game lands here — its currency isn't necessarily
       // diamonds (PUBG's UC, Roblox's Robux, Genshin's Genesis Crystals,
-      // Honor of Kings' Tokens, CODM's CP, 8 Ball Pool's Cash, Standoff
-      // 2's Gold, EA FC's FC Points…), so a diamond icon on all of them
-      // was misleading. The diamondpile/safe/truck art is specifically
+      // Honor of Kings' Tokens, CODM's CP, 8 Ball Pool's Cash, EA FC's FC
+      // Points…). The diamondpile/safe/truck art is specifically
       // MLBB-style faceted blue diamonds (cropped from an MLBB reference)
       // — only apply it to currencies actually called "Diamonds" (Free
-      // Fire matches too, and looks like the same style of gem). Other
-      // premium currencies that just sound gem-adjacent (Clash's "Gems",
-      // Genshin's "Genesis Crystals") would look like a branding mismatch
-      // wearing MLBB's specific diamond art, so they fall to the neutral
-      // coin along with everything else instead.
+      // Fire matches too, and looks like the same style of gem); every
+      // other currency gets its own icon via _currencyIconFor, falling
+      // back to a neutral coin only for the ones with no dedicated art
+      // yet (Tokens, Cash, FC Points).
       final isDiamondLike = name.toLowerCase().contains('diamond');
-      // PUBG Mobile's currency is prominent/recognizable enough on its
-      // own (a gold coin literally labeled "UC", same as the game's own
-      // storefronts) that the neutral coin read as generic/wrong here —
-      // matched as a standalone word so it never fires on some other
-      // currency name that merely contains "uc" as a substring.
-      final isUC = name.toUpperCase().split(' ').contains('UC');
-      final iconAsset = isDiamondLike
-          ? _gemIconFor(amountMinor)
-          : isUC
-          ? 'assets/icons/uc_coin.png'
-          : 'assets/icons/coin.png';
+      final iconAsset = isDiamondLike ? _gemIconFor(amountMinor) : _currencyIconFor(name);
       return _KindStyle(
         gradient: isDark ? AppColors.heroGradientDark : AppColors.heroGradientLight,
         iconAsset: iconAsset,
