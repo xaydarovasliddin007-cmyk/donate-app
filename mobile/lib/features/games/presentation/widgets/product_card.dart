@@ -21,8 +21,10 @@ import '../../domain/product.dart';
 /// storefront looks like — see assets/icons/{moneybag,pass,diamondpile,
 /// safe,truck}.png. Twilight Pass keeps a bundled Fluent Emoji 3D flame
 /// (Microsoft/MIT-licensed) since the reference's own art there is a
-/// Moonton character portrait, not ours to copy; non-gem currencies (UC,
-/// Robux, Tokens, CP…) keep the neutral Fluent coin.
+/// Moonton character portrait, not ours to copy. PUBG's UC gets its own
+/// custom-drawn gold coin (assets/icons/uc_coin.png) since it's a
+/// prominent, recognizable currency in its own right — every other
+/// non-gem currency (Robux, Tokens, CP…) keeps the neutral Fluent coin.
 enum _TierKind { bonus, elitePass, weeklyPass, hotPass, plain }
 
 _TierKind _kindOf(String name) {
@@ -94,9 +96,20 @@ _KindStyle _styleOf(_TierKind kind, bool isDark, String name, int amountMinor) {
       // wearing MLBB's specific diamond art, so they fall to the neutral
       // coin along with everything else instead.
       final isDiamondLike = name.toLowerCase().contains('diamond');
+      // PUBG Mobile's currency is prominent/recognizable enough on its
+      // own (a gold coin literally labeled "UC", same as the game's own
+      // storefronts) that the neutral coin read as generic/wrong here —
+      // matched as a standalone word so it never fires on some other
+      // currency name that merely contains "uc" as a substring.
+      final isUC = name.toUpperCase().split(' ').contains('UC');
+      final iconAsset = isDiamondLike
+          ? _gemIconFor(amountMinor)
+          : isUC
+          ? 'assets/icons/uc_coin.png'
+          : 'assets/icons/coin.png';
       return _KindStyle(
         gradient: isDark ? AppColors.heroGradientDark : AppColors.heroGradientLight,
-        iconAsset: isDiamondLike ? _gemIconFor(amountMinor) : 'assets/icons/coin.png',
+        iconAsset: iconAsset,
       );
   }
 }
