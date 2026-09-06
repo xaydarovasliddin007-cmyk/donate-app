@@ -85,6 +85,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
       );
       if (mounted) context.go('/home');
     } catch (error) {
+      if (!mounted) return;
       final failure = Failure.from(error);
       setState(() {
         _errorMessage = failure.isUnauthorized

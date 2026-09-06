@@ -50,6 +50,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
         context.pushReplacement('/forgot-password/reset', extra: email);
       }
     } catch (error) {
+      if (!mounted) return;
       final failure = Failure.from(error);
       setState(() => _errorMessage = failure.message);
     } finally {

@@ -77,6 +77,7 @@ class _PromoCodeSheetState extends ConsumerState<_PromoCodeSheet> {
       );
       if (mounted) Navigator.of(context).pop();
     } catch (error) {
+      if (!mounted) return;
       final failure = Failure.from(error);
       setState(() {
         _errorMessage = switch (failure.code) {

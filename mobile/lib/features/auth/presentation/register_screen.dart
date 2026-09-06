@@ -68,6 +68,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         );
       }
     } catch (error) {
+      if (!mounted) return;
       final failure = Failure.from(error);
       setState(
         () => _errorMessage = failure.code == 'CONFLICT'

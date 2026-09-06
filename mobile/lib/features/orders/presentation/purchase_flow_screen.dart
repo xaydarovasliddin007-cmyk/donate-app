@@ -197,6 +197,7 @@ class _PurchaseFlowScreenState extends ConsumerState<PurchaseFlowScreen> {
 
       if (mounted) context.go('/orders/${order.id}');
     } catch (error) {
+      if (!mounted) return;
       final failure = Failure.from(error);
       setState(() {
         _insufficientBalance = failure.code == 'INSUFFICIENT_BALANCE';

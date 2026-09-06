@@ -54,6 +54,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           .login(email: email, password: _passwordController.text);
       if (mounted) context.pop();
     } catch (error) {
+      if (!mounted) return;
       final failure = Failure.from(error);
       setState(
         () => _errorMessage = failure.isUnauthorized
