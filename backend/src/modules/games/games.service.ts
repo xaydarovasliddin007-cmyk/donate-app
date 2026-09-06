@@ -1,4 +1,5 @@
 import type { PrismaClient } from '@prisma/client';
+import { isProduction } from '../../config/env.js';
 import { NotFoundError } from '../../lib/errors.js';
 import { applyDiscount } from '../../lib/money.js';
 
@@ -132,7 +133,20 @@ export async function listGameProducts(
     : 0;
 
   const products = await prisma.product.findMany({
-    where: { gameId, isActive: true, serverId: resolvedServerId },
+    where: {
+      gameId,
+      isActive: true,
+      serverId: resolvedServerId,
+      // isTest exists so seed/placeholder catalog data is never mistaken
+      // for the real thing (see Product.isTest's own doc comment) — but
+      // nothing enforced that, so a product left isActive:true after its
+      // test period was purchasable by real customers and "fulfilled" by
+      // the mock provider, taking real money for nothing. In production
+      // this is never a real product; kept visible outside production so
+      // local/staging testing of the purchase flow still works without a
+      // real catalog in place.
+      ...(isProduction ? { isTest: false } : {}),
+    },
     orderBy: [{ sortOrder: 'asc' }, { amountMinor: 'asc' }],
   });
   return products.map((product) => toPublicProduct(product, discountPercent));

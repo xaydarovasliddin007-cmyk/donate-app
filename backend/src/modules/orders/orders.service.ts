@@ -1,4 +1,5 @@
 import type { Order, OrderStatus, Prisma, PrismaClient } from '@prisma/client';
+import { isProduction } from '../../config/env.js';
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../../lib/errors.js';
 import { generateOrderNumber } from '../../lib/order-number.js';
 import { notifyAdmins } from '../../lib/telegram.js';
@@ -117,7 +118,17 @@ export async function createOrder(ctx: OrderContext, userId: string, input: Crea
   }
 
   const product = await ctx.prisma.product.findFirst({
-    where: { id: input.productId, gameId: input.gameId, isActive: true, serverId: resolvedGameServerId },
+    where: {
+      id: input.productId,
+      gameId: input.gameId,
+      isActive: true,
+      serverId: resolvedGameServerId,
+      // See games.service.ts's listGameProducts — a seed/placeholder
+      // product must never be purchasable by a real customer in
+      // production, even via a direct API call that skips the catalog
+      // listing this same flag already hides it from.
+      ...(isProduction ? { isTest: false } : {}),
+    },
   });
   if (!product) {
     throw new NotFoundError('Product not found or unavailable');
@@ -234,7 +245,17 @@ export async function validatePlayer(ctx: OrderContext, input: ValidatePlayerInp
   }
 
   const product = await ctx.prisma.product.findFirst({
-    where: { id: input.productId, gameId: input.gameId, isActive: true, serverId: resolvedGameServerId },
+    where: {
+      id: input.productId,
+      gameId: input.gameId,
+      isActive: true,
+      serverId: resolvedGameServerId,
+      // See games.service.ts's listGameProducts — a seed/placeholder
+      // product must never be purchasable by a real customer in
+      // production, even via a direct API call that skips the catalog
+      // listing this same flag already hides it from.
+      ...(isProduction ? { isTest: false } : {}),
+    },
   });
   if (!product) {
     throw new NotFoundError('Product not found or unavailable');
