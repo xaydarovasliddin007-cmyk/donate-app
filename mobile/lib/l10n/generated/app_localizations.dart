@@ -380,6 +380,24 @@ abstract class AppLocalizations {
   /// **'Sevimli o\'yiningizni tanlang, bir necha soniyada to\'ldiring'**
   String get onboardingWelcomeSubtitle;
 
+  /// No description provided for @onboardingFeatureInstant.
+  ///
+  /// In uz, this message translates to:
+  /// **'Bir zumda to\'ldirish'**
+  String get onboardingFeatureInstant;
+
+  /// No description provided for @onboardingFeatureSecure.
+  ///
+  /// In uz, this message translates to:
+  /// **'Xavfsiz to\'lovlar'**
+  String get onboardingFeatureSecure;
+
+  /// No description provided for @onboardingFeatureCatalog.
+  ///
+  /// In uz, this message translates to:
+  /// **'50+ o\'yin katalogda'**
+  String get onboardingFeatureCatalog;
+
   /// No description provided for @onboardingGetStarted.
   ///
   /// In uz, this message translates to:

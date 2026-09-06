@@ -158,6 +158,15 @@ class AppLocalizationsUz extends AppLocalizations {
       'Sevimli o\'yiningizni tanlang, bir necha soniyada to\'ldiring';
 
   @override
+  String get onboardingFeatureInstant => 'Bir zumda to\'ldirish';
+
+  @override
+  String get onboardingFeatureSecure => 'Xavfsiz to\'lovlar';
+
+  @override
+  String get onboardingFeatureCatalog => '50+ o\'yin katalogda';
+
+  @override
   String get onboardingGetStarted => 'Boshlash';
 
   @override

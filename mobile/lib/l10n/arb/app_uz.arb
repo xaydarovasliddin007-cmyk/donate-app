@@ -58,6 +58,9 @@
 
   "onboardingWelcomeTitle": "UZDONATE-ga xush kelibsiz",
   "onboardingWelcomeSubtitle": "Sevimli o'yiningizni tanlang, bir necha soniyada to'ldiring",
+  "onboardingFeatureInstant": "Bir zumda to'ldirish",
+  "onboardingFeatureSecure": "Xavfsiz to'lovlar",
+  "onboardingFeatureCatalog": "50+ o'yin katalogda",
   "onboardingGetStarted": "Boshlash",
 
   "authLoginTitle": "Kirish",

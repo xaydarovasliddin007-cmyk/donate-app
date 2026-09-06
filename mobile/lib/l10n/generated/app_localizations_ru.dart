@@ -158,6 +158,15 @@ class AppLocalizationsRu extends AppLocalizations {
       'Выберите любимую игру и пополните счёт за секунды';
 
   @override
+  String get onboardingFeatureInstant => 'Мгновенное пополнение';
+
+  @override
+  String get onboardingFeatureSecure => 'Безопасные платежи';
+
+  @override
+  String get onboardingFeatureCatalog => '50+ игр в каталоге';
+
+  @override
   String get onboardingGetStarted => 'Начать';
 
   @override

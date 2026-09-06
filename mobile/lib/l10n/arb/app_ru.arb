@@ -57,6 +57,9 @@
 
   "onboardingWelcomeTitle": "Добро пожаловать в UZDONATE",
   "onboardingWelcomeSubtitle": "Выберите любимую игру и пополните счёт за секунды",
+  "onboardingFeatureInstant": "Мгновенное пополнение",
+  "onboardingFeatureSecure": "Безопасные платежи",
+  "onboardingFeatureCatalog": "50+ игр в каталоге",
   "onboardingGetStarted": "Начать",
 
   "authLoginTitle": "Вход",
