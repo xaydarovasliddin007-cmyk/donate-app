@@ -41,20 +41,26 @@ flutter:
     - assets/icons/
     - assets/payment_logos/
 
-# The actual app icon (home screen + Play Store listing) — was still
-# Flutter's stock default logo before this, since no image-editing tool was
-# available to hand-author real icon PNGs at every required density. Reuses
-# the same brand mark flutter_native_splash already uses below, generated
-# into every density (legacy) plus a proper adaptive icon (foreground +
-# solid background) for Android 8+. Run `flutter pub run
-# flutter_launcher_icons` after changing this — it's a generation step, not
-# something that runs automatically on build.
+# The actual app icon (home screen + Play Store listing). The original
+# version just stretched the plain BrandMark (flat rounded square + white
+# bolt) into every density — legible but generic, easy to mistake for a
+# stock utility-app icon next to real competitors on a home screen. This
+# is a custom mark instead: a faceted diamond (the universal "in-game
+# currency" symbol every top-up competitor leans on) with the same bolt
+# from BrandMark struck through it in gold (this app's speed/instant
+# angle), on the brand's real hero gradient (brandPrimary->brandAccent)
+# with a glossy highlight and a warm corner glow for depth. Generated at
+# assets/branding/app_icon_{bg,fg,full}.png via a one-off PowerShell/GDI+
+# script (not checked in — only the resulting PNGs are committed), same
+# technique used for the in-catalog currency icons. Run `dart run
+# flutter_launcher_icons` after changing this — it's a generation step,
+# not something that runs automatically on build.
 flutter_launcher_icons:
   android: true
   ios: false
-  image_path: "assets/branding/splash_logo.png"
-  adaptive_icon_background: "#146CFF"
-  adaptive_icon_foreground: "assets/branding/splash_logo.png"
+  image_path: "assets/branding/app_icon_full.png"
+  adaptive_icon_background: "assets/branding/app_icon_bg.png"
+  adaptive_icon_foreground: "assets/branding/app_icon_fg.png"
   min_sdk_android: 21
 
 # Native (pre-Flutter-engine) splash — this is what's actually on screen for
