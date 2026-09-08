@@ -108,16 +108,29 @@ async function main() {
     products: SeedTier[];
   }
 
-  // The standard 5-tier UZS price ladder every game below maps its currency
-  // amounts onto (small -> mega).
-  const LADDER = [1_500_000, 2_900_000, 4_300_000, 8_500_000, 17_000_000];
-  const tiers = (code: string, unit: string, amounts: number[]): SeedTier[] =>
-    amounts.map((amount, i) => ({ code: `${code}_${amount}`, name: `${amount} ${unit}`, amountMinor: LADDER[i] }));
+  // Est.-priced tiers for games where the real denomination ladder and price
+  // is known (official storefront tiers, or a checked competitor) but no
+  // FazerCards category/SKU has been confirmed yet (its wholesale price list
+  // for these is gated behind a live account — ours is currently inactive).
+  // Unlike the old flat placeholder ladder this replaced (every game's tiers
+  // mapped onto the same 1.5M/2.9M/4.3M/8.5M/17M so'm regardless of what the
+  // amount actually was — e.g. 80 Clash of Clans Gems, worth about $1, was
+  // priced at 1,500,000 so'm), these are real numbers. isTest stays true
+  // (no fazercardsCode) until a real provider code is wired up, so nothing
+  // here is customer-visible in production yet — see games.service.ts's
+  // isProduction-gated isTest filter.
+  const estTier = (code: string, name: string, sellUzs: number): SeedTier => ({
+    code,
+    name,
+    amountMinor: sellUzs * 100,
+  });
 
   // Real-priced tiers for games actually wired to the FazerCards live
-  // catalog (see backend/README.md "FazerCards top-up setup"). Unlike
-  // tiers() above, prices here are NOT a placeholder ladder — sellUzs is a
-  // real UZS retail price (already *100 into minor units/tiyin) chosen to
+  // catalog (see backend/README.md "FazerCards top-up setup") — the only
+  // difference from estTier() above is a confirmed fazercardsCode, which is
+  // what actually makes a product real (isTest: false) rather than the
+  // price itself. sellUzs is a real UZS retail price (already *100 into
+  // minor units/tiyin) chosen to
   // sit close to a known competitor's price for the same package where one
   // was checked (BekPinBot, MLBB), or a comparable ~10% margin over the
   // live FazerCards USD cost otherwise (snapshot rate ~11,950 UZS/USD,
@@ -495,7 +508,24 @@ async function main() {
       logoUrl:
         'https://play-lh.googleusercontent.com/QqZj22aXblAyYDxLQw-Gg0ycW0QkKhrDnwqgERZU9BMRXZnMlgXfq-94sikG5mEpt_I0lzZxcUzfLblmQgwYzUE=s256',
       availability: 'ACTIVE',
-      products: tiers('RBX', 'Robux', [80, 170, 400, 800, 1700]),
+      // Real wholesale-USD-derived tiers (FazerCards publishes its Robux
+      // wholesale price list publicly, unlike its gated game-topup
+      // categories — see reseller.fazercards.com/catalog/roblox) at the
+      // same ~10% margin the realTier() games use. Roblox itself doesn't
+      // sell 30/170/950-style amounts — these are its actual denominations.
+      products: [
+        estTier('RBX_100', '100 Robux', 30_000),
+        estTier('RBX_200', '200 Robux', 39_000),
+        estTier('RBX_400', '400 Robux', 62_000),
+        estTier('RBX_800', '800 Robux', 107_000),
+        estTier('RBX_1000', '1,000 Robux', 133_000),
+        estTier('RBX_1500', '1,500 Robux', 187_000),
+        estTier('RBX_1700', '1,700 Robux', 225_000),
+        estTier('RBX_2000', '2,000 Robux', 278_000),
+        estTier('RBX_2500', '2,500 Robux', 319_000),
+        estTier('RBX_4500', '4,500 Robux', 544_000),
+        estTier('RBX_10000', '10,000 Robux', 1_094_000),
+      ],
     },
     // No official mobile app / Play Store listing exists for Valorant —
     // kept as a coming-soon placeholder with its emoji only, same as before.
@@ -684,7 +714,21 @@ async function main() {
       logoUrl:
         'https://play-lh.googleusercontent.com/gX_sXesdzLc9C4tancLSiJKZom_gLi7Uc5cMfaC-zaY0gvFbXV_DTRZFNqlVx6USMWkqglYgr-k0NeaUq5zE=s256',
       availability: 'ACTIVE',
-      products: tiers('COC', 'Gems', [80, 500, 1200, 2500, 6500]),
+      // Supercell prices Gems identically across Clash of Clans/Royale and
+      // Brawl Stars ($0.99/$4.99/$9.99/$19.99/$49.99/$99.99 for
+      // 80/500/1200/2500/6500/14000) — priced here at ~15% below that
+      // official rate (no wholesale cost available; FazerCards gates its
+      // Supercell-line price list behind a live account, unlike Robux's
+      // public one), since undercutting official IAP is the point of a
+      // top-up shop.
+      products: [
+        estTier('COC_80', '80 Gems', 10_000),
+        estTier('COC_500', '500 Gems', 51_000),
+        estTier('COC_1200', '1,200 Gems', 101_000),
+        estTier('COC_2500', '2,500 Gems', 203_000),
+        estTier('COC_6500', '6,500 Gems', 508_000),
+        estTier('COC_14000', '14,000 Gems', 1_016_000),
+      ],
     },
     {
       slug: 'clash-royale',
@@ -694,7 +738,15 @@ async function main() {
       logoUrl:
         'https://play-lh.googleusercontent.com/z0rspJKftanEI7MA4WOdypbaaHfeKy4UjoawRGKf4Ys3v6LrrcleZWOfms7XK-J33Oqyfm3DlFd4Z_eKWafVFg=s256',
       availability: 'ACTIVE',
-      products: tiers('CR', 'Gems', [80, 500, 1200, 2500, 6500]),
+      // Same Supercell-wide Gems ladder/pricing as Clash of Clans above.
+      products: [
+        estTier('CR_80', '80 Gems', 10_000),
+        estTier('CR_500', '500 Gems', 51_000),
+        estTier('CR_1200', '1,200 Gems', 101_000),
+        estTier('CR_2500', '2,500 Gems', 203_000),
+        estTier('CR_6500', '6,500 Gems', 508_000),
+        estTier('CR_14000', '14,000 Gems', 1_016_000),
+      ],
     },
     {
       slug: 'standoff-2',
@@ -704,7 +756,19 @@ async function main() {
       logoUrl:
         'https://play-lh.googleusercontent.com/BzFzyK022sdG6grfJqkwj3KoNFAxp0aQ7kYFzZwwfbHZvaMkViEQDco68Xt_tk4us6XrCG6ST3CJT32W3KutDQ=s256',
       availability: 'ACTIVE',
-      products: tiers('SO2', 'Gold', [60, 300, 660, 1650, 3850]),
+      // Axlebolt prices Gold at €1.99/100 (no bulk discount) up to ~40% off
+      // at the largest packs (standoff-2.fandom.com/wiki/Currency) — no
+      // wholesale supplier confirmed for Standoff 2 (checked FazerCards and
+      // the usual resellers), so this stays test-only until one turns up,
+      // but the numbers themselves are now real instead of the old flat
+      // placeholder ladder.
+      products: [
+        estTier('SO2_60', '60 Gold', 17_000),
+        estTier('SO2_300', '300 Gold', 76_000),
+        estTier('SO2_660', '660 Gold', 149_000),
+        estTier('SO2_1650', '1,650 Gold', 326_000),
+        estTier('SO2_3850', '3,850 Gold', 674_000),
+      ],
     },
     {
       slug: 'brawl-stars',
@@ -714,7 +778,17 @@ async function main() {
       logoUrl:
         'https://play-lh.googleusercontent.com/c0hXyphuxh-gpnhSJGZV1I0IpWbq9IdEc1pautS7SmHlXNBrCff7bMqK-u63pJdfP3KJoxamG7W1dRMKr7ZzWKs=s256',
       availability: 'ACTIVE',
-      products: tiers('BS', 'Gems', [30, 80, 170, 360, 950]),
+      // Same Supercell-wide Gems ladder/pricing as Clash of Clans — the old
+      // 30/80/170/360/950 amounts here weren't even real Brawl Stars Gems
+      // denominations.
+      products: [
+        estTier('BS_80', '80 Gems', 10_000),
+        estTier('BS_500', '500 Gems', 51_000),
+        estTier('BS_1200', '1,200 Gems', 101_000),
+        estTier('BS_2500', '2,500 Gems', 203_000),
+        estTier('BS_6500', '6,500 Gems', 508_000),
+        estTier('BS_14000', '14,000 Gems', 1_016_000),
+      ],
     },
     {
       slug: 'among-us',
@@ -724,13 +798,19 @@ async function main() {
       logoUrl:
         'https://play-lh.googleusercontent.com/pfGArJJx-vtMRVu2-ziedzAhTLsHgks6N3mNyyOC0oxRdsXINGwdd9h4ZutdTG7MfgiqlDXBXnk-kNo-Fns70Q=s256',
       availability: 'ACTIVE',
-      // No premium currency — cosmetics are sold as flat packs, so the
-      // ladder's names are pack tiers instead of a currency amount.
-      products: LADDER.map((amountMinor, i) => ({
-        code: `AMONGUS_PACK_${i}`,
-        name: ['Small Pet Pack', 'Medium Pet Pack', 'Large Cosmetic Pack', 'Mega Cosmetic Pack', 'Ultimate Bundle'][i],
-        amountMinor,
-      })),
+      // No premium currency — cosmetics are sold as flat packs. Innersloth's
+      // real pack pricing is $2.99 per pet bundle and $0.99-2.99 per
+      // individual cosmetic; scaled up to a $19.99 top bundle here. No
+      // wholesale supplier confirmed (same as Standoff 2), so still
+      // test-only, but no longer priced at ~40x real value like the old
+      // shared placeholder ladder was.
+      products: [
+        estTier('AMONGUS_SMALL', 'Small Pet Pack', 39_000),
+        estTier('AMONGUS_MEDIUM', 'Medium Pet Pack', 79_000),
+        estTier('AMONGUS_LARGE', 'Large Cosmetic Pack', 131_000),
+        estTier('AMONGUS_MEGA', 'Mega Cosmetic Pack', 197_000),
+        estTier('AMONGUS_ULTIMATE', 'Ultimate Bundle', 263_000),
+      ],
     },
     {
       slug: 'ea-fc-mobile',
