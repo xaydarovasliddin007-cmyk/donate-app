@@ -33,12 +33,39 @@ class EmptyView extends ConsumerWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                icon ?? Icons.inbox_outlined,
-                size: 48,
-                color: theme.colorScheme.onSurfaceVariant,
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      theme.colorScheme.primary.withValues(alpha: 0.14),
+                      theme.colorScheme.secondary.withValues(alpha: 0.08),
+                    ],
+                  ),
+                  border: Border.all(
+                    color: theme.colorScheme.primary.withValues(alpha: 0.22),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: theme.colorScheme.primary.withValues(alpha: 0.08),
+                      blurRadius: 16,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: Icon(
+                    icon ?? Icons.inbox_outlined,
+                    size: 38,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
               ),
-              const SizedBox(height: AppSpacing.md),
+              const SizedBox(height: AppSpacing.lg),
               Text(
                 title,
                 style: theme.textTheme.titleMedium,

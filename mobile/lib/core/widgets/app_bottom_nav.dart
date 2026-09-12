@@ -32,7 +32,9 @@ class AppBottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(
@@ -46,17 +48,27 @@ class AppBottomNav extends StatelessWidget {
         child: Container(
           height: 64,
           decoration: BoxDecoration(
-            color: scheme.surface,
+            color: isDark
+                ? const Color(0xEE181A22)
+                : const Color(0xF7FFFFFF),
             borderRadius: BorderRadius.circular(AppRadius.pill),
             border: Border.all(
-              color: scheme.outlineVariant.withValues(alpha: 0.5),
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.12)
+                  : scheme.outlineVariant.withValues(alpha: 0.7),
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.16),
-                blurRadius: 20,
+                color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.08),
+                blurRadius: 24,
                 offset: const Offset(0, 8),
               ),
+              if (isDark)
+                BoxShadow(
+                  color: scheme.primary.withValues(alpha: 0.08),
+                  blurRadius: 20,
+                  offset: const Offset(0, 2),
+                ),
             ],
           ),
           child: Stack(
@@ -76,12 +88,21 @@ class AppBottomNav extends StatelessWidget {
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 6,
-                      vertical: 8,
+                      vertical: 7,
                     ),
                     child: DecoratedBox(
                       decoration: BoxDecoration(
-                        color: scheme.primary.withValues(alpha: 0.16),
+                        gradient: LinearGradient(
+                          colors: [
+                            scheme.primary.withValues(alpha: isDark ? 0.22 : 0.15),
+                            scheme.secondary.withValues(alpha: isDark ? 0.16 : 0.10),
+                          ],
+                        ),
                         borderRadius: BorderRadius.circular(AppRadius.pill),
+                        border: Border.all(
+                          color: scheme.primary.withValues(alpha: isDark ? 0.35 : 0.25),
+                          width: 1,
+                        ),
                       ),
                     ),
                   ),

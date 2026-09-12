@@ -40,12 +40,32 @@ class ErrorView extends ConsumerWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                Icons.error_outline_rounded,
-                size: 48,
-                color: theme.colorScheme.error,
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: theme.colorScheme.error.withValues(alpha: 0.12),
+                  border: Border.all(
+                    color: theme.colorScheme.error.withValues(alpha: 0.28),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: theme.colorScheme.error.withValues(alpha: 0.12),
+                      blurRadius: 18,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: Icon(
+                    Icons.error_outline_rounded,
+                    size: 38,
+                    color: theme.colorScheme.error,
+                  ),
+                ),
               ),
-              const SizedBox(height: AppSpacing.md),
+              const SizedBox(height: AppSpacing.lg),
               Text(
                 title,
                 style: theme.textTheme.titleMedium,
@@ -59,9 +79,10 @@ class ErrorView extends ConsumerWidget {
               ),
               if (onRetry != null) ...[
                 const SizedBox(height: AppSpacing.lg),
-                FilledButton(
+                FilledButton.icon(
                   onPressed: onRetry,
-                  child: Text(retryLabel ?? 'Retry'),
+                  icon: const Icon(Icons.refresh_rounded, size: 18),
+                  label: Text(retryLabel ?? 'Retry'),
                 ),
               ],
             ],

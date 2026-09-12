@@ -1,163 +1,200 @@
-# UZDONATE — Play Store Listing Materials
+# UZDONATE — Google Play Store Listing & ASO Materials
 
-Ready-to-paste copy for Play Console. Everything below is text you fill into forms yourself — I can't submit Play Console forms on your behalf, only prepare the content.
-
----
-
-## 1. Short description (max 80 characters)
-
-**Uzbek (primary):**
-```
-PUBG, Mobile Legends, Free Fire va 15+ o'yin uchun tezkor, xavfsiz to'ldirish
-```
-(77 characters)
-
-**Russian:**
-```
-Мгновенное пополнение PUBG, Mobile Legends, Free Fire и 15+ игр
-```
-(64 characters)
+Play Console uchun tayyor nusxalar va ASO (App Store Optimization) materiallari. Google Play qidiruv algoritmlari uchun to'liq optimallashtirilgan.
 
 ---
 
-## 2. Full description (max 4000 characters)
+## 1. App Title / Ilova nomi (Maksimal 30 belgi)
 
-### Uzbek
+Google Play qoidalariga ko'ra ilova nomi 30 ta belgidan oshmasligi shart. Eng muhim qidiruv kalit so'zlari joylashtirilgan:
 
+- **Uzbek (asosiy):**
+  ```
+  UZDONATE: O'yinlarga Donat
+  ```
+  *(26 ta belgi — "o'yinlarga donat" asosiy kalit so'zi bilan)*
+
+- **Russian:**
+  ```
+  UZDONATE: Донат в игры, UC
+  ```
+  *(25 ta belgi — "донат в игры", "UC" kalit so'zlari bilan)*
+
+---
+
+## 2. Short description / Qisqa tavsif (Maksimal 80 belgi)
+
+- **Uzbek:**
+  ```
+  PUBG UC, Mobile Legends, Free Fire va 15+ o'yin uchun tezkor, xavfsiz to'ldirish
+  ```
+  *(77 ta belgi)*
+
+- **Russian:**
+  ```
+  Донат в PUBG Mobile (UC), Mobile Legends, Free Fire и 15+ игр по Humo/Uzcard
+  ```
+  *(76 ta belgi)*
+
+---
+
+## 3. Full description / To'liq tavsif (Maksimal 4000 belgi)
+
+### Uzbek (O'zbekcha)
+
+```text
+⚡ UZDONATE — sevimli o'yinlaringizga bir necha soniyada xavfsiz donat qiling!
+
+O'zbekistondagi geymerlar uchun maxsus yaratilgan tezkor va qulay donat platformasi. PUBG Mobile UC, Mobile Legends olmoslari, Free Fire va yana o'nlab mashhur o'yinlar hisobini Humo va Uzcard orqali to'g'ridan-to'g'ri to'ldiring!
+
+🎮 ENG MASHHUR O'YINLAR VA XIZMATLAR:
+• PUBG Mobile — UC paketlari (Global & barcha mintaqalar)
+• Mobile Legends: Bang Bang — Diamonds (Olmoslar) va Haftalik Pass
+• Free Fire & Free Fire MAX — Olmoslar
+• Genshin Impact — Genesis Crystals & Blessing
+• Call of Duty: Mobile (CP)
+• Roblox — Robux
+• Brawl Stars, Clash of Clans, Clash Royale — Gems
+• Standoff 2 — Gold
+• Honor of Kings, 8 Ball Pool, EA SPORTS FC Mobile
+• Telegram Premium obunasi va Steam hamyonini to'ldirish
+(Ro'yxat doimiy yangilanib boradi!)
+
+💳 O'ZBEKISTON UCHUN ENG QULAY TO'LOV TIZIMI:
+• Humo va Uzcard orqali to'g'ridan-to'g'ri xavfsiz o'tkazma
+• Avtomatik hisobga olish — mablag' bir necha soniyada hamyoningizga tushadi
+• QR-kod orqali bir bosishda to'lash
+• Karta ma'lumotlaringiz ilovada SAQLANMAYDI — to'liq xavfsiz
+
+🚀 NEGA AYNAN UZDONATE?
+1. Avtomatlashtirilgan tezlik: Player ID kiritiladi va buyurtma bir zumda o'yiningizga yetkaziladi.
+2. Hamyonbop narxlar: Har doim eng maqbul kurslar va muntazam aksiyalar.
+3. Shaxsiy Hamyon: Balansingizni bir marta to'ldirib, istalgan vaqtda bir bosishda xarid qiling.
+4. Xaridlar tarixi: Har bir buyurtmangiz holati, kvitansiyasi va ID raqamini kuzatib boring.
+5. 24/7 Qo'llab-quvvatlash: O'zbek va rus tillarida tezkor yordam xizmati.
+
+📱 BUYURTMA BERISH JUDA ODDIY:
+1. O'yiningizni tanlang.
+2. O'yinchi ID raqamingizni (Player ID / Server ID) kiriting.
+3. Kerakli paket yoki miqdorni tanlang.
+4. To'lovni amalga oshiring.
+5. Balans bir necha soniyada hisobingizda aks etadi!
+
+⚠️ OGOHLANTIRISH VA HUQUQIY MA'LUMOT (DISCLAIMER):
+UZDONATE — mustaqil xizmat ko'rsatish platformasi bo'lib, o'yin ishlab chiquvchilari (PUBG Corporation, Moonton, Garena va boshqalar) bilan to'g'ridan-to'g'ri aloqador emas. Barcha tovar belgilari va o'yin nomlari ularning qonuniy egalariga tegishli.
 ```
-⚡ UZDONATE — o'yin balansini bir zumda to'ldiring
 
-PUBG Mobile, Mobile Legends: Bang Bang, Free Fire, Genshin Impact va yana o'nlab sevimli o'yinlaringiz uchun UC, Diamond va boshqa valyutalarni tez, xavfsiz va qulay tarzda sotib oling.
+### Russian (Русский)
 
-🎮 QO'LLAB-QUVVATLANADIGAN O'YINLAR
-• PUBG Mobile — UC
-• Mobile Legends: Bang Bang — Diamond
-• Free Fire — Olmos
-• Genshin Impact — Genesis Crystal
-• Call of Duty: Mobile, Honor of Kings, Standoff 2, Clash of Clans, Clash Royale, Brawl Stars, 8 Ball Pool, Roblox, Among Us, EA SPORTS FC Mobile
-• Telegram Premium, Steam hamyoni
-va yana ko'plab o'yinlar — ro'yxat doimiy yangilanib boradi.
+```text
+⚡ UZDONATE — моментальный и безопасный донат в любимые игры!
 
-💳 QULAY TO'LOV USULLARI
-• Humo va Uzcard orqali to'g'ridan-to'g'ri o'tkazma
-• QR-kod orqali to'lov
-• Paynet terminallari orqali naqd to'lov
-• Ilova hamyoni — bir marta to'ldirib, istalgan vaqtda xarid qiling
+Удобная платформа пополнения игрового баланса для геймеров в Узбекистане. Покупайте UC в PUBG Mobile, алмазы в Mobile Legends, Free Fire и десятки других популярных игр быстро и выгодно через Humo и Uzcard!
 
-🚀 NEGA UZDONATE?
-• Tezkor yetkazib berish — ko'p holatlarda bir necha soniyada
-• Xavfsiz — karta ma'lumotlaringiz ilovada saqlanmaydi
-• Buyurtmalar tarixi — har bir xaridni kuzatib boring
-• Doimiy chegirmalar va aksiyalar
-• O'zbek va rus tillarida ishlaydi
+🎮 ПОДДЕРЖИВАЕМЫЕ ИГРЫ И СЕРВИСЫ:
+• PUBG Mobile — UC (Global и все регионы)
+• Mobile Legends: Bang Bang — Алмазы (Diamonds) и недельный пропуск
+• Free Fire & Free Fire MAX — Алмазы
+• Genshin Impact — Кристаллы Сотворения и Луна
+• Call of Duty: Mobile (CP)
+• Roblox — Robux
+• Brawl Stars, Clash of Clans, Clash Royale — Гемы
+• Standoff 2 — Голда
+• Honor of Kings, 8 Ball Pool, EA SPORTS FC Mobile
+• Подписка Telegram Premium и пополнение Steam
+(Каталог игр регулярно обновляется!)
 
-📱 QANDAY ISHLAYDI?
-1. O'yiningizni tanlang
-2. Player ID kiriting
-3. Kerakli miqdorni tanlang
-4. To'lov usulini tanlang va to'lang
-5. Balans bir necha soniyada hisobingizga tushadi
+💳 УДОБНАЯ ОПЛАТА ДЛЯ УЗБЕКИСТАНА:
+• Прямой перевод через Humo и Uzcard
+• Автоматическое зачисление за считанные секунды
+• Оплата по QR-коду в один клик
+• Полная безопасность — данные банковских карт не сохраняются в приложении
 
-Savol yoki muammo bo'lsa, ilova ichidagi qo'llab-quvvatlash orqali biz bilan bog'laning — sizga yordam berishdan mamnunmiz!
-```
+🚀 ПОЧЕМУ ВЫБИРАЮТ UZDONATE?
+1. Высокая скорость: Укажите Player ID — донат мгновенно поступит на ваш аккаунт.
+2. Выгодные цены: Лучший курс и постоянные акции со скидками.
+3. Внутренний кошелёк: Пополняйте баланс один раз и покупайте мгновенно в любое время.
+4. История заказов: Полный контроль покупок, чеки и статусы доставки.
+5. Поддержка 24/7: Оперативная помощь на узбекском и русском языках.
 
-### Russian
+📱 КАК СДЕЛАТЬ ЗАКАЗ:
+1. Выберите игру из каталога.
+2. Введите Player ID (и Zone/Server ID при необходимости).
+3. Выберите нужный номинал или валюту.
+4. Оплатите заказ через Humo / Uzcard.
+5. Баланс поступит на ваш игровой аккаунт за несколько секунд!
 
-```
-⚡ UZDONATE — мгновенное пополнение игрового баланса
-
-Покупайте UC, Diamond и другую игровую валюту для PUBG Mobile, Mobile Legends: Bang Bang, Free Fire, Genshin Impact и десятков других любимых игр — быстро, безопасно и удобно.
-
-🎮 ПОДДЕРЖИВАЕМЫЕ ИГРЫ
-• PUBG Mobile — UC
-• Mobile Legends: Bang Bang — Diamond
-• Free Fire — Алмазы
-• Genshin Impact — Genesis Crystal
-• Call of Duty: Mobile, Honor of Kings, Standoff 2, Clash of Clans, Clash Royale, Brawl Stars, 8 Ball Pool, Roblox, Among Us, EA SPORTS FC Mobile
-• Telegram Premium, пополнение кошелька Steam
-и другие игры — список постоянно пополняется.
-
-💳 УДОБНЫЕ СПОСОБЫ ОПЛАТЫ
-• Перевод через Humo и Uzcard
-• Оплата по QR-коду
-• Наличными через терминалы Paynet
-• Кошелёк приложения — пополните один раз, покупайте когда угодно
-
-🚀 ПОЧЕМУ UZDONATE?
-• Быстрая доставка — часто за несколько секунд
-• Безопасно — данные карты никогда не хранятся в приложении
-• История заказов — отслеживайте каждую покупку
-• Постоянные скидки и акции
-• Работает на узбекском и русском языках
-
-📱 КАК ЭТО РАБОТАЕТ?
-1. Выберите игру
-2. Введите Player ID
-3. Выберите номинал
-4. Выберите способ оплаты и оплатите
-5. Баланс поступит на ваш аккаунт за считанные секунды
-
-Если у вас есть вопросы — напишите в поддержку прямо из приложения. Мы всегда рады помочь!
+⚠️ ПРАВОВАЯ ИНФОРМАЦИЯ (DISCLAIMER):
+UZDONATE является независимым сервисом и не связан напрямую с разработчиками игр (PUBG Corporation, Moonton, Garena и др.). Все торговые марки и названия игр принадлежат их законным правообладателям.
 ```
 
 ---
 
-## 3. Category & tags
+## 4. Toifa va Kalit So'zlar (Category & Tags)
 
-- **App category:** Shopping (or Tools — "Shopping" fits better since this is a digital-goods storefront, not a utility)
-- **Tags/keywords** (for your own reference, Play Console doesn't have a public keyword field anymore, but these guide your title/description word choice): top up, PUBG UC, Mobile Legends diamond, Free Fire, o'yin puli, o'yin balansi, game top-up
-
----
-
-## 4. Content rating questionnaire — how to answer
-
-Play Console runs the IARC questionnaire. Since UZDONATE is a **top-up/storefront app**, not a game itself, answer based on what happens *inside this app*:
-
-| Question | Answer |
-|---|---|
-| Violence | None |
-| Sexual content | None |
-| Profanity | None |
-| Controlled substances | None |
-| Simulated gambling | **No** — this is direct purchase of digital goods at a fixed price, not a chance-based mechanic |
-| User-generated content shared with others | No (unless you add a public chat/review feature later) |
-| Users can interact / share personal info | Yes — accounts, order history |
-| Digital purchases | Yes |
-| Location sharing | No |
-
-Expected result: low rating (equivalent to PEGI 3 / Everyone).
+- **Asosiy toifa (App category):** `Shopping` (Xaridlar) yoki `Entertainment` (Ko'ngilochar). Shopping raqamli tovarlar do'koni uchun eng maqbul hisoblanadi.
+- **Teglar / ASO Kalit so'zlar:**
+  - `donat`, `o'yinlarga donat`, `pubg uc`, `mobile legends olmos`, `free fire olmos`, `standoff gold`, `humo uzcard to'lov`, `донат в игры`, `купить uc`, `алмазы млбб`, `game top up`.
 
 ---
 
-## 5. Data Safety section — what to declare
+## 5. Play Console Sertifikatlari va Texnik Parametrlar
 
-This is the part Google reviews most carefully for finance-adjacent apps. Based on what the app actually collects (verified against the backend schema):
-
-**Data collected and why:**
-| Data type | Collected? | Purpose |
-|---|---|---|
-| Email address | Yes | Account creation, login |
-| Phone number | Optional | Account creation, login |
-| Purchase history | Yes | Order tracking, receipts |
-| User IDs (account ID) | Yes | Account functionality |
-| App interactions | Yes (order/search activity) | Analytics, improving the app |
-| Financial info (card numbers) | **No** | Card transfers go bank-to-bank between the user and your disclosed receiving card — the app never receives, transmits, or stores card numbers or CVV |
-| Location, Contacts, Photos, Calendar | No | Not accessed |
-
-**Other declarations:**
-- Data encrypted in transit: **Yes** (HTTPS/TLS)
-- Users can request data deletion: **Yes** — in-app (Profile → Security Center → Delete Account), which is already implemented
-- Data collection is required for core functionality, not optional/ad-driven
+- **Package Name (Application ID):** `uz.uzdonate.app`
+- **Target SDK:** `35` (Android 15 — Google Play'ning 2024-2026 yillardagi eng qat'iy talablariga to'liq javob beradi)
+- **Compile SDK:** `37`
+- **Min SDK:** `21` (Android 5.0+)
+- **R8 / ProGuard:** Yoqilgan (`isMinifyEnabled = true`, `isShrinkResources = true`)
+- **Imzolash kaliti (Upload Keystore):** `upload-keystore.jks` (alias: `uzdonate`)
+  - **SHA-1:** `94:5B:EA:7B:55:47:B1:AF:FB:9A:07:70:EE:33:58:31:C8:62:21:69`
+  - **SHA-256:** `42:8B:30:F4:15:9B:ED:7C:C4:4B:1A:B2:A8:58:1B:52:4B:3A:E6:C5:09:5B:09:24:20:53:BE:23:94:BE:AF:F8`
+- **Lokal Debug SHA-1:** `3B:8B:0E:8B:FE:0B:CA:DB:8E:9B:1C:A9:B4:82:12:09:2B:B8:FC:0E`
 
 ---
 
-## 6. Still needed before submission (visual assets)
+## 6. Data Safety (Ma'lumotlar xavfsizligi deklaratsiyasi)
 
-These need actual screenshots from a running device/emulator — I'll build these with you when you're ready:
-- Phone screenshots (minimum 2, recommend 4–6): home screen, game catalog, checkout, wallet
-- Feature graphic (1024×500 banner)
-- App icon (already done — real launcher icon is in place, no action needed)
+Play Console savolnomasiga quyidagicha javob beriladi:
 
-## 7. Known blocker (your own note, restated here for reference)
+| Ma'lumot turi | To'planadimi? | Maqsadi | Uchinchi tomonga beriladimi? |
+|---|---|---|---|
+| Email manzili | Ha | Hisob yaratish, kirish va cheklar | Yo'q |
+| Telefon raqami | Ixtiyoriy | Hisob yaratish va aloqa | Yo'q |
+| Xaridlar tarixi | Ha | Buyurtmalar monitoringi va kvitansiyalar | Yo'q |
+| Foydalanuvchi ID (Account ID) | Ha | Ilova funksionalligi | Yo'q |
+| Bank karta ma'lumotlari (PAN, CVV) | **YO'Q** | Bank ilovasi orqali to'g'ridan-to'g'ri o'tkaziladi, ilova kartani saqlamaydi | Yo'q |
+| Joylashuv (Location), Kontaktlar, Rasmlar | **YO'Q** | Ruxsat so'ralmaydi | Yo'q |
 
-FazerCards reseller subscription needs renewing before accepting real orders on PUBG Mobile / Mobile Legends / Free Fire / Genshin Impact / Call of Duty: Mobile / Honor of Kings / 8 Ball Pool / Telegram Premium / Steam — those all route through it as the only real fulfillment provider. You said you'll handle this when you're ready to test it.
+- Ma'lumotlar tranzitda shifrlangan: **Ha (HTTPS / TLS 1.3)**
+- Foydalanuvchi hisobini o'chirish imkoni: **Ha (Ilova ichida Profile → Security → Delete Account mavjud)**
+
+---
+
+## 7. Grafika Talablari (Visual Assets Checklist)
+
+1. **Ilova belgisi (App Icon):**
+   - O'lchami: `512 x 512 px` (32-bit PNG, alfa kanalsiz).
+   - Mavjud: `assets/branding/app_icon_full.png` dan foydalaniladi.
+2. **Asosiy grafik banner (Feature Graphic):**
+   - O'lchami: `1024 x 500 px` (JPG yoki 24-bit PNG, alfa kanalsiz).
+   - Tarkibi: UZDONATE logotipi, "Tezkor donat platformasi", PUBG / MLBB timsollari va Humo/Uzcard belgilari.
+3. **Skrinshotlar (Telefon uchun kamida 4 ta):**
+   - Tavsiya etilgan o'lcham: `1080 x 1920 px` yoki `1080 x 2400 px`.
+   - 1-skrinshot: Asosiy ekran va mashhur o'yinlar katalogi.
+   - 2-skrinshot: O'yin ichi paketlarini tanlash va Player ID kiritish.
+   - 3-skrinshot: Avtomatik Humo/Uzcard to'lov oynasi.
+   - 4-skrinshot: Buyurtmalar tarixi va tezkor yetkazib berish holati.
+
+---
+
+## 8. Reliz Yig'ish Buyrug'i (Release Build)
+
+Play Store'ga yuklash uchun `.aab` (Android App Bundle) yig'ish:
+
+```bash
+cd mobile
+flutter build appbundle --release
+```
+
+Yig'ilgan fayl manzili:
+`mobile/build/app/outputs/bundle/release/app-release.aab`

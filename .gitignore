@@ -51,3 +51,7 @@ mobile/**/*.freezed.dart
 # --- Logs ---
 *.log
 logs/
+
+# --- Binaries & Tunnels ---
+cloudflared.exe
+cloudflared*

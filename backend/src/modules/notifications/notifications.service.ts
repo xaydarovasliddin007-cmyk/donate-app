@@ -1,5 +1,6 @@
 import type { NotificationType, Prisma, PrismaClient } from '@prisma/client';
 import { ForbiddenError, NotFoundError } from '../../lib/errors.js';
+import { sendPushNotification } from './fcm.service.js';
 
 interface NotificationContext {
   prisma: PrismaClient;
@@ -31,6 +32,19 @@ export async function createNotification(
       deepLink: params.deepLink,
       metadata: (params.metadata ?? {}) as Prisma.InputJsonValue,
     },
+  });
+
+  // Asynchronously dispatch FCM push if configured (user topic / broadcast)
+  sendPushNotification({
+    topic: `user_${params.userId}`,
+    title: params.title,
+    body: params.body,
+    data: {
+      type: params.type,
+      ...(params.deepLink ? { deepLink: params.deepLink } : {}),
+    },
+  }).catch(() => {
+    // Non-blocking: failure to send push never fails notification creation
   });
 }
 

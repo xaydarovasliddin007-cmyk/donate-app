@@ -515,27 +515,31 @@ class _SearchLauncher extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final scheme = theme.colorScheme;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
       child: Material(
-        color: theme.colorScheme.surface,
+        color: scheme.surface,
         borderRadius: BorderRadius.circular(AppRadius.pill),
         child: InkWell(
           borderRadius: BorderRadius.circular(AppRadius.pill),
           onTap: onTap,
           child: Container(
             height: 54,
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm + 4),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(AppRadius.pill),
               border: Border.all(
-                color: theme.colorScheme.outlineVariant.withValues(alpha: 0.7),
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.12)
+                    : scheme.outlineVariant.withValues(alpha: 0.7),
               ),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(
-                    alpha: theme.brightness == Brightness.dark ? 0.18 : 0.05,
+                    alpha: isDark ? 0.22 : 0.05,
                   ),
                   blurRadius: 16,
                   offset: const Offset(0, 6),
@@ -544,20 +548,44 @@ class _SearchLauncher extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Icon(Icons.search_rounded, color: theme.colorScheme.primary),
-                const SizedBox(width: AppSpacing.sm),
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: scheme.primary.withValues(alpha: isDark ? 0.16 : 0.10),
+                  ),
+                  child: Center(
+                    child: Icon(
+                      Icons.search_rounded,
+                      size: 20,
+                      color: scheme.primary,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.md),
                 Expanded(
                   child: Text(
                     hintText,
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
+                      color: scheme.onSurfaceVariant,
                     ),
                   ),
                 ),
-                Icon(
-                  Icons.arrow_forward_rounded,
-                  size: 18,
-                  color: theme.colorScheme.onSurfaceVariant,
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                  ),
+                  child: Center(
+                    child: Icon(
+                      Icons.arrow_forward_rounded,
+                      size: 16,
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
                 ),
               ],
             ),

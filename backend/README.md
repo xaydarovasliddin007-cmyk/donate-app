@@ -245,8 +245,8 @@ npm run prisma:seed        # (re-)run dev seed data — safe to re-run, upserts
 
 Configured for this project (`uzdonate` GCP project). `GOOGLE_CLIENT_ID` in `backend/.env` holds
 the **Web application** OAuth client ID (`223785346997-vphv...`), which doubles as the Flutter
-side's `GOOGLE_SERVER_CLIENT_ID`. A second, **Android**-type client (`com.donateapp.donate_app`,
-debug SHA-1 `3B:8B:0E:8B:FE:0B:CA:DB:8E:9B:1C:A9:B4:82:12:09:2B:B8:FC:0E`) exists in the same
+side's `GOOGLE_SERVER_CLIENT_ID`. A second, **Android**-type client (`uz.uzdonate.app`,
+debug SHA-1 `3B:8B:0E:8B:FE:0B:CA:DB:8E:9B:1C:A9:B4:82:12:09:2B:B8:FC:0E` and release SHA-1) exists in the same
 project so the native Android sign-in flow can hand back a verifiable token. The project's OAuth
 consent screen is still in **Testing** publishing status, so only accounts added under Audience →
 Test users can complete sign-in — add any new tester's Google account there before they try it.
@@ -258,8 +258,9 @@ To set this up from scratch on a new machine/project:
    side — this is what lets the backend verify tokens as intended for *this* app). Copy its
    Client ID.
 2. Create a second OAuth 2.0 Client ID of type **Android**, with this app's package name
-   (`com.donateapp.donate_app`) and the SHA-1 fingerprint of the signing key (for local debug
-   testing: `cd mobile/android && ./gradlew signingReport`, use the `debug` variant's SHA1).
+   (`uz.uzdonate.app`) and the SHA-1 fingerprint of the signing key (for local debug
+   testing: `cd mobile/android && ./gradlew signingReport`, use the `debug` variant's SHA1;
+   for production: use `upload-keystore.jks` or Google Play App Signing SHA-1).
 3. Set `GOOGLE_CLIENT_ID` in `backend/.env` to the **Web** client ID from step 1.
 4. Run the Flutter app with `--dart-define=GOOGLE_SERVER_CLIENT_ID=<same Web client ID>`.
 5. Under Audience → Test users, add every Google account that needs to sign in while the app

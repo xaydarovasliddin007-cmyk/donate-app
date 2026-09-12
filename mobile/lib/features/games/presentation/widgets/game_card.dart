@@ -29,14 +29,14 @@ class GameCard extends StatelessWidget {
           color: theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(AppRadius.lg),
           border: Border.all(
-            color: theme.colorScheme.outlineVariant.withValues(
-              alpha: isDark ? 0.42 : 0.72,
-            ),
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.09)
+                : theme.colorScheme.outlineVariant.withValues(alpha: 0.72),
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: isDark ? 0.26 : 0.055),
-              blurRadius: 14,
+              color: Colors.black.withValues(alpha: isDark ? 0.32 : 0.055),
+              blurRadius: 16,
               offset: const Offset(0, 6),
             ),
           ],
@@ -172,11 +172,11 @@ class _CategoryBadge extends StatelessWidget {
     return Align(
       alignment: Alignment.centerLeft,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
         decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.48),
+          color: Colors.black.withValues(alpha: 0.65),
           borderRadius: BorderRadius.circular(AppRadius.pill),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.24)),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
         ),
         child: Text(
           label,
@@ -201,17 +201,25 @@ class _ComingSoonBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         color: AppColors.brandWarm,
         borderRadius: BorderRadius.circular(AppRadius.pill),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.brandWarm.withValues(alpha: 0.4),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Text(
         label,
         style: Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: Colors.black,
+          color: const Color(0xFF1F1200),
           fontSize: 10,
-          fontWeight: FontWeight.w800,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 0.2,
         ),
       ),
     );

@@ -19,7 +19,7 @@ if (hasReleaseSigning) {
 }
 
 android {
-    namespace = "com.donateapp.donate_app"
+    namespace = "uz.uzdonate.app"
     // flutter_secure_storage requires compileSdk 37+; Flutter's own default
     // (flutter.compileSdkVersion) hasn't caught up yet, so pin it explicitly.
     compileSdk = 37
@@ -33,12 +33,10 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.donateapp.donate_app"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
+        applicationId = "uz.uzdonate.app"
+        // Target Android 15 (API 35), fully compliant with Google Play target API requirements
         minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+        targetSdk = 35
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }

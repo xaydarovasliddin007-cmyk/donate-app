@@ -1,4 +1,4 @@
-package com.donateapp.donate_app
+package uz.uzdonate.app
 
 import io.flutter.embedding.android.FlutterActivity
 
