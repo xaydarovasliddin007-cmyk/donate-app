@@ -1,4 +1,4 @@
-﻿services:
+services:
   - type: web
     name: uzdonate-api
     runtime: node
@@ -19,7 +19,7 @@
       - key: ADMIN_TOKEN
         generateValue: true
       - key: ALLOWED_ORIGINS
-        value: *
+        value: "*"
 
   - type: web
     name: uzdonate-admin
