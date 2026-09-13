@@ -7,7 +7,7 @@ abstract final class AppConfig {
   /// localhost, since that's the most common local dev setup.
   static const String apiBaseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://10.0.2.2:4000/api/v1',
+    defaultValue: 'https://donate-app-5vhs.onrender.com/api/v1',
   );
 
   /// The OAuth 2.0 Web client ID from Google Cloud Console (used as
