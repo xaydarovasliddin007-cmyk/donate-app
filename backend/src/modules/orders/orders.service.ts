@@ -123,11 +123,6 @@ export async function createOrder(ctx: OrderContext, userId: string, input: Crea
       gameId: input.gameId,
       isActive: true,
       serverId: resolvedGameServerId,
-      // See games.service.ts's listGameProducts — a seed/placeholder
-      // product must never be purchasable by a real customer in
-      // production, even via a direct API call that skips the catalog
-      // listing this same flag already hides it from.
-      ...(isProduction ? { isTest: false } : {}),
     },
   });
   if (!product) {
@@ -250,11 +245,6 @@ export async function validatePlayer(ctx: OrderContext, input: ValidatePlayerInp
       gameId: input.gameId,
       isActive: true,
       serverId: resolvedGameServerId,
-      // See games.service.ts's listGameProducts — a seed/placeholder
-      // product must never be purchasable by a real customer in
-      // production, even via a direct API call that skips the catalog
-      // listing this same flag already hides it from.
-      ...(isProduction ? { isTest: false } : {}),
     },
   });
   if (!product) {

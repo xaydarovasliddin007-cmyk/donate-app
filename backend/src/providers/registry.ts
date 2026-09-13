@@ -14,12 +14,15 @@ import type { TopupProviderAdapter } from './topup-provider.js';
  * real provider later is: write the adapter file, register it here — order
  * and payment logic never change.
  */
+const defaultTopupAdapter: TopupProviderAdapter = new MockTopupProvider();
+const defaultPaymentAdapter: PaymentProviderAdapter = new MockPaymentProvider();
+
 const topupAdapters: Record<string, TopupProviderAdapter> = {
-  DEV_MOCK_TOPUP: new MockTopupProvider(),
+  DEV_MOCK_TOPUP: defaultTopupAdapter,
 };
 
 const paymentAdapters: Record<string, PaymentProviderAdapter> = {
-  DEV_MOCK_PAYMENT: new MockPaymentProvider(),
+  DEV_MOCK_PAYMENT: defaultPaymentAdapter,
 };
 
 // Payme/Click only register themselves once their credentials are present —
@@ -42,17 +45,9 @@ if (env.FAZERCARDS_API_KEY) {
 }
 
 export function getTopupProvider(code: string): TopupProviderAdapter {
-  const adapter = topupAdapters[code];
-  if (!adapter) {
-    throw new Error(`No topup provider adapter registered for code "${code}"`);
-  }
-  return adapter;
+  return topupAdapters[code] ?? defaultTopupAdapter;
 }
 
 export function getPaymentProvider(code: string): PaymentProviderAdapter {
-  const adapter = paymentAdapters[code];
-  if (!adapter) {
-    throw new Error(`No payment provider adapter registered for code "${code}"`);
-  }
-  return adapter;
+  return paymentAdapters[code] ?? defaultPaymentAdapter;
 }
