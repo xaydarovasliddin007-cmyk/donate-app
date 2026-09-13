@@ -14,7 +14,8 @@ RUN npm install
 RUN npx prisma generate
 
 COPY . .
+RUN npm run build
 
-EXPOSE 4000
+EXPOSE 10000 4000
 
-CMD ["npm", "run", "dev"]
+CMD ["node", "dist/server.js"]
