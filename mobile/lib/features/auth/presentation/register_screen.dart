@@ -203,7 +203,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   ],
                 ),
               ),
-              const SizedBox(height: AppSpacing.md),
               Center(
                 child: TextButton(
                   onPressed: _busy
@@ -211,6 +210,27 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       : () => context.pushReplacement('/login'),
                   child: Text(
                     '${l10n.authHaveAccountPrompt} ${l10n.authSwitchToLogin}',
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              Center(
+                child: TextButton.icon(
+                  icon: const Icon(Icons.arrow_forward_rounded, size: 16),
+                  onPressed: _busy
+                      ? null
+                      : () {
+                          if (context.canPop()) {
+                            context.pop();
+                          } else {
+                            context.go('/home');
+                          }
+                        },
+                  label: Text(
+                    Localizations.localeOf(context).languageCode == 'ru'
+                        ? 'Продолжить без регистрации (как гость)'
+                        : 'Ro‘yxatdan o‘tmasdan ko‘rish (Mehmon)',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
                 ),
               ),

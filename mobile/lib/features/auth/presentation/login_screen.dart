@@ -215,12 +215,32 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ],
                   ),
                 ),
-                const SizedBox(height: AppSpacing.md),
                 Center(
                   child: TextButton(
                     onPressed: _busy ? null : () => context.push('/register'),
                     child: Text(
                       '${l10n.authNoAccountPrompt} ${l10n.authSwitchToRegister}',
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Center(
+                  child: TextButton.icon(
+                    icon: const Icon(Icons.arrow_forward_rounded, size: 16),
+                    onPressed: _busy
+                        ? null
+                        : () {
+                            if (context.canPop()) {
+                              context.pop();
+                            } else {
+                              context.go('/home');
+                            }
+                          },
+                    label: Text(
+                      Localizations.localeOf(context).languageCode == 'ru'
+                          ? 'Продолжить без входа (как гость)'
+                          : 'Ro‘yxatdan o‘tmasdan ko‘rish (Mehmon)',
+                      style: const TextStyle(fontWeight: FontWeight.w600),
                     ),
                   ),
                 ),
