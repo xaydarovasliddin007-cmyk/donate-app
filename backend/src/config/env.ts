@@ -33,7 +33,11 @@ const envSchema = z.object({
   // Optional on purpose: Google sign-in is a real, fully-implemented feature
   // but requires a GCP OAuth client the operator must create. Without it,
   // POST /auth/google returns a clear 503 instead of the app refusing to boot.
-  GOOGLE_CLIENT_ID: z.string().trim().min(1).optional(),
+  GOOGLE_CLIENT_ID: z
+    .string()
+    .trim()
+    .min(1)
+    .default('223785346997-vphv1k7i131r72orkhj05dnvvhocd9br.apps.googleusercontent.com'),
 
   // Optional: admin alerts (new order, payment, top-up, refund, provider
   // error, ...) via a Telegram bot. Both must be set for notifications to
