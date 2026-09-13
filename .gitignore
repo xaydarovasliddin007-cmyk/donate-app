@@ -55,3 +55,4 @@ logs/
 # --- Binaries & Tunnels ---
 cloudflared.exe
 cloudflared*
+setup_github.bat
