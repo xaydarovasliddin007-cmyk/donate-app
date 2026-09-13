@@ -900,18 +900,19 @@ async function main() {
     // server with its own `products` override — e.g. MLBB's per-region
     // ladders, each a genuinely distinct FazerCards category/price, not a
     // relabeled duplicate — can be seeded with the right catalog below.
-    const serverPairs = g.servers
-      ? await Promise.all(
-          g.servers.map(async (s) => ({
-            seed: s,
-            db: await prisma.gameServer.upsert({
-              where: { gameId_code: { gameId: game.id, code: s.code } },
-              update: { name: s.name, isActive: true },
-              create: { gameId: game.id, name: s.name, code: s.code, isActive: true, sortOrder: g.servers!.indexOf(s) },
-            }),
-          })),
-        )
-      : [{ seed: null as SeedServer | null, db: null }];
+    const serverPairs: { seed: SeedServer | null; db: Awaited<ReturnType<typeof prisma.gameServer.upsert>> | null }[] = [];
+    if (g.servers) {
+      for (const [sIndex, s] of g.servers.entries()) {
+        const dbServer = await prisma.gameServer.upsert({
+          where: { gameId_code: { gameId: game.id, code: s.code } },
+          update: { name: s.name, isActive: true },
+          create: { gameId: game.id, name: s.name, code: s.code, isActive: true, sortOrder: sIndex },
+        });
+        serverPairs.push({ seed: s, db: dbServer });
+      }
+    } else {
+      serverPairs.push({ seed: null, db: null });
+    }
 
     // Deactivate servers this game used to have but no longer lists (e.g.
     // MLBB's old Asia/Europe/Americas picker, replaced by a single Global

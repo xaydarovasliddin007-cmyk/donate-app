@@ -56,3 +56,4 @@ logs/
 cloudflared.exe
 cloudflared*
 setup_github.bat
+run_seed.ps1
