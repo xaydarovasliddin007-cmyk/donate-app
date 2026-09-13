@@ -93,6 +93,17 @@ class AuthApi {
     return AuthResult.fromJson(json);
   }
 
+  Future<AuthResult> guestAuth({
+    String? deviceId,
+    required String locale,
+  }) async {
+    final json = await _client.post(
+      '/auth/guest',
+      body: {'deviceId': ?deviceId, 'locale': locale},
+    );
+    return AuthResult.fromJson(json);
+  }
+
   Future<void> verifyEmail(String code) =>
       _client.post('/auth/verify-email', body: {'code': code});
 

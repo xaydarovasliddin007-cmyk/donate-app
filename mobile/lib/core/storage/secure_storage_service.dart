@@ -10,9 +10,21 @@ class SecureStorageService {
 
   static const _accessTokenKey = 'auth.access_token';
   static const _refreshTokenKey = 'auth.refresh_token';
+  static const _deviceIdKey = 'auth.device_id';
 
   Future<String?> readAccessToken() => _storage.read(key: _accessTokenKey);
   Future<String?> readRefreshToken() => _storage.read(key: _refreshTokenKey);
+
+  Future<String> getOrCreateDeviceId() async {
+    final existing = await _storage.read(key: _deviceIdKey);
+    if (existing != null && existing.isNotEmpty) {
+      return existing;
+    }
+    final newId =
+        'dev_${DateTime.now().millisecondsSinceEpoch}_${(100000 + (DateTime.now().microsecondsSinceEpoch % 900000))}';
+    await _storage.write(key: _deviceIdKey, value: newId);
+    return newId;
+  }
 
   Future<void> saveTokens({
     required String accessToken,

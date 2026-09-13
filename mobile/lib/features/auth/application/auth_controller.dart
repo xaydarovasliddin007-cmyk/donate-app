@@ -21,6 +21,7 @@ class AuthState {
   final AppUser? user;
 
   bool get isAuthenticated => status == AuthStatus.authenticated;
+  bool get isGuest => (user?.isGuest ?? true) || status == AuthStatus.guest;
 
   static const guest = AuthState(status: AuthStatus.guest);
 }
@@ -30,17 +31,40 @@ final authApiProvider = Provider<AuthApi>(
 );
 
 class AuthController extends AsyncNotifier<AuthState> {
+  Future<AuthState> _initGuestSession() async {
+    try {
+      final storage = ref.read(secureStorageServiceProvider);
+      final deviceId = await storage.getOrCreateDeviceId();
+      final locale = ref.read(localeControllerProvider).languageCode;
+      final result = await ref.read(authApiProvider).guestAuth(
+        deviceId: deviceId,
+        locale: locale,
+      );
+      await storage.saveTokens(
+        accessToken: result.accessToken,
+        refreshToken: result.refreshToken,
+      );
+      ref.read(apiClientProvider).setAccessToken(result.accessToken);
+      return AuthState(status: AuthStatus.authenticated, user: result.user);
+    } catch (_) {
+      return AuthState.guest;
+    }
+  }
+
   @override
   Future<AuthState> build() async {
     final apiClient = ref.watch(apiClientProvider);
     // Wired once per ApiClient instance: if a background token refresh ever
-    // definitively fails, drop the app back to guest state immediately.
-    apiClient.onSessionExpired = () => state = const AsyncData(AuthState.guest);
+    // definitively fails, re-init guest session immediately.
+    apiClient.onSessionExpired = () async {
+      final guestState = await _initGuestSession();
+      state = AsyncData(guestState);
+    };
 
     final storage = ref.watch(secureStorageServiceProvider);
     final accessToken = await storage.readAccessToken();
     if (accessToken == null) {
-      return AuthState.guest;
+      return _initGuestSession();
     }
 
     apiClient.setAccessToken(accessToken);
@@ -50,7 +74,7 @@ class AuthController extends AsyncNotifier<AuthState> {
     } catch (_) {
       await storage.clear();
       apiClient.setAccessToken(null);
-      return AuthState.guest;
+      return _initGuestSession();
     }
   }
 
@@ -160,7 +184,8 @@ class AuthController extends AsyncNotifier<AuthState> {
     }
     await storage.clear();
     ref.read(apiClientProvider).setAccessToken(null);
-    state = const AsyncData(AuthState.guest);
+    final guestState = await _initGuestSession();
+    state = AsyncData(guestState);
   }
 }
 

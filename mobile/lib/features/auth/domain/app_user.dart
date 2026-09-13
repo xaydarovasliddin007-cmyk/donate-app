@@ -10,6 +10,7 @@ class AppUser {
     required this.role,
     required this.hasGoogleAccount,
     required this.isEmailVerified,
+    this.isGuest = false,
   });
 
   final String id;
@@ -24,6 +25,7 @@ class AppUser {
   final String role;
   final bool hasGoogleAccount;
   final bool isEmailVerified;
+  final bool isGuest;
 
   factory AppUser.fromJson(Map<String, dynamic> json) => AppUser(
     id: json['id'] as String,
@@ -36,5 +38,9 @@ class AppUser {
     role: json['role'] as String,
     hasGoogleAccount: json['hasGoogleAccount'] as bool? ?? false,
     isEmailVerified: json['isEmailVerified'] as bool? ?? false,
+    isGuest:
+        json['isGuest'] as bool? ??
+        (json['email'] != null &&
+            (json['email'] as String).contains('@guest.uzdonate.uz')),
   );
 }

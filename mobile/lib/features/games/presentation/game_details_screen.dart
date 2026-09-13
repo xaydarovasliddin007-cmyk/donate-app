@@ -342,29 +342,19 @@ class _ProductGrid extends ConsumerWidget {
     );
   }
 
-  Future<void> _onProductTap(
+  void _onProductTap(
     BuildContext context,
     WidgetRef ref,
     Product product,
-  ) async {
-    final isAuthenticated =
-        ref.read(authControllerProvider).value?.isAuthenticated ?? false;
-    if (!isAuthenticated) {
-      await context.push('/login');
-      final stillGuest =
-          !(ref.read(authControllerProvider).value?.isAuthenticated ?? false);
-      if (stillGuest || !context.mounted) return;
-    }
-    if (context.mounted) {
-      context.push(
-        '/checkout/player-info',
-        extra: {
-          'game': game,
-          'product': product,
-          'serverCode': server?.code,
-          'serverName': server?.name,
-        },
-      );
-    }
+  ) {
+    context.push(
+      '/checkout/player-info',
+      extra: {
+        'game': game,
+        'product': product,
+        'serverCode': server?.code,
+        'serverName': server?.name,
+      },
+    );
   }
 }

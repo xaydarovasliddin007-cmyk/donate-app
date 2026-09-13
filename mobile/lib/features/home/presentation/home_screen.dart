@@ -56,11 +56,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: user?.displayName == null
+        title: user == null || user.isGuest
             ? const BrandMark(size: 28, showWordmark: true)
             : Row(
                 children: [
-                  UserAvatar(avatarUrl: user!.avatarUrl, radius: 16),
+                  UserAvatar(avatarUrl: user.avatarUrl, radius: 16),
                   const SizedBox(width: AppSpacing.sm),
                   Flexible(
                     child: Text(
@@ -73,11 +73,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ],
               ),
         actions: [
-          if (isAuthenticated) ...[
-            const _BalanceChip(),
-            const SizedBox(width: 4),
-          ],
-          if (isAuthenticated)
+          const _BalanceChip(),
+          const SizedBox(width: 4),
+          if (isAuthenticated && !user.isGuest)
             Consumer(
               builder: (context, ref, _) {
                 final unreadCount =
@@ -102,22 +100,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         onRefresh: () async {
           ref.invalidate(gamesListProvider);
           ref.invalidate(promotionsListProvider);
+          ref.invalidate(walletProvider);
           if (isAuthenticated) ref.invalidate(myOrdersProvider);
         },
         child: ListView(
           padding: const EdgeInsets.only(bottom: AppSpacing.xl),
           children: [
             const SizedBox(height: AppSpacing.md),
-            if (isAuthenticated) ...[
-              const WalletBalanceCard(),
-              const SizedBox(height: AppSpacing.md),
-            ] else ...[
-              _GuestHero(
-                onBrowse: () => context.go('/catalog'),
-                onCreateAccount: () => context.push('/register'),
-              ),
-              const SizedBox(height: AppSpacing.md),
-            ],
+            const WalletBalanceCard(),
+            const SizedBox(height: AppSpacing.md),
             _SearchLauncher(
               hintText: l10n.homeSearchHint,
               onTap: () => context.go('/catalog'),

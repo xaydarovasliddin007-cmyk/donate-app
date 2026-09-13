@@ -78,6 +78,10 @@ class ProfileScreen extends ConsumerWidget {
               _HeaderCard(user: authState!.user!),
               const SizedBox(height: AppSpacing.sm),
               PublicIdRow(publicId: authState.user!.publicId),
+              if (authState.user!.isGuest) ...[
+                const SizedBox(height: AppSpacing.md),
+                _GuestCard(),
+              ],
               const SizedBox(height: AppSpacing.lg),
               _MenuSection(
                 children: [
@@ -92,16 +96,6 @@ class ProfileScreen extends ConsumerWidget {
                     onTap: () => context.go('/orders'),
                   ),
                   _MenuRow(
-                    icon: Icons.notifications_outlined,
-                    label: l10n.profileNotifications,
-                    onTap: () => context.push('/notifications'),
-                  ),
-                  _MenuRow(
-                    icon: Icons.shield_outlined,
-                    label: l10n.profileSecurityCenter,
-                    onTap: () => context.push('/security'),
-                  ),
-                  _MenuRow(
                     icon: Icons.support_agent_rounded,
                     label: l10n.profileSupport,
                     onTap: () => launchSupportContact(
@@ -109,6 +103,12 @@ class ProfileScreen extends ConsumerWidget {
                       body: l10n.supportGeneralBody,
                     ),
                   ),
+                  if (!authState.user!.isGuest)
+                    _MenuRow(
+                      icon: Icons.shield_outlined,
+                      label: l10n.profileSecurityCenter,
+                      onTap: () => context.push('/security'),
+                    ),
                 ],
               ),
             ] else ...[
@@ -169,7 +169,7 @@ class ProfileScreen extends ConsumerWidget {
                   .setReduceMotion(value),
             ),
 
-            if (isAuthenticated) ...[
+            if (isAuthenticated && !authState!.user!.isGuest) ...[
               const SizedBox(height: AppSpacing.xl),
               OutlinedButton.icon(
                 onPressed: () => _confirmLogout(context, ref),
@@ -236,7 +236,9 @@ class _HeaderCard extends ConsumerWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      user.displayName ?? user.email ?? user.phone ?? '',
+                      user.isGuest
+                          ? 'Mehmon'
+                          : (user.displayName ?? user.email ?? ''),
                       style: theme.textTheme.titleMedium?.copyWith(
                         color: Colors.white,
                         fontWeight: FontWeight.w800,
@@ -245,7 +247,9 @@ class _HeaderCard extends ConsumerWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                     Text(
-                      user.email ?? user.phone ?? '',
+                      user.isGuest
+                          ? 'Ushbu qurilmadagi mehmon hisobi'
+                          : (user.email ?? user.phone ?? ''),
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: Colors.white.withValues(alpha: 0.75),
                       ),
