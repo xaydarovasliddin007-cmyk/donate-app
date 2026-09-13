@@ -51,6 +51,11 @@ export const googleAuthSchema = z.object({
   locale: z.enum(['uz', 'ru', 'en']).default('uz'),
 });
 
+export const guestAuthSchema = z.object({
+  deviceId: z.string().trim().min(1).max(128).optional(),
+  locale: z.enum(['uz', 'ru', 'en']).default('uz'),
+});
+
 export type RegisterRequestCodeInput = z.infer<typeof registerRequestCodeSchema>;
 export type RegisterCompleteInput = z.infer<typeof registerCompleteSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
@@ -59,3 +64,4 @@ export type PasswordResetInput = z.infer<typeof passwordResetSchema>;
 export type VerifyEmailInput = z.infer<typeof verifyEmailSchema>;
 export type RefreshInput = z.infer<typeof refreshSchema>;
 export type GoogleAuthInput = z.infer<typeof googleAuthSchema>;
+export type GuestAuthInput = z.infer<typeof guestAuthSchema>;

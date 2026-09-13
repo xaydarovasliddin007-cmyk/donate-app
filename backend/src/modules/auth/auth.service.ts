@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
 import { Prisma, type PrismaClient } from '@prisma/client';
 import { hashPassword, verifyPassword } from './password.js';
@@ -15,6 +16,7 @@ import { verificationCodeEmail, passwordResetEmail } from '../../lib/email-templ
 import { getWalletSummary } from '../wallet/wallet.service.js';
 import type {
   GoogleAuthInput,
+  GuestAuthInput,
   LoginInput,
   PasswordResetInput,
   PasswordResetRequestInput,
@@ -86,6 +88,7 @@ export function toPublicUser(user: {
     // we ever saw it, so it counts as verified even though emailVerifiedAt
     // is never set for it.
     isEmailVerified: Boolean(user.emailVerifiedAt) || Boolean(user.googleId),
+    isGuest: Boolean(user.email?.endsWith('@guest.uzdonate.uz')),
   };
 }
 
@@ -371,6 +374,45 @@ export async function googleAuth(
 
   if (!user || user.status !== 'ACTIVE') {
     throw new UnauthorizedError('This account is not active');
+  }
+
+  const tokens = await issueTokenPair(ctx, user, meta);
+  return { user: toPublicUser(user), ...tokens };
+}
+
+/**
+ * Creates or retrieves a persistent guest customer account for instant,
+ * login-free checkout and balance top-ups (Codashop/Midasbuy style flow).
+ * Automatically initializes a wallet with zero balance if new.
+ */
+export async function guestAuth(
+  ctx: AuthContext,
+  input: GuestAuthInput,
+  meta: { userAgent?: string; ipAddress?: string },
+) {
+  const sanitizedId = input.deviceId
+    ? input.deviceId.trim().replace(/[^a-zA-Z0-9_-]/g, '')
+    : randomUUID().replace(/-/g, '');
+  const guestEmail = `guest_${sanitizedId}@guest.uzdonate.uz`;
+
+  let user = await ctx.prisma.user.findUnique({ where: { email: guestEmail } });
+
+  if (!user) {
+    const publicId = await generateUniquePublicId(ctx.prisma);
+    user = await ctx.prisma.user.create({
+      data: {
+        publicId,
+        email: guestEmail,
+        displayName: 'Mehmon',
+        locale: input.locale,
+        role: 'CUSTOMER',
+        wallet: { create: {} },
+      },
+    });
+  }
+
+  if (user.status !== 'ACTIVE') {
+    throw new UnauthorizedError('This guest account is suspended');
   }
 
   const tokens = await issueTokenPair(ctx, user, meta);

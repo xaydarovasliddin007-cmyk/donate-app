@@ -3,6 +3,7 @@ import { validateBody } from '../../lib/validate.js';
 import { authenticate } from '../../middleware/authenticate.js';
 import {
   googleAuthSchema,
+  guestAuthSchema,
   loginSchema,
   passwordResetRequestSchema,
   passwordResetSchema,
@@ -14,6 +15,7 @@ import {
 import * as authService from './auth.service.js';
 import type {
   GoogleAuthInput,
+  GuestAuthInput,
   LoginInput,
   PasswordResetInput,
   PasswordResetRequestInput,
@@ -100,6 +102,14 @@ export async function authRoutes(app: FastifyInstance) {
   app.post('/auth/google', { preHandler: validateBody(googleAuthSchema) }, async (request) => {
     const body = request.body as GoogleAuthInput;
     return authService.googleAuth(ctx, body, {
+      userAgent: request.headers['user-agent'],
+      ipAddress: request.ip,
+    });
+  });
+
+  app.post('/auth/guest', { preHandler: validateBody(guestAuthSchema) }, async (request) => {
+    const body = request.body as GuestAuthInput;
+    return authService.guestAuth(ctx, body, {
       userAgent: request.headers['user-agent'],
       ipAddress: request.ip,
     });
