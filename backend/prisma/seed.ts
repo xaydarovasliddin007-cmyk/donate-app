@@ -335,13 +335,13 @@ async function main() {
         realTier('MLBB_565_x2', '565 (500+65) Diamonds x2', 96_000, 'mobile_legends_global:500_65_diamonds_first_top_up_bonus'),
         realTier('MLBB_WEEKLY_ELITE', 'Weekly Elite Pack', 11_000, 'mobile_legends_global:weekly_elite_pack'),
         realTier('MLBB_MONTHLY_ELITE', 'Monthly Elite Pack', 51_000, 'mobile_legends_global:monthly_elite_pack'),
-        realTier('MLBB_WEEKLY_PASS', 'Weekly Pass', 24_500, 'mobile_legends_global:weekly_pass', undefined, 'mobilelegends:13'),
+        realTier('MLBB_WEEKLY_PASS', 'Weekly Pass', 18_600, 'mobile_legends_global:weekly_pass', undefined, 'mobilelegends:13'),
         realTier('MLBB_TWILIGHT_PASS', 'Twilight Pass', 105_000, 'mobile_legends_global:twilight_pass'),
-        realTier('MLBB_86', '86 (78+8) Diamonds', 18_500, 'mobile_legends_global:78_8_diamonds', undefined, 'mobilelegends:14'),
-        realTier('MLBB_172', '172 (156+16) Diamonds', 36_900, 'mobile_legends_global:156_16_diamonds', undefined, 'mobilelegends:15'),
-        realTier('MLBB_257', '257 (234+23) Diamonds', 54_900, 'mobile_legends_global:234_23_diamonds', undefined, 'mobilelegends:16'),
-        realTier('MLBB_706', '706 (625+81) Diamonds', 144_900, 'mobile_legends_global:625_81_diamonds', undefined, 'mobilelegends:17'),
-        realTier('MLBB_2195', '2195 (1860+335) Diamonds', 425_000, 'mobile_legends_global:1860_335_diamonds', undefined, 'mobilelegends:18'),
+        realTier('MLBB_86', '86 (78+8) Diamonds', 15_500, 'mobile_legends_global:78_8_diamonds', undefined, 'mobilelegends:14'),
+        realTier('MLBB_172', '172 (156+16) Diamonds', 29_800, 'mobile_legends_global:156_16_diamonds', undefined, 'mobilelegends:15'),
+        realTier('MLBB_257', '257 (234+23) Diamonds', 44_000, 'mobile_legends_global:234_23_diamonds', undefined, 'mobilelegends:16'),
+        realTier('MLBB_706', '706 (625+81) Diamonds', 122_000, 'mobile_legends_global:625_81_diamonds', undefined, 'mobilelegends:17'),
+        realTier('MLBB_2195', '2195 (1860+335) Diamonds', 364_000, 'mobile_legends_global:1860_335_diamonds', undefined, 'mobilelegends:18'),
         realTier('MLBB_3688', '3688 (3099+589) Diamonds', 605_000, 'mobile_legends_global:3099_589_diamonds'),
         realTier('MLBB_5532', '5532 (4649+883) Diamonds', 915_000, 'mobile_legends_global:4649_883_diamonds'),
         realTier('MLBB_9288', '9288 (7740+1548) Diamonds', 1_520_000, 'mobile_legends_global:7740_1548_diamonds'),
@@ -355,18 +355,13 @@ async function main() {
       logoUrl:
         'https://play-lh.googleusercontent.com/O8jPCZ2EXAt7wGlbZhkhA-3vPIWVBpz8tZrRnsr7uVeqp0UD1AQwIEl_N9So80kdp8gDvIksC64GypylkQV_=s256',
       availability: 'ACTIVE',
-      // pubg_mobile_auto chosen over the cheaper-on-paper pubg_mobile_manual
-      // category — "manual" implies non-instant/human-handled fulfillment
-      // on FazerCards' side, a worse customer experience for a few % in
-      // margin. ~10% margin over live FazerCards USD cost, no competitor
-      // price was checked for PUBG (see chat — only MLBB was benchmarked).
       products: [
-        realTier('PUBGM_60', '60 UC', 13_000, 'pubg_mobile_auto:60_uc', '12:1052'),
-        realTier('PUBGM_325', '325 UC', 61_900, 'pubg_mobile_auto:325_uc', '12:1053'),
-        realTier('PUBGM_660', '660 UC', 121_900, 'pubg_mobile_auto:660_uc', '12:1054'),
-        realTier('PUBGM_1800', '1800 UC', 299_000, 'pubg_mobile_auto:1800_uc', '12:1055'),
-        realTier('PUBGM_3850', '3850 UC', 595_000, 'pubg_mobile_auto:3850_uc', '12:1056'),
-        realTier('PUBGM_8100', '8100 UC', 1_190_000, 'pubg_mobile_auto:8100_uc', '12:1057'),
+        realTier('PUBGM_60', '60 UC', 11_500, 'pubg_mobile_auto:60_uc', '12:1052'),
+        realTier('PUBGM_325', '325 UC', 57_500, 'pubg_mobile_auto:325_uc', '12:1053'),
+        realTier('PUBGM_660', '660 UC', 114_000, 'pubg_mobile_auto:660_uc', '12:1054'),
+        realTier('PUBGM_1800', '1800 UC', 285_000, 'pubg_mobile_auto:1800_uc', '12:1055'),
+        realTier('PUBGM_3850', '3850 UC', 570_000, 'pubg_mobile_auto:3850_uc', '12:1056'),
+        realTier('PUBGM_8100', '8100 UC', 1_140_000, 'pubg_mobile_auto:8100_uc', '12:1057'),
       ],
     },
     {
@@ -489,12 +484,12 @@ async function main() {
       // in Uzbekistan/CIS. ~10% margin over live FazerCards USD cost, no
       // competitor price was checked for Free Fire.
       products: [
-        realTier('FF_110', '110 Diamonds', 13_900, 'free_fire_cis:110_diamonds', '5:201'),
-        realTier('FF_341', '341 Diamonds', 39_900, 'free_fire_cis:341_diamonds', '5:202'),
-        realTier('FF_572', '572 Diamonds', 65_900, 'free_fire_cis:572_diamonds', '5:203'),
-        realTier('FF_1166', '1166 Diamonds', 131_900, 'free_fire_cis:1166_diamonds', '5:204'),
-        realTier('FF_2398', '2398 Diamonds', 259_000, 'free_fire_cis:2398_diamonds', '5:205'),
-        realTier('FF_6160', '6160 Diamonds', 645_000, 'free_fire_cis:6160_diamonds', '5:206'),
+        realTier('FF_110', '110 Diamonds', 10_500, 'free_fire_cis:110_diamonds', '5:201'),
+        realTier('FF_341', '341 Diamonds', 31_500, 'free_fire_cis:341_diamonds', '5:202'),
+        realTier('FF_572', '572 Diamonds', 51_500, 'free_fire_cis:572_diamonds', '5:203'),
+        realTier('FF_1166', '1166 Diamonds', 102_000, 'free_fire_cis:1166_diamonds', '5:204'),
+        realTier('FF_2398', '2398 Diamonds', 205_000, 'free_fire_cis:2398_diamonds', '5:205'),
+        realTier('FF_6160', '6160 Diamonds', 515_000, 'free_fire_cis:6160_diamonds', '5:206'),
       ],
     },
     {
