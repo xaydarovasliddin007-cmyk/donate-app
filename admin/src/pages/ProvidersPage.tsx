@@ -13,10 +13,24 @@ import { useLocale } from '../i18n/LocaleContext';
 
 export function ProvidersPage() {
   const { t } = useLocale();
-  const { showError } = useToast();
+  const { showError, showSuccess } = useToast();
   const { data, loading, error, reload } = useAsync(() => api.get<{ providers: Provider[] }>('/admin/providers'), []);
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [confirmingDeactivate, setConfirmingDeactivate] = useState<Provider | null>(null);
+  const [syncing, setSyncing] = useState(false);
+
+  async function syncCatalog() {
+    setSyncing(true);
+    try {
+      await api.post('/admin/system/sync-catalog');
+      showSuccess('Katalog va provayderlar muvaffaqiyatli sinxronlandi!');
+      reload();
+    } catch (err) {
+      showError(err instanceof ApiError ? err.message : 'Sinxronlashda xatolik yuz berdi');
+    } finally {
+      setSyncing(false);
+    }
+  }
 
   function successRateLabel(rate: number | null): string {
     if (rate === null) return t('providers.noAttempts');
@@ -38,8 +52,15 @@ export function ProvidersPage() {
 
   return (
     <div>
-      <h1>{t('providers.title')}</h1>
-      <p className="muted">{t('providers.blurb')}</p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <h1>{t('providers.title')}</h1>
+          <p className="muted">{t('providers.blurb')}</p>
+        </div>
+        <button className="btn btn-primary" onClick={syncCatalog} disabled={syncing}>
+          {syncing ? 'Sinxronlanmoqda…' : '🔄 Provayderlarni yangilash'}
+        </button>
+      </div>
       {loading && !data && (
         <table className="data-table">
           <thead>

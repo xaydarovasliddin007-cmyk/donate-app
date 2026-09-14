@@ -1071,3 +1071,101 @@ export async function listAuditLogsAdmin(ctx: AdminContext, params: { entityType
     include: { actor: { select: { id: true, email: true, fullName: true } } },
   });
 }
+
+export async function syncCatalogAdmin(ctx: AdminContext, actorId: string) {
+  const moogold = await ctx.prisma.provider.upsert({
+    where: { code: 'MOOGOLD' },
+    update: { isActive: true, healthStatus: 'HEALTHY', lastCheckedAt: new Date() },
+    create: {
+      code: 'MOOGOLD',
+      name: 'MooGold',
+      type: 'TOPUP',
+      isActive: true,
+      healthStatus: 'HEALTHY',
+      lastCheckedAt: new Date(),
+    },
+  });
+
+  const smileone = await ctx.prisma.provider.upsert({
+    where: { code: 'SMILEONE' },
+    update: { isActive: true, healthStatus: 'HEALTHY', lastCheckedAt: new Date() },
+    create: {
+      code: 'SMILEONE',
+      name: 'Smile.One',
+      type: 'TOPUP',
+      isActive: true,
+      healthStatus: 'HEALTHY',
+      lastCheckedAt: new Date(),
+    },
+  });
+
+  // Link MLBB products to Smile.One (priority 0)
+  const mlbbGame = await ctx.prisma.game.findUnique({ where: { slug: 'mobile-legends' } });
+  if (mlbbGame) {
+    const mlbbProducts = await ctx.prisma.product.findMany({ where: { gameId: mlbbGame.id } });
+    for (const prod of mlbbProducts) {
+      const numericCode = prod.name.replace(/\D/g, '') || 'pass';
+      await ctx.prisma.providerProduct.upsert({
+        where: { providerId_productId: { providerId: smileone.id, productId: prod.id } },
+        update: { isActive: true, priority: 0 },
+        create: {
+          providerId: smileone.id,
+          productId: prod.id,
+          providerProductCode: `mobilelegends:${numericCode}`,
+          priority: 0,
+          isActive: true,
+        },
+      });
+    }
+  }
+
+  // Link PUBG products to MooGold (priority 0)
+  const pubgGame = await ctx.prisma.game.findUnique({ where: { slug: 'pubg-mobile' } });
+  if (pubgGame) {
+    const pubgProducts = await ctx.prisma.product.findMany({ where: { gameId: pubgGame.id } });
+    for (const prod of pubgProducts) {
+      const numericCode = prod.name.replace(/\D/g, '') || 'uc';
+      await ctx.prisma.providerProduct.upsert({
+        where: { providerId_productId: { providerId: moogold.id, productId: prod.id } },
+        update: { isActive: true, priority: 0 },
+        create: {
+          providerId: moogold.id,
+          productId: prod.id,
+          providerProductCode: `12:${numericCode}`,
+          priority: 0,
+          isActive: true,
+        },
+      });
+    }
+  }
+
+  // Link Free Fire products to MooGold (priority 0)
+  const ffGame = await ctx.prisma.game.findUnique({ where: { slug: 'free-fire' } });
+  if (ffGame) {
+    const ffProducts = await ctx.prisma.product.findMany({ where: { gameId: ffGame.id } });
+    for (const prod of ffProducts) {
+      const numericCode = prod.name.replace(/\D/g, '') || 'diamonds';
+      await ctx.prisma.providerProduct.upsert({
+        where: { providerId_productId: { providerId: moogold.id, productId: prod.id } },
+        update: { isActive: true, priority: 0 },
+        create: {
+          providerId: moogold.id,
+          productId: prod.id,
+          providerProductCode: `5:${numericCode}`,
+          priority: 0,
+          isActive: true,
+        },
+      });
+    }
+  }
+
+  await writeAuditLog(ctx.prisma, {
+    actorId,
+    action: 'catalog.sync',
+    entityType: 'Catalog',
+    entityId: actorId,
+    metadata: { moogoldId: moogold.id, smileoneId: smileone.id },
+  });
+
+  return { success: true, message: 'Catalog synced with MooGold and Smile.One providers' };
+}

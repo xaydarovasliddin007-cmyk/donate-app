@@ -414,4 +414,13 @@ export async function adminBusinessRoutes(app: FastifyInstance) {
       return { auditLogs };
     },
   );
+
+  // --- Catalog & Providers Sync ------------------------------------------------
+  app.post(
+    '/system/sync-catalog',
+    { preHandler: requireAdminRole('SUPER_ADMIN') },
+    async (request) => {
+      return adminService.syncCatalogAdmin(ctx, request.currentAdmin!.id);
+    },
+  );
 }
