@@ -88,6 +88,17 @@ const envSchema = z.object({
   // against a live account/order.
   FAZERCARDS_API_KEY: z.string().trim().min(1).optional(),
 
+  // Optional: MooGold — Global wholesale top-up provider (moogold.com),
+  // optimal for PUBG Mobile UC and Free Fire Diamonds with USDT deposits.
+  MOOGOLD_PARTNER_ID: z.string().trim().min(1).optional(),
+  MOOGOLD_SECRET_KEY: z.string().trim().min(1).optional(),
+
+  // Optional: Smile.One — Direct partner for Mobile Legends: Bang Bang
+  // (Moonton) and Free Fire (partner.smile.one) with role/nickname validation.
+  SMILEONE_UID: z.string().trim().min(1).optional(),
+  SMILEONE_EMAIL: z.string().trim().min(1).optional(),
+  SMILEONE_API_KEY: z.string().trim().min(1).optional(),
+
   // Optional: shared secret the Telegram bank-notification listener script
   // (scripts/humo-listener.ts) must send on every request to
   // POST /webhooks/humo-transaction. Without it, that endpoint refuses all

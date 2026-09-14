@@ -3,6 +3,8 @@ import { ApiGamesTopupProvider } from './apigames/apigames-topup-provider.js';
 import { ClickProvider } from './click/click-provider.js';
 import { DigiflazzTopupProvider } from './digiflazz/digiflazz-topup-provider.js';
 import { FazerCardsTopupProvider } from './fazercards/fazercards-topup-provider.js';
+import { MooGoldTopupProvider } from './moogold/moogold-topup-provider.js';
+import { SmileOneTopupProvider } from './smileone/smileone-topup-provider.js';
 import { MockPaymentProvider } from './mock/mock-payment-provider.js';
 import { MockTopupProvider } from './mock/mock-topup-provider.js';
 import { PaymeProvider } from './payme/payme-provider.js';
@@ -42,6 +44,12 @@ if (env.APIGAMES_USERNAME && env.APIGAMES_API_KEY) {
 }
 if (env.FAZERCARDS_API_KEY) {
   topupAdapters.FAZERCARDS = new FazerCardsTopupProvider(env.FAZERCARDS_API_KEY);
+}
+if (env.MOOGOLD_PARTNER_ID && env.MOOGOLD_SECRET_KEY) {
+  topupAdapters.MOOGOLD = new MooGoldTopupProvider(env.MOOGOLD_PARTNER_ID, env.MOOGOLD_SECRET_KEY);
+}
+if (env.SMILEONE_UID && env.SMILEONE_EMAIL && env.SMILEONE_API_KEY) {
+  topupAdapters.SMILEONE = new SmileOneTopupProvider(env.SMILEONE_UID, env.SMILEONE_EMAIL, env.SMILEONE_API_KEY);
 }
 
 export function getTopupProvider(code: string): TopupProviderAdapter {

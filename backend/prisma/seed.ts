@@ -70,6 +70,32 @@ async function main() {
     },
   });
 
+  const moogoldProvider = await prisma.provider.upsert({
+    where: { code: 'MOOGOLD' },
+    update: { isActive: true, healthStatus: 'HEALTHY', lastCheckedAt: new Date() },
+    create: {
+      code: 'MOOGOLD',
+      name: 'MooGold',
+      type: 'TOPUP',
+      isActive: true,
+      healthStatus: 'HEALTHY',
+      lastCheckedAt: new Date(),
+    },
+  });
+
+  const smileoneProvider = await prisma.provider.upsert({
+    where: { code: 'SMILEONE' },
+    update: { isActive: true, healthStatus: 'HEALTHY', lastCheckedAt: new Date() },
+    create: {
+      code: 'SMILEONE',
+      name: 'Smile.One',
+      type: 'TOPUP',
+      isActive: true,
+      healthStatus: 'HEALTHY',
+      lastCheckedAt: new Date(),
+    },
+  });
+
   // --- Games & catalog ---------------------------------------------------------
   //
   // Icons link each game's real official Google Play Store listing icon
@@ -86,6 +112,8 @@ async function main() {
     // for games priced from real FazerCards data (see realTier() below).
     // Everything else stays on the DEV_MOCK_TOPUP-only placeholder ladder.
     fazercardsCode?: string;
+    moogoldCode?: string;
+    smileoneCode?: string;
   }
   interface SeedServer {
     name: string;
@@ -135,11 +163,20 @@ async function main() {
   // was checked (BekPinBot, MLBB), or a comparable ~10% margin over the
   // live FazerCards USD cost otherwise (snapshot rate ~11,950 UZS/USD,
   // 2026-08-28 — re-check periodically, this isn't pegged to a live rate).
-  const realTier = (code: string, name: string, sellUzs: number, fazercardsCode: string): SeedTier => ({
+  const realTier = (
+    code: string,
+    name: string,
+    sellUzs: number,
+    fazercardsCode?: string,
+    moogoldCode?: string,
+    smileoneCode?: string,
+  ): SeedTier => ({
     code,
     name,
     amountMinor: sellUzs * 100,
     fazercardsCode,
+    moogoldCode,
+    smileoneCode,
   });
 
   const seedGames: SeedGame[] = [
@@ -298,13 +335,13 @@ async function main() {
         realTier('MLBB_565_x2', '565 (500+65) Diamonds x2', 96_000, 'mobile_legends_global:500_65_diamonds_first_top_up_bonus'),
         realTier('MLBB_WEEKLY_ELITE', 'Weekly Elite Pack', 11_000, 'mobile_legends_global:weekly_elite_pack'),
         realTier('MLBB_MONTHLY_ELITE', 'Monthly Elite Pack', 51_000, 'mobile_legends_global:monthly_elite_pack'),
-        realTier('MLBB_WEEKLY_PASS', 'Weekly Pass', 18_600, 'mobile_legends_global:weekly_pass'),
+        realTier('MLBB_WEEKLY_PASS', 'Weekly Pass', 24_500, 'mobile_legends_global:weekly_pass', undefined, 'mobilelegends:13'),
         realTier('MLBB_TWILIGHT_PASS', 'Twilight Pass', 105_000, 'mobile_legends_global:twilight_pass'),
-        realTier('MLBB_86', '86 (78+8) Diamonds', 15_500, 'mobile_legends_global:78_8_diamonds'),
-        realTier('MLBB_172', '172 (156+16) Diamonds', 29_800, 'mobile_legends_global:156_16_diamonds'),
-        realTier('MLBB_257', '257 (234+23) Diamonds', 44_000, 'mobile_legends_global:234_23_diamonds'),
-        realTier('MLBB_706', '706 (625+81) Diamonds', 122_000, 'mobile_legends_global:625_81_diamonds'),
-        realTier('MLBB_2195', '2195 (1860+335) Diamonds', 364_000, 'mobile_legends_global:1860_335_diamonds'),
+        realTier('MLBB_86', '86 (78+8) Diamonds', 18_500, 'mobile_legends_global:78_8_diamonds', undefined, 'mobilelegends:14'),
+        realTier('MLBB_172', '172 (156+16) Diamonds', 36_900, 'mobile_legends_global:156_16_diamonds', undefined, 'mobilelegends:15'),
+        realTier('MLBB_257', '257 (234+23) Diamonds', 54_900, 'mobile_legends_global:234_23_diamonds', undefined, 'mobilelegends:16'),
+        realTier('MLBB_706', '706 (625+81) Diamonds', 144_900, 'mobile_legends_global:625_81_diamonds', undefined, 'mobilelegends:17'),
+        realTier('MLBB_2195', '2195 (1860+335) Diamonds', 425_000, 'mobile_legends_global:1860_335_diamonds', undefined, 'mobilelegends:18'),
         realTier('MLBB_3688', '3688 (3099+589) Diamonds', 605_000, 'mobile_legends_global:3099_589_diamonds'),
         realTier('MLBB_5532', '5532 (4649+883) Diamonds', 915_000, 'mobile_legends_global:4649_883_diamonds'),
         realTier('MLBB_9288', '9288 (7740+1548) Diamonds', 1_520_000, 'mobile_legends_global:7740_1548_diamonds'),
@@ -324,12 +361,12 @@ async function main() {
       // margin. ~10% margin over live FazerCards USD cost, no competitor
       // price was checked for PUBG (see chat — only MLBB was benchmarked).
       products: [
-        realTier('PUBGM_60', '60 UC', 11_650, 'pubg_mobile_auto:60_uc'),
-        realTier('PUBGM_325', '325 UC', 58_250, 'pubg_mobile_auto:325_uc'),
-        realTier('PUBGM_660', '660 UC', 116_500, 'pubg_mobile_auto:660_uc'),
-        realTier('PUBGM_1800', '1800 UC', 292_000, 'pubg_mobile_auto:1800_uc'),
-        realTier('PUBGM_3850', '3850 UC', 584_000, 'pubg_mobile_auto:3850_uc'),
-        realTier('PUBGM_8100', '8100 UC', 1_168_000, 'pubg_mobile_auto:8100_uc'),
+        realTier('PUBGM_60', '60 UC', 13_000, 'pubg_mobile_auto:60_uc', '12:1052'),
+        realTier('PUBGM_325', '325 UC', 61_900, 'pubg_mobile_auto:325_uc', '12:1053'),
+        realTier('PUBGM_660', '660 UC', 121_900, 'pubg_mobile_auto:660_uc', '12:1054'),
+        realTier('PUBGM_1800', '1800 UC', 299_000, 'pubg_mobile_auto:1800_uc', '12:1055'),
+        realTier('PUBGM_3850', '3850 UC', 595_000, 'pubg_mobile_auto:3850_uc', '12:1056'),
+        realTier('PUBGM_8100', '8100 UC', 1_190_000, 'pubg_mobile_auto:8100_uc', '12:1057'),
       ],
     },
     {
@@ -452,12 +489,12 @@ async function main() {
       // in Uzbekistan/CIS. ~10% margin over live FazerCards USD cost, no
       // competitor price was checked for Free Fire.
       products: [
-        realTier('FF_110', '110 Diamonds', 10_200, 'free_fire_cis:110_diamonds'),
-        realTier('FF_341', '341 Diamonds', 31_000, 'free_fire_cis:341_diamonds'),
-        realTier('FF_572', '572 Diamonds', 50_500, 'free_fire_cis:572_diamonds'),
-        realTier('FF_1166', '1166 Diamonds', 101_200, 'free_fire_cis:1166_diamonds'),
-        realTier('FF_2398', '2398 Diamonds', 202_400, 'free_fire_cis:2398_diamonds'),
-        realTier('FF_6160', '6160 Diamonds', 512_700, 'free_fire_cis:6160_diamonds'),
+        realTier('FF_110', '110 Diamonds', 13_900, 'free_fire_cis:110_diamonds', '5:201'),
+        realTier('FF_341', '341 Diamonds', 39_900, 'free_fire_cis:341_diamonds', '5:202'),
+        realTier('FF_572', '572 Diamonds', 65_900, 'free_fire_cis:572_diamonds', '5:203'),
+        realTier('FF_1166', '1166 Diamonds', 131_900, 'free_fire_cis:1166_diamonds', '5:204'),
+        realTier('FF_2398', '2398 Diamonds', 259_000, 'free_fire_cis:2398_diamonds', '5:205'),
+        realTier('FF_6160', '6160 Diamonds', 645_000, 'free_fire_cis:6160_diamonds', '5:206'),
       ],
     },
     {
@@ -987,30 +1024,62 @@ async function main() {
               },
             });
 
-        // Real games get FazerCards as priority 0 (tried first) and
-        // DEV_MOCK_TOPUP demoted to priority 1 (fallback, dev-only) —
-        // every other game keeps DEV_MOCK_TOPUP at priority 0, unchanged.
+        // Real games get the best wholesale provider as priority 0 (tried first),
+        // FazerCards as priority 1 (fallback), and DEV_MOCK_TOPUP as priority 2.
+        const mockPriority = isReal ? 2 : 0;
         await prisma.providerProduct.upsert({
           where: { providerId_productId: { providerId: topupProvider.id, productId: product.id } },
-          update: { providerProductCode: mockProviderCode, isActive: true, priority: isReal ? 1 : 0 },
+          update: { providerProductCode: mockProviderCode, isActive: true, priority: mockPriority },
           create: {
             providerId: topupProvider.id,
             productId: product.id,
             providerProductCode: mockProviderCode,
-            priority: isReal ? 1 : 0,
+            priority: mockPriority,
             isActive: true,
           },
         });
 
+        // Smile.One — primary for MLBB (priority 0)
+        if (item.smileoneCode) {
+          await prisma.providerProduct.upsert({
+            where: { providerId_productId: { providerId: smileoneProvider.id, productId: product.id } },
+            update: { providerProductCode: item.smileoneCode, isActive: true, priority: 0 },
+            create: {
+              providerId: smileoneProvider.id,
+              productId: product.id,
+              providerProductCode: item.smileoneCode,
+              priority: 0,
+              isActive: true,
+            },
+          });
+        }
+
+        // MooGold — primary for PUBG UC / Free Fire (priority 0)
+        if (item.moogoldCode) {
+          await prisma.providerProduct.upsert({
+            where: { providerId_productId: { providerId: moogoldProvider.id, productId: product.id } },
+            update: { providerProductCode: item.moogoldCode, isActive: true, priority: 0 },
+            create: {
+              providerId: moogoldProvider.id,
+              productId: product.id,
+              providerProductCode: item.moogoldCode,
+              priority: 0,
+              isActive: true,
+            },
+          });
+        }
+
+        // FazerCards — primary if neither smileone nor moogold is set, or fallback (priority 1)
         if (item.fazercardsCode) {
+          const fcPriority = item.smileoneCode || item.moogoldCode ? 1 : 0;
           await prisma.providerProduct.upsert({
             where: { providerId_productId: { providerId: fazercardsProvider.id, productId: product.id } },
-            update: { providerProductCode: item.fazercardsCode, isActive: true, priority: 0 },
+            update: { providerProductCode: item.fazercardsCode, isActive: true, priority: fcPriority },
             create: {
               providerId: fazercardsProvider.id,
               productId: product.id,
               providerProductCode: item.fazercardsCode,
-              priority: 0,
+              priority: fcPriority,
               isActive: true,
             },
           });
