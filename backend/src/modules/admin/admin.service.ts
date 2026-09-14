@@ -1099,12 +1099,30 @@ export async function syncCatalogAdmin(ctx: AdminContext, actorId: string) {
     },
   });
 
-  // Link MLBB products to Smile.One (priority 0)
+  // Link MLBB products to Smile.One (priority 0) and sync rock-bottom prices
   const mlbbGame = await ctx.prisma.game.findUnique({ where: { slug: 'mobile-legends' } });
   if (mlbbGame) {
+    const mlbbPrices: Record<string, number> = {
+      'Weekly Pass': 18_600 * 100,
+      '86 (78+8) Diamonds': 15_500 * 100,
+      '172 (156+16) Diamonds': 29_800 * 100,
+      '257 (234+23) Diamonds': 44_000 * 100,
+      '706 (625+81) Diamonds': 122_000 * 100,
+      '2195 (1860+335) Diamonds': 364_000 * 100,
+      '3688 (3099+589) Diamonds': 605_000 * 100,
+      '5532 (4649+883) Diamonds': 915_000 * 100,
+      '9288 (7740+1548) Diamonds': 1_520_000 * 100,
+    };
+
     const mlbbProducts = await ctx.prisma.product.findMany({ where: { gameId: mlbbGame.id } });
     for (const prod of mlbbProducts) {
       const numericCode = prod.name.replace(/\D/g, '') || 'pass';
+      if (mlbbPrices[prod.name]) {
+        await ctx.prisma.product.update({
+          where: { id: prod.id },
+          data: { amountMinor: mlbbPrices[prod.name] },
+        });
+      }
       await ctx.prisma.providerProduct.upsert({
         where: { providerId_productId: { providerId: smileone.id, productId: prod.id } },
         update: { isActive: true, priority: 0 },
@@ -1119,12 +1137,27 @@ export async function syncCatalogAdmin(ctx: AdminContext, actorId: string) {
     }
   }
 
-  // Link PUBG products to MooGold (priority 0)
+  // Link PUBG products to MooGold (priority 0) and sync rock-bottom prices
   const pubgGame = await ctx.prisma.game.findUnique({ where: { slug: 'pubg-mobile' } });
   if (pubgGame) {
+    const pubgPrices: Record<string, number> = {
+      '60 UC': 11_500 * 100,
+      '325 UC': 57_500 * 100,
+      '660 UC': 114_000 * 100,
+      '1800 UC': 285_000 * 100,
+      '3850 UC': 570_000 * 100,
+      '8100 UC': 1_140_000 * 100,
+    };
+
     const pubgProducts = await ctx.prisma.product.findMany({ where: { gameId: pubgGame.id } });
     for (const prod of pubgProducts) {
       const numericCode = prod.name.replace(/\D/g, '') || 'uc';
+      if (pubgPrices[prod.name]) {
+        await ctx.prisma.product.update({
+          where: { id: prod.id },
+          data: { amountMinor: pubgPrices[prod.name] },
+        });
+      }
       await ctx.prisma.providerProduct.upsert({
         where: { providerId_productId: { providerId: moogold.id, productId: prod.id } },
         update: { isActive: true, priority: 0 },
