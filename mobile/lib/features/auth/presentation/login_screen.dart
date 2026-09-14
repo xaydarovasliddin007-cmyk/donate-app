@@ -82,9 +82,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       final failure = Failure.from(error);
       if (!mounted) return;
       final isDevError = error.toString().contains('10') ||
-          error.toString().contains('DEVELOPER_ERROR') ||
-          (failure.details != null &&
-              failure.details.toString().contains('10'));
+          error.toString().contains('DEVELOPER_ERROR');
       setState(() {
         if (failure.code == 'GOOGLE_NOT_CONFIGURED') {
           _googleErrorMessage = l10n.authGoogleUnavailableMessage;
