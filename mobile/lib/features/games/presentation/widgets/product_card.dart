@@ -58,8 +58,9 @@ class _KindStyle {
 /// gem icon for every price point.
 String _gemIconFor(int amountMinor) {
   if (amountMinor >= 800_000_00) return 'assets/icons/truck.png';
-  if (amountMinor >= 60_000_00) return 'assets/icons/safe.png';
-  return 'assets/icons/diamondpile.png';
+  if (amountMinor >= 150_000_00) return 'assets/icons/safe.png';
+  if (amountMinor >= 30_000_00) return 'assets/icons/diamondpile.png';
+  return 'assets/icons/diamond.png';
 }
 
 /// Every currency prominent enough to be visually confusing wearing a
@@ -69,9 +70,11 @@ String _gemIconFor(int amountMinor) {
 /// future currency name that merely contains "cp" inside a longer word.
 /// Falls back to the neutral coin only if a future game introduces a
 /// currency name none of these match.
-String _currencyIconFor(String name) {
+String _currencyIconFor(String name, int amountMinor) {
   final words = name.toUpperCase().split(' ');
-  if (words.contains('UC')) return 'assets/icons/uc_coin.png';
+  if (words.contains('UC')) {
+    return amountMinor >= 150_000_00 ? 'assets/icons/uc_stack.png' : 'assets/icons/uc_coin.png';
+  }
   if (words.contains('ROBUX')) return 'assets/icons/gem_silver.png';
   if (words.contains('GEMS')) return 'assets/icons/gem_purple.png';
   if (words.contains('CP')) return 'assets/icons/gem_green.png';
@@ -109,18 +112,10 @@ _KindStyle _styleOf(_TierKind kind, bool isDark, String name, int amountMinor) {
         badge: 'HIT',
       );
     case _TierKind.plain:
-      // Every non-MLBB game lands here — its currency isn't necessarily
-      // diamonds (PUBG's UC, Roblox's Robux, Genshin's Genesis Crystals,
-      // Honor of Kings' Tokens, CODM's CP, 8 Ball Pool's Cash, EA FC's FC
-      // Points…). The diamondpile/safe/truck art is specifically
-      // MLBB-style faceted blue diamonds (cropped from an MLBB reference)
-      // — only apply it to currencies actually called "Diamonds" (Free
-      // Fire matches too, and looks like the same style of gem); every
-      // other currency gets its own icon via _currencyIconFor, falling
-      // back to a neutral coin only for the ones with no dedicated art
-      // yet (Tokens, Cash, FC Points).
       final isDiamondLike = name.toLowerCase().contains('diamond');
-      final iconAsset = isDiamondLike ? _gemIconFor(amountMinor) : _currencyIconFor(name);
+      final iconAsset = isDiamondLike
+          ? _gemIconFor(amountMinor)
+          : _currencyIconFor(name, amountMinor);
       return _KindStyle(
         gradient: isDark ? AppColors.heroGradientDark : AppColors.heroGradientLight,
         iconAsset: iconAsset,
@@ -169,26 +164,26 @@ class ProductCard extends StatelessWidget {
             child: Row(
               children: [
                 Container(
-                  width: 30,
-                  height: 30,
+                  width: 38,
+                  height: 38,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: style.gradient,
+                    color: style.gradient.first.withValues(
+                      alpha: isDark ? 0.16 : 0.10,
                     ),
                     borderRadius: BorderRadius.circular(AppRadius.sm),
+                    border: Border.all(
+                      color: style.gradient.first.withValues(
+                        alpha: isDark ? 0.35 : 0.20,
+                      ),
+                      width: 1,
+                    ),
                   ),
-                  padding: const EdgeInsets.all(3),
+                  padding: const EdgeInsets.all(2.5),
                   child: Image.asset(
                     style.iconAsset,
                     fit: BoxFit.contain,
-                    // Width only — these source images aren't square (e.g.
-                    // truck.png), and specifying both cacheWidth/cacheHeight
-                    // would decode to that exact box and distort non-square
-                    // ones. Height alone still auto-scales proportionally.
-                    cacheWidth: 90,
+                    cacheWidth: 152,
                   ),
                 ),
                 const SizedBox(width: AppSpacing.sm),

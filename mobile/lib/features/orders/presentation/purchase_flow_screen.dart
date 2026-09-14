@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/errors/failure.dart';
 import '../../../core/theme/app_colors.dart';
@@ -826,10 +827,23 @@ class _PaymentStep extends ConsumerWidget {
     final localeName = Localizations.localeOf(context).toString();
     final walletAsync = ref.watch(walletProvider);
 
-    final options = <(_PaymentMethod, IconData, String, String?, bool)>[
+    final options = <(_PaymentMethod, Widget, String, String?, bool)>[
       (
         _PaymentMethod.wallet,
-        Icons.account_balance_wallet_outlined,
+        Container(
+          width: 46,
+          height: 34,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: theme.colorScheme.primary.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(AppRadius.sm),
+          ),
+          child: Icon(
+            Icons.account_balance_wallet_rounded,
+            size: 20,
+            color: theme.colorScheme.primary,
+          ),
+        ),
         l10n.checkoutPayWithWalletLabel,
         walletAsync.when(
           loading: () => null,
@@ -846,14 +860,38 @@ class _PaymentStep extends ConsumerWidget {
       // time. Flip to true the moment real credentials are wired up.
       (
         _PaymentMethod.payme,
-        Icons.qr_code_rounded,
+        Container(
+          width: 46,
+          height: 34,
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 5),
+          decoration: BoxDecoration(
+            color: const Color(0xFF14D1C4),
+            borderRadius: BorderRadius.circular(AppRadius.sm),
+          ),
+          child: SvgPicture.asset(
+            'assets/payment_logos/payme.svg',
+            fit: BoxFit.contain,
+          ),
+        ),
         l10n.checkoutPayWithPaymeLabel,
         l10n.checkoutPayWithPaymeSubtitle,
         false,
       ),
       (
         _PaymentMethod.click,
-        Icons.touch_app_rounded,
+        Container(
+          width: 46,
+          height: 34,
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 5),
+          decoration: BoxDecoration(
+            color: const Color(0xFF0073FF),
+            borderRadius: BorderRadius.circular(AppRadius.sm),
+          ),
+          child: SvgPicture.asset(
+            'assets/payment_logos/click.svg',
+            fit: BoxFit.contain,
+          ),
+        ),
         l10n.checkoutPayWithClickLabel,
         l10n.checkoutPayWithClickSubtitle,
         false,
@@ -874,7 +912,7 @@ class _PaymentStep extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.only(bottom: AppSpacing.sm),
               child: _PaymentRadioTile(
-                icon: option.$2,
+                leading: option.$2,
                 title: option.$3,
                 subtitle: option.$4,
                 selected: method == option.$1,
@@ -906,7 +944,8 @@ class _PaymentStep extends ConsumerWidget {
 
 class _PaymentRadioTile extends StatelessWidget {
   const _PaymentRadioTile({
-    required this.icon,
+    this.icon,
+    this.leading,
     required this.title,
     required this.subtitle,
     required this.selected,
@@ -914,7 +953,8 @@ class _PaymentRadioTile extends StatelessWidget {
     this.enabled = true,
   });
 
-  final IconData icon;
+  final IconData? icon;
+  final Widget? leading;
   final String title;
   final String? subtitle;
   final bool selected;
@@ -967,7 +1007,10 @@ class _PaymentRadioTile extends StatelessWidget {
                   ),
                 ),
               const SizedBox(width: AppSpacing.sm),
-              Icon(icon, size: 18, color: theme.colorScheme.onSurfaceVariant),
+              if (leading != null)
+                leading!
+              else if (icon != null)
+                Icon(icon, size: 18, color: theme.colorScheme.onSurfaceVariant),
               const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: Column(

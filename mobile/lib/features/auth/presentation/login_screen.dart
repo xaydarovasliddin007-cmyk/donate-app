@@ -81,10 +81,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     } catch (error) {
       final failure = Failure.from(error);
       if (!mounted) return;
+      final isDevError = error.toString().contains('10') ||
+          error.toString().contains('DEVELOPER_ERROR') ||
+          (failure.details != null &&
+              failure.details.toString().contains('10'));
       setState(() {
-        _googleErrorMessage = failure.code == 'GOOGLE_NOT_CONFIGURED'
-            ? l10n.authGoogleUnavailableMessage
-            : l10n.authGoogleSignInFailed;
+        if (failure.code == 'GOOGLE_NOT_CONFIGURED') {
+          _googleErrorMessage = l10n.authGoogleUnavailableMessage;
+        } else if (isDevError) {
+          _googleErrorMessage = Localizations.localeOf(context).languageCode == 'ru'
+              ? 'Ошибка Google Play (SHA-1 не привязан в Google Cloud Console). Войдите по Email или продолжите как гость.'
+              : 'Google Play xatosi (Google Cloud Console\'da SHA-1 ulanmagan). Email orqali kiring yoki Mehmon rejimida davom eting.';
+        } else {
+          _googleErrorMessage = l10n.authGoogleSignInFailed;
+        }
       });
     } finally {
       if (mounted) setState(() => _googleSubmitting = false);

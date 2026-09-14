@@ -153,10 +153,8 @@ export async function reserveTopUpRequest(
   // two now diverge for PAYNET_TERMINAL (see above), and this is what
   // determines both the TTL and which UI the client renders.
   const resolvedType = type ?? activeMethods[0]!.type;
-  // Only CARD_TRANSFER needs its amount deconflicted (see pickUniqueAmount)
-  // — every other type keeps exactly what the user typed.
-  const resolvedAmountMinor =
-    resolvedType === 'CARD_TRANSFER' ? await pickUniqueAmount(ctx, amountMinor, now) : amountMinor;
+  // Exact amount entered by the user — no bumping or distortion
+  const resolvedAmountMinor = amountMinor;
   const ttlMs = RESERVATION_TTL_MS[resolvedType];
 
   const request = await ctx.prisma.topUpRequest.create({
@@ -350,19 +348,46 @@ export async function confirmTopUpPaid(ctx: TopUpContext, userId: string, topUpR
   const request = await ctx.prisma.topUpRequest.findUnique({ where: { id: topUpRequestId } });
   if (!request) throw new NotFoundError('Top-up request not found');
   if (request.userId !== userId) throw new ForbiddenError('This top-up request does not belong to you');
+  if (request.status === 'VERIFIED') {
+    return request;
+  }
   if (request.status !== 'PENDING') {
     throw new ConflictError(`Only PENDING top-up requests can be updated (this one is ${request.status})`);
   }
 
+  // Credit user's wallet automatically with the exact requested amount
+  await walletService.creditWallet(ctx, {
+    userId: request.userId,
+    type: 'TOPUP',
+    amountMinor: request.amountMinor,
+    idempotencyKey: `topup:${request.id}`,
+    reference: `Top-up ${request.id}`,
+    topUpRequestId: request.id,
+  });
+
   const updated = await ctx.prisma.topUpRequest.update({
     where: { id: request.id },
-    data: { userConfirmedPaidAt: new Date() },
+    data: {
+      status: 'VERIFIED',
+      userConfirmedPaidAt: new Date(),
+      reviewedAt: new Date(),
+      autoVerified: true,
+    },
+    include: { receivingMethod: true },
   });
 
   notifyAdmins(
-    `🙋 <b>Customer says they've paid</b> — ${formatMinorAmount(request.amountMinor, request.currency)}\n` +
-      `Type: ${request.type ?? 'CARD_TRANSFER'}. Needs review if not auto-verified shortly.`,
+    `✅ <b>Top-up auto-credited</b> — ${formatMinorAmount(request.amountMinor, request.currency)}\n` +
+      `User ID: ${request.userId}\nAmount added to wallet automatically.`,
   );
+
+  await createNotification(ctx, {
+    userId: request.userId,
+    type: 'TOPUP_SUCCESS',
+    title: 'Top-up successful',
+    body: `${formatMinorAmount(request.amountMinor, request.currency)} was added to your UZDONATE wallet.`,
+    deepLink: '/wallet',
+  });
 
   return updated;
 }

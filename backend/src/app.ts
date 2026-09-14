@@ -5,6 +5,10 @@ import cors from '@fastify/cors';
 import rateLimit from '@fastify/rate-limit';
 import jwt from '@fastify/jwt';
 import formbody from '@fastify/formbody';
+import fastifyStatic from '@fastify/static';
+import path from 'node:path';
+import fs from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { randomUUID } from 'node:crypto';
 import { env } from './config/env.js';
 import { logger } from './lib/logger.js';
@@ -26,6 +30,10 @@ import { paymeWebhookRoutes } from './providers/payme/payme-webhook.js';
 import { clickWebhookRoutes } from './providers/click/click-webhook.js';
 import { humoWebhookRoutes } from './modules/topup/humo-webhook.js';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const adminPublicPath = path.resolve(__dirname, '../public/admin');
+
 export async function buildApp() {
   const app = Fastify({
     loggerInstance: logger,
@@ -39,6 +47,9 @@ export async function buildApp() {
   // nested /api/v1 plugin tree would silently leave those routes on
   // Fastify's default (differently-shaped) error output.
   app.setNotFoundHandler((request, reply) => {
+    if (request.url.startsWith('/admin') && fs.existsSync(path.join(adminPublicPath, 'index.html'))) {
+      return reply.type('text/html').send(fs.readFileSync(path.join(adminPublicPath, 'index.html'), 'utf8'));
+    }
     reply.status(404).send({
       error: { code: 'NOT_FOUND', message: `Route ${request.method} ${request.url} not found` },
     });
@@ -67,7 +78,18 @@ export async function buildApp() {
     });
   });
 
-  await app.register(helmet);
+  await app.register(helmet, { contentSecurityPolicy: false });
+  if (fs.existsSync(adminPublicPath)) {
+    await app.register(fastifyStatic, {
+      root: adminPublicPath,
+      prefix: '/admin/',
+      decorateReply: false,
+    });
+
+    app.get('/admin', (req, reply) => {
+      return reply.redirect('/admin/');
+    });
+  }
   await app.register(cors, {
     origin: env.CORS_ORIGIN.split(',').map((o) => o.trim()),
     // @fastify/cors defaults to GET,HEAD,POST only — every admin PATCH/DELETE

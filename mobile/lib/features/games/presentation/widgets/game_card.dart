@@ -100,7 +100,7 @@ class _CoverArt extends StatelessWidget {
   Widget build(BuildContext context) {
     final logoUrl = game.logoUrl;
     if (logoUrl == null || logoUrl.isEmpty) {
-      return _FallbackTile(gradient: gradient);
+      return _FallbackTile(gradient: gradient, emoji: game.logoEmoji);
     }
     return CachedNetworkImage(
       imageUrl: logoUrl,
@@ -110,16 +110,19 @@ class _CoverArt extends StatelessWidget {
       // grid, even though it only ever renders at a fraction of that.
       memCacheWidth: 300,
       memCacheHeight: 300,
-      placeholder: (context, _) => _FallbackTile(gradient: gradient),
-      errorWidget: (context, _, _) => _FallbackTile(gradient: gradient),
+      placeholder: (context, _) =>
+          _FallbackTile(gradient: gradient, emoji: game.logoEmoji),
+      errorWidget: (context, _, _) =>
+          _FallbackTile(gradient: gradient, emoji: game.logoEmoji),
     );
   }
 }
 
 class _FallbackTile extends StatelessWidget {
-  const _FallbackTile({required this.gradient});
+  const _FallbackTile({required this.gradient, this.emoji});
 
   final List<Color> gradient;
+  final String? emoji;
 
   @override
   Widget build(BuildContext context) {
@@ -131,12 +134,17 @@ class _FallbackTile extends StatelessWidget {
           colors: gradient,
         ),
       ),
-      child: const Center(
-        child: Icon(
-          Icons.sports_esports_rounded,
-          size: 34,
-          color: Colors.white,
-        ),
+      child: Center(
+        child: emoji != null && emoji!.isNotEmpty
+            ? Text(
+                emoji!,
+                style: const TextStyle(fontSize: 38),
+              )
+            : const Icon(
+                Icons.sports_esports_rounded,
+                size: 34,
+                color: Colors.white,
+              ),
       ),
     );
   }

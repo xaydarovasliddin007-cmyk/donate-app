@@ -1,10 +1,13 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/utils/money_formatter.dart';
 import '../../../../core/widgets/pressable_scale.dart';
 import '../../../../l10n/generated/app_localizations.dart';
+import '../../../games/application/games_providers.dart';
 import '../../domain/order.dart';
 import 'order_status_badge.dart';
 
@@ -46,7 +49,10 @@ class OrderCard extends StatelessWidget {
         padding: const EdgeInsets.all(AppSpacing.md),
         child: Row(
           children: [
-            _OrderGameIcon(gameName: order.game.name),
+            _OrderGameIcon(
+              gameName: order.game.name,
+              gameSlug: order.game.slug,
+            ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
               child: Column(
@@ -113,13 +119,45 @@ class OrderCard extends StatelessWidget {
   }
 }
 
-/// A gradient monogram badge (the game's first letter) — the order response
-/// carries no cover-art URL, so this gives each row a distinct splash of
-/// color instead of every order looking identical, matching the same
-/// "no real asset, derive a badge" treatment used for menu icons and
-/// receiving-card bank badges elsewhere in the app.
-class _OrderGameIcon extends StatelessWidget {
-  const _OrderGameIcon({required this.gameName});
+/// Game icon for the order row — looks up the game's official cover image
+/// from [gamesListProvider] and renders it clipped with rounded corners,
+/// falling back to a gradient monogram badge if the image isn't available.
+class _OrderGameIcon extends ConsumerWidget {
+  const _OrderGameIcon({required this.gameName, required this.gameSlug});
+
+  final String gameName;
+  final String gameSlug;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final gamesList = ref.watch(gamesListProvider).asData?.value;
+    final game = gamesList
+        ?.where((g) => g.slug == gameSlug || g.name == gameName)
+        .firstOrNull;
+    final logoUrl = game?.logoUrl;
+
+    if (logoUrl != null && logoUrl.isNotEmpty) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(AppRadius.sm),
+        child: CachedNetworkImage(
+          imageUrl: logoUrl,
+          width: 40,
+          height: 40,
+          fit: BoxFit.cover,
+          memCacheWidth: 120,
+          memCacheHeight: 120,
+          placeholder: (context, _) => _FallbackInitial(gameName: gameName),
+          errorWidget: (context, _, _) => _FallbackInitial(gameName: gameName),
+        ),
+      );
+    }
+
+    return _FallbackInitial(gameName: gameName);
+  }
+}
+
+class _FallbackInitial extends StatelessWidget {
+  const _FallbackInitial({required this.gameName});
 
   final String gameName;
 

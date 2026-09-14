@@ -128,9 +128,9 @@ List<_PaymentOption> _paymentOptionsOf(
     options.add(
       _PaymentOption(
         key: 'terminal',
-        logo: const _IconLogoBadge(
-          icon: Icons.receipt_long_rounded,
-          color: AppColors.brandWarm,
+        logo: const _AssetLogoBadge(
+          assetPath: 'assets/payment_logos/paynet.svg',
+          background: Color(0xFF00A859),
         ),
         title: l10n.topupMethodPaynetTerminal,
         subtitle: l10n.topupSubtitlePaynetTerminal,
