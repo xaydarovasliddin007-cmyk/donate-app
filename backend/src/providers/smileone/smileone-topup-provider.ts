@@ -162,6 +162,7 @@ export class SmileOneTopupProvider implements TopupProviderAdapter {
       if (data.status === 200 && orderId) {
         return {
           success: true,
+          status: 'PENDING',
           providerTransactionId: orderId,
           raw: data,
         };
@@ -198,6 +199,7 @@ export class SmileOneTopupProvider implements TopupProviderAdapter {
       form.set('sign', sign);
 
       const response = await fetch(`${BASE_URL}/orderquery`, {
+        signal: AbortSignal.timeout(8000),
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: form.toString(),

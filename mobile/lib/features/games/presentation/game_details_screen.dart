@@ -11,7 +11,6 @@ import '../../../core/widgets/loading_view.dart';
 import '../../../core/widgets/selectable_chip.dart';
 import '../../../core/widgets/staggered_entrance.dart';
 import '../../../l10n/generated/app_localizations.dart';
-import '../../auth/application/auth_controller.dart';
 import '../application/games_providers.dart';
 import '../domain/game.dart';
 import '../domain/game_server.dart';
@@ -63,10 +62,6 @@ class GameDetailsScreen extends ConsumerWidget {
   }
 }
 
-/// A big cover-art hero header (collapsing on scroll) above the server
-/// picker and product grid — the game's own page should feel at least as
-/// premium as its card did in the catalog grid, not drop back to a plain
-/// text app bar.
 class _GameDetailsBody extends ConsumerStatefulWidget {
   const _GameDetailsBody({required this.game});
 
@@ -106,10 +101,6 @@ class _GameDetailsBodyState extends ConsumerState<_GameDetailsBody> {
                   color: Colors.white,
                 ),
               ),
-              // A brand-gradient backdrop with the (square, Play Store-sized)
-              // icon centered in its own card — rather than force-cropping
-              // that square icon across a wide banner via BoxFit.cover,
-              // which cut off most of every icon's artwork.
               background: Stack(
                 fit: StackFit.expand,
                 children: [
@@ -194,8 +185,6 @@ class _GameDetailsBodyState extends ConsumerState<_GameDetailsBody> {
               );
             },
             data: (servers) {
-              // Default to the first server the first time servers load —
-              // after that this field is the single source of truth.
               if (servers.isNotEmpty && _selectedServerCode == null) {
                 _selectedServerCode = servers.first.code;
               }
@@ -317,26 +306,63 @@ class _ProductGrid extends ConsumerWidget {
             child: EmptyView(title: l10n.gameProductsEmptyTitle),
           );
         }
-        return SliverPadding(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          sliver: SliverGrid(
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              mainAxisSpacing: AppSpacing.sm,
-              crossAxisSpacing: AppSpacing.sm,
-              childAspectRatio: 2.6,
-            ),
-            delegate: SliverChildBuilderDelegate((context, i) {
-              final product = products[i];
-              return StaggeredEntrance(
-                index: i,
-                child: ProductCard(
-                  product: product,
-                  onTap: () => _onProductTap(context, ref, product),
+        return SliverMainAxisGroup(
+          slivers: [
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.lg,
+                  AppSpacing.lg,
+                  AppSpacing.lg,
+                  AppSpacing.sm,
                 ),
-              );
-            }, childCount: products.length),
-          ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.gameDetailsTopupTitle,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      l10n.gameDetailsProductsSubtitle,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.lg,
+                0,
+                AppSpacing.lg,
+                AppSpacing.lg,
+              ),
+              sliver: SliverGrid(
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  mainAxisSpacing: AppSpacing.sm,
+                  crossAxisSpacing: AppSpacing.sm,
+                  childAspectRatio: 2.6,
+                ),
+                delegate: SliverChildBuilderDelegate((context, i) {
+                  final product = products[i];
+                  return StaggeredEntrance(
+                    index: i,
+                    child: ProductCard(
+                      product: product,
+                      onTap: () => _onProductTap(context, ref, product),
+                    ),
+                  );
+                }, childCount: products.length),
+              ),
+            ),
+          ],
         );
       },
     );

@@ -36,6 +36,7 @@ function toPublicProduct(
     amountMinor: number;
     currency: string;
     isTest: boolean;
+    starsPrice?: number | null;
   },
   discountPercent = 0,
 ) {
@@ -52,6 +53,7 @@ function toPublicProduct(
     currency: product.currency,
     isTest: product.isTest,
     discountPercent,
+    starsPrice: product.starsPrice ? Math.max(1, applyDiscount(product.starsPrice, discountPercent)) : null,
   };
 }
 
@@ -137,6 +139,7 @@ export async function listGameProducts(
       gameId,
       isActive: true,
       serverId: resolvedServerId,
+      ...(isProduction ? { isTest: false } : {}),
     },
     orderBy: [{ sortOrder: 'asc' }, { amountMinor: 'asc' }],
   });

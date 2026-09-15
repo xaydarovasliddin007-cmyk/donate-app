@@ -28,6 +28,17 @@ function ProductRow({
   const [saving, setSaving] = useState(false);
   const [cost, setCost] = useState(product.costMinor != null ? String(product.costMinor / 100) : '');
   const [savingCost, setSavingCost] = useState(false);
+  const [stars, setStars] = useState(product.starsPrice == null ? '' : String(product.starsPrice));
+  const [savingStars, setSavingStars] = useState(false);
+
+  async function saveStars() {
+    const value = stars.trim() === '' ? null : Number(stars);
+    if (value !== null && (!Number.isInteger(value) || value < 1 || value > 100000)) return;
+    setSavingStars(true);
+    try { await api.patch(`/admin/products/${product.id}`, { starsPrice: value }); onChanged(); }
+    catch (err) { showError(err instanceof ApiError ? err.message : t('products.priceFailed')); }
+    finally { setSavingStars(false); }
+  }
 
   async function saveAmount() {
     const amountMajor = Number(amount);
@@ -86,7 +97,13 @@ function ProductRow({
           </button>
         </div>
       </td>
-      <td>{formatMinor(product.amountMinor, product.currency)}</td>
+      <td>
+        <div>{formatMinor(product.amountMinor, product.currency)}</div>
+        <div className="toolbar" style={{ marginTop: 8 }}>
+          <input type="number" min="1" max="100000" step="1" aria-label="Telegram Stars" placeholder="Stars" value={stars} onChange={(e) => setStars(e.target.value)} style={{ width: 90 }} />
+          <button className="btn btn-secondary" disabled={savingStars} onClick={saveStars}>{t('common.save')}</button>
+        </div>
+      </td>
       <td>
         <div className="toolbar">
           <input
@@ -128,6 +145,7 @@ function CreateProductForm({ games, onCreated }: { games: Game[]; onCreated: () 
   const [amount, setAmount] = useState('');
   const [cost, setCost] = useState('');
   const [currency, setCurrency] = useState('UZS');
+  const [stars, setStars] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -141,9 +159,12 @@ function CreateProductForm({ games, onCreated }: { games: Game[]; onCreated: () 
     // product goes, and an inactive server (e.g. MLBB's old Asia/Europe/
     // Americas, replaced by real per-region servers) is invisible to
     // customers, so a product created under one would be unreachable.
+    let active = true;
     api
       .get<{ servers: GameServer[] }>(`/admin/games/${gameId}/servers`)
-      .then((res) => setServers(res.servers.filter((s) => s.isActive)));
+      .then((res) => { if (active) setServers(res.servers.filter((s) => s.isActive)); })
+      .catch((err) => { if (active) setFormError(err instanceof ApiError ? err.message : t('products.createFailed')); });
+    return () => { active = false; };
   }, [gameId]);
 
   async function createProduct(event: FormEvent) {
@@ -163,6 +184,8 @@ function CreateProductForm({ games, onCreated }: { games: Game[]; onCreated: () 
         name: name.trim(),
         description: description.trim() || undefined,
         amountMinor: Math.round(amountMajor * 100),
+        starsPrice: stars.trim() ? Number(stars) : undefined,
+        isTest: false,
         costMinor: costMajor !== undefined && Number.isFinite(costMajor) ? Math.round(costMajor * 100) : undefined,
         currency,
       });
@@ -170,6 +193,7 @@ function CreateProductForm({ games, onCreated }: { games: Game[]; onCreated: () 
       setDescription('');
       setAmount('');
       setCost('');
+      setStars('');
       onCreated();
     } catch (err) {
       setFormError(err instanceof ApiError ? err.message : t('products.createFailed'));
@@ -230,6 +254,7 @@ function CreateProductForm({ games, onCreated }: { games: Game[]; onCreated: () 
             onChange={(e) => setCost(e.target.value)}
             style={{ width: 120 }}
           />
+          <input type="number" min="1" max="100000" step="1" placeholder="Telegram Stars" aria-label="Telegram Stars" value={stars} onChange={(e) => setStars(e.target.value)} style={{ width: 145 }} />
           <input
             placeholder={t('products.currencyPlaceholder')}
             value={currency}

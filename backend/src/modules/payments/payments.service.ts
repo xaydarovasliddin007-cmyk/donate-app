@@ -7,7 +7,7 @@ import { notifyAdmins } from '../../lib/telegram.js';
 import { fulfillPaidOrder, markOrderPaymentFailed } from '../orders/orders.service.js';
 import { createNotification } from '../notifications/notifications.service.js';
 import { getPaymentProvider } from '../../providers/registry.js';
-import { InsufficientBalanceError, debitWallet } from '../wallet/wallet.service.js';
+import { InsufficientBalanceError, debitOrderWallet } from '../wallet/wallet.service.js';
 import type { CreatePaymentInput } from './payments.schemas.js';
 
 interface PaymentContext {
@@ -23,15 +23,16 @@ function toPublicPayment(payment: Payment & { attempts?: { status: string; creat
     status: payment.status,
     // Dev/test provider never redirects anywhere — the client is expected to
     // use the simulate-webhook endpoint instead. A real adapter would set this.
-    checkoutUrl: null as string | null,
+    checkoutUrl: payment.checkoutUrl ?? null,
     devSimulateAvailable: !isProduction,
     createdAt: payment.createdAt,
   };
 }
 
 export async function createPayment(ctx: PaymentContext, userId: string, input: CreatePaymentInput) {
-  const existing = await ctx.prisma.payment.findUnique({ where: { idempotencyKey: input.idempotencyKey } });
+  const existing = await ctx.prisma.payment.findUnique({ where: { idempotencyKey: input.idempotencyKey }, include: { order: true } });
   if (existing) {
+    if (existing.order.userId !== userId) throw new ForbiddenError('This payment does not belong to you');
     if (existing.orderId !== input.orderId) {
       throw new ConflictError('Idempotency key already used for a different order');
     }
@@ -48,11 +49,13 @@ export async function createPayment(ctx: PaymentContext, userId: string, input: 
   if (order.status !== 'PENDING') {
     throw new ConflictError(`Order is not payable in its current status (${order.status})`);
   }
+  if (order.currency !== 'UZS') throw new ConflictError('This order requires its original payment currency');
 
   const provider = await ctx.prisma.provider.findUnique({ where: { code: input.providerCode } });
   if (!provider || !provider.isActive || provider.type !== 'PAYMENT') {
     throw new ServiceUnavailableError('Selected payment method is currently unavailable');
   }
+  const adapter = getPaymentProvider(provider.code);
 
   const payment = await ctx.prisma.payment.create({
     data: {
@@ -65,7 +68,6 @@ export async function createPayment(ctx: PaymentContext, userId: string, input: 
     },
   });
 
-  const adapter = getPaymentProvider(provider.code);
   const intent = await adapter.createPaymentIntent({
     referenceId: payment.id,
     amountMinor: payment.amountMinor,
@@ -82,7 +84,8 @@ export async function createPayment(ctx: PaymentContext, userId: string, input: 
     },
   });
 
-  return toPublicPayment(payment);
+  const updated = await ctx.prisma.payment.update({ where: { id: payment.id }, data: { checkoutUrl: intent.checkoutUrl ?? null } });
+  return toPublicPayment(updated);
 }
 
 /**
@@ -103,58 +106,36 @@ export async function payWithWallet(
   orderId: string,
   idempotencyKey: string,
 ) {
-  const existing = await ctx.prisma.payment.findUnique({ where: { idempotencyKey } });
-  if (existing) {
-    if (existing.orderId !== orderId) {
-      throw new ConflictError('Idempotency key already used for a different order');
+  const result = await ctx.prisma.$transaction(async (tx) => {
+    // Serialize payments for one order, including retries with different keys.
+    await tx.$queryRaw`SELECT id FROM orders WHERE id = ${orderId}::uuid FOR UPDATE`;
+    const order = await tx.order.findUnique({ where: { id: orderId } });
+    if (!order) throw new NotFoundError('Order not found');
+    if (order.userId !== userId) throw new ForbiddenError('This order does not belong to you');
+    if (order.currency !== 'UZS') throw new ConflictError('This order requires its original payment currency');
+    const existing = await tx.payment.findUnique({ where: { idempotencyKey } });
+    if (existing && (existing.orderId !== orderId || existing.providerId)) throw new ConflictError('Idempotency key already used');
+    const settled = await tx.payment.findFirst({ where: { orderId, status: 'SUCCEEDED' } });
+    if (settled) return { payment: settled, insufficient: false };
+    if (order.status !== 'PENDING') throw new ConflictError('Order is no longer payable');
+    const payment = existing ?? await tx.payment.create({ data: {
+      orderId, amountMinor: order.amountMinor, currency: order.currency, status: 'PENDING', idempotencyKey,
+    } });
+    try {
+      await debitOrderWallet(tx, { userId, orderId, paymentId: payment.id, amountMinor: order.amountMinor, currency: order.currency });
+    } catch (error) {
+      if (!(error instanceof InsufficientBalanceError)) throw error;
+      const failed = await tx.payment.update({ where: { id: payment.id }, data: { status: 'FAILED' } });
+      await tx.paymentAttempt.create({ data: { paymentId: payment.id, status: 'FAILED' } });
+      return { payment: failed, insufficient: true };
     }
-    return toPublicPayment(existing);
-  }
-
-  const order = await ctx.prisma.order.findUnique({ where: { id: orderId } });
-  if (!order) {
-    throw new NotFoundError('Order not found');
-  }
-  if (order.userId !== userId) {
-    throw new ForbiddenError('This order does not belong to you');
-  }
-  if (order.status !== 'PENDING') {
-    throw new ConflictError(`Order is not payable in its current status (${order.status})`);
-  }
-
-  const payment = await ctx.prisma.payment.create({
-    data: {
-      orderId: order.id,
-      amountMinor: order.amountMinor,
-      currency: order.currency,
-      status: 'PENDING',
-      idempotencyKey,
-    },
+    const succeeded = await tx.payment.update({ where: { id: payment.id }, data: { status: 'SUCCEEDED' } });
+    await tx.paymentAttempt.create({ data: { paymentId: payment.id, status: 'SUCCEEDED' } });
+    return { payment: succeeded, insufficient: false };
   });
-
-  try {
-    await debitWallet(ctx, {
-      userId,
-      type: 'PURCHASE',
-      amountMinor: order.amountMinor,
-      idempotencyKey: `wallet-debit:${payment.id}`,
-      reference: `Order ${order.orderNumber}`,
-      orderId: order.id,
-    });
-  } catch (err) {
-    if (err instanceof InsufficientBalanceError) {
-      await ctx.prisma.payment.update({ where: { id: payment.id }, data: { status: 'FAILED' } });
-      await ctx.prisma.paymentAttempt.create({ data: { paymentId: payment.id, status: 'FAILED' } });
-    }
-    throw err;
-  }
-
-  const succeeded = await ctx.prisma.payment.update({ where: { id: payment.id }, data: { status: 'SUCCEEDED' } });
-  await ctx.prisma.paymentAttempt.create({ data: { paymentId: payment.id, status: 'SUCCEEDED' } });
-
-  await fulfillPaidOrder(ctx, order.id);
-
-  return toPublicPayment(succeeded);
+  if (result.insufficient) throw new InsufficientBalanceError();
+  await fulfillPaidOrder(ctx, orderId);
+  return toPublicPayment(result.payment);
 }
 
 export async function getPaymentById(ctx: PaymentContext, userId: string, paymentId: string) {

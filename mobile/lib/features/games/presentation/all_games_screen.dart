@@ -13,19 +13,9 @@ import '../application/games_providers.dart';
 import '../domain/game.dart';
 import 'widgets/game_card.dart';
 
-/// The full catalog — reached from the bottom nav's dedicated "Games" tab
-/// (denser 3-column grid than the home screen's curated preview) and from
-/// the home screen's "See all" link. Same search/category-filter logic as
-/// the home screen preview, just not sharing a widget: the home preview is
-/// tied to a `ListView` alongside unrelated sections, this is a standalone
-/// scrollable screen — forcing them into one shared widget would mean
-/// threading scroll-ownership through both call sites for no real reuse win.
 class AllGamesScreen extends ConsumerStatefulWidget {
   const AllGamesScreen({super.key, this.initialCategory});
 
-  /// Set when arriving from a home-screen category shortcut, so the tap
-  /// actually lands pre-filtered instead of just parking on the unfiltered
-  /// catalog with the same category the user already tapped.
   final String? initialCategory;
 
   @override
@@ -47,6 +37,11 @@ class _AllGamesScreenState extends ConsumerState<AllGamesScreen> {
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _clearSearch() {
+    _searchController.clear();
+    setState(() => _query = '');
   }
 
   @override
@@ -74,6 +69,13 @@ class _AllGamesScreenState extends ConsumerState<AllGamesScreen> {
                     setState(() => _query = value.trim().toLowerCase()),
                 decoration: InputDecoration(
                   prefixIcon: const Icon(Icons.search_rounded),
+                  suffixIcon: _query.isEmpty
+                      ? null
+                      : IconButton(
+                          tooltip: l10n.allGamesClearSearch,
+                          icon: const Icon(Icons.close_rounded),
+                          onPressed: _clearSearch,
+                        ),
                   hintText: l10n.homeSearchHint,
                 ),
               ),
@@ -101,16 +103,16 @@ class _AllGamesScreenState extends ConsumerState<AllGamesScreen> {
               },
               data: (games) {
                 final categories = <String>{
-                  for (final g in games)
-                    if (g.category != null) g.category!,
+                  for (final game in games)
+                    if (game.category != null) game.category!,
                 }.toList()..sort();
 
-                final filtered = games.where((g) {
+                final filtered = games.where((game) {
                   final matchesQuery =
-                      _query.isEmpty || g.name.toLowerCase().contains(_query);
+                      _query.isEmpty || game.name.toLowerCase().contains(_query);
                   final matchesCategory =
                       _selectedCategory == null ||
-                      g.category == _selectedCategory;
+                      game.category == _selectedCategory;
                   return matchesQuery && matchesCategory;
                 }).toList();
 
@@ -119,13 +121,24 @@ class _AllGamesScreenState extends ConsumerState<AllGamesScreen> {
                   children: [
                     if (categories.isNotEmpty)
                       SizedBox(
-                        height: 40,
+                        height: 42,
                         child: ListView(
                           scrollDirection: Axis.horizontal,
                           padding: const EdgeInsets.symmetric(
                             horizontal: AppSpacing.lg,
                           ),
                           children: [
+                            Padding(
+                              padding: const EdgeInsets.only(
+                                right: AppSpacing.sm,
+                              ),
+                              child: SelectableChip(
+                                label: l10n.allGamesAllCategories,
+                                selected: _selectedCategory == null,
+                                onTap: () =>
+                                    setState(() => _selectedCategory = null),
+                              ),
+                            ),
                             for (final category in categories)
                               Padding(
                                 padding: const EdgeInsets.only(
@@ -134,20 +147,31 @@ class _AllGamesScreenState extends ConsumerState<AllGamesScreen> {
                                 child: SelectableChip(
                                   label: category,
                                   selected: _selectedCategory == category,
-                                  onTap: () {
-                                    setState(
-                                      () => _selectedCategory =
-                                          _selectedCategory == category
-                                          ? null
-                                          : category,
-                                    );
-                                  },
+                                  onTap: () => setState(
+                                    () => _selectedCategory =
+                                        _selectedCategory == category
+                                        ? null
+                                        : category,
+                                  ),
                                 ),
                               ),
                           ],
                         ),
                       ),
-                    const SizedBox(height: AppSpacing.sm),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.lg,
+                        AppSpacing.sm,
+                        AppSpacing.lg,
+                        AppSpacing.sm,
+                      ),
+                      child: Text(
+                        l10n.allGamesResultsCount(filtered.length),
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
                     if (filtered.isEmpty)
                       Padding(
                         padding: const EdgeInsets.all(AppSpacing.xl),
@@ -165,7 +189,7 @@ class _AllGamesScreenState extends ConsumerState<AllGamesScreen> {
                               crossAxisCount: 3,
                               mainAxisSpacing: AppSpacing.sm,
                               crossAxisSpacing: AppSpacing.sm,
-                              childAspectRatio: 0.58,
+                              childAspectRatio: 0.64,
                             ),
                         itemCount: filtered.length,
                         itemBuilder: (context, index) {

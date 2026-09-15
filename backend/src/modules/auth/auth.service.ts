@@ -14,6 +14,8 @@ import { notifyAdmins } from '../../lib/telegram.js';
 import { sendEmail } from '../../lib/mailer.js';
 import { verificationCodeEmail, passwordResetEmail } from '../../lib/email-templates.js';
 import { getWalletSummary } from '../wallet/wallet.service.js';
+import { validateTelegramInitData } from '../telegram/telegram-auth.js';
+import { ServiceUnavailableError } from '../../lib/errors.js';
 import type {
   GoogleAuthInput,
   GuestAuthInput,
@@ -67,6 +69,7 @@ export function toPublicUser(user: {
   role: string;
   discountPercent?: number;
   googleId?: string | null;
+  telegramId?: string | null;
   emailVerifiedAt?: Date | null;
 }) {
   return {
@@ -84,6 +87,7 @@ export function toPublicUser(user: {
     // Never the raw googleId — just whether an account is linked, for the
     // security center's "Google account connected" indicator.
     hasGoogleAccount: Boolean(user.googleId),
+    hasTelegramAccount: Boolean(user.telegramId),
     // A Google-linked account's email was already verified by Google before
     // we ever saw it, so it counts as verified even though emailVerifiedAt
     // is never set for it.
@@ -118,6 +122,24 @@ async function issueTokenPair(
   const accessToken = ctx.signAccessToken({ sub: user.id, role: user.role, sid: session.id });
 
   return { accessToken, refreshToken };
+}
+
+export async function telegramAuth(ctx: AuthContext, initData: string, meta: { userAgent?: string; ipAddress?: string }) {
+  if (!env.TELEGRAM_BOT_TOKEN) throw new ServiceUnavailableError('Telegram login is not configured');
+  const identity = validateTelegramInitData(initData, env.TELEGRAM_BOT_TOKEN);
+  const telegramId = String(identity.id);
+  const publicId = await generateUniquePublicId(ctx.prisma);
+  const profile = {
+    displayName: [identity.first_name, identity.last_name].filter(Boolean).join(' '),
+    avatarUrl: identity.photo_url,
+  };
+  const user = await ctx.prisma.user.upsert({
+    where: { telegramId },
+    create: { telegramId, publicId, ...profile, locale: identity.language_code === 'ru' ? 'ru' : 'uz', wallet: { create: {} } },
+    update: profile,
+  });
+  if (user.status !== 'ACTIVE') throw new UnauthorizedError('This account is not active');
+  return { user: toPublicUser(user), ...await issueTokenPair(ctx, user, meta) };
 }
 
 /**

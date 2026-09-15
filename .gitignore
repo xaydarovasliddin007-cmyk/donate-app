@@ -17,6 +17,11 @@ npm-debug.log*
 # --- Node / admin panel ---
 admin/dist/
 admin/*.tsbuildinfo
+superapp/dist/
+superapp/public/assets-store/
+superapp/public/terms.html
+superapp/public/privacy.html
+artifacts/
 
 # --- Prisma ---
 backend/prisma/dev.db

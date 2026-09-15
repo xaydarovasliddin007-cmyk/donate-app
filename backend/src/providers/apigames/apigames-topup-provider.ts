@@ -90,6 +90,7 @@ export class ApiGamesTopupProvider implements TopupProviderAdapter {
     // endpoint is confirmed) reports SUCCESS/FAILED.
     return {
       success: raw.data.status !== 'Gagal',
+      status: raw.data.status === 'Sukses' ? 'SUCCESS' : raw.data.status === 'Gagal' ? 'FAILED' : 'PENDING',
       providerTransactionId: raw.data.trx_id,
       reason: raw.data.message,
       raw,
@@ -99,6 +100,7 @@ export class ApiGamesTopupProvider implements TopupProviderAdapter {
   async getTopupStatus(providerTransactionId: string): Promise<TopupStatusResult> {
     const refId = providerTransactionId;
     const response = await fetch(`${BASE_URL}/status`, {
+      signal: AbortSignal.timeout(8000),
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({

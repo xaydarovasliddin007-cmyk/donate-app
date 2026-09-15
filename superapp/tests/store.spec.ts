@@ -1,0 +1,101 @@
+import { expect, test, type Page } from '@playwright/test';
+
+const games = [
+  { id: 'game-1', slug: 'mobile-legends', name: 'Mobile Legends: Bang Bang', category: 'MOBA', logoUrl: '/assets-store/diamond.png', availability: 'ACTIVE', isPurchasable: true },
+  { id: 'game-2', slug: 'pubg-mobile', name: 'PUBG Mobile', category: 'Battle Royale', logoUrl: '/assets-store/brand.png', availability: 'ACTIVE', isPurchasable: true },
+  { id: 'game-3', slug: 'free-fire', name: 'Free Fire', category: 'Battle Royale', logoUrl: '/assets-store/diamond.png', availability: 'ACTIVE', isPurchasable: true },
+  { id: 'game-4', slug: 'valorant', name: 'Valorant', category: 'FPS', logoUrl: null, availability: 'COMING_SOON', isPurchasable: false },
+];
+async function mockStore(page: Page, tg = false) {
+  let orders: object[] = [];
+  const sent: { path: string; body: Record<string, unknown> }[] = [];
+  await page.route('https://telegram.org/**', (route) => route.fulfill({ contentType: 'text/javascript', body: '' }));
+  if (tg) await page.addInitScript(() => {
+    (window as unknown as { Telegram: object }).Telegram = { WebApp: {
+      initData: 'test-signed-data', ready() {}, expand() {}, setHeaderColor() {}, setBackgroundColor() {},
+      BackButton: { show() {}, hide() {}, onClick() {}, offClick() {} },
+      openInvoice(_url: string, callback: (status: string) => void) { callback('paid'); },
+    } };
+  });
+  await page.route('**/api/v1/**', async (route) => {
+    const path = new URL(route.request().url()).pathname.replace('/api/v1', '');
+    const body = route.request().method() === 'POST' ? route.request().postDataJSON() : undefined;
+    if (body) sent.push({ path, body });
+    let data: unknown;
+    if (path.startsWith('/auth/')) data = { accessToken: 'test-token', refreshToken: 'test-refresh', user: { id: 'user-1', publicId: 'UZD-TEST1234', displayName: 'Asliddin', isGuest: !tg, hasTelegramAccount: tg } };
+    else if (path === '/games') data = { games };
+    else if (path.endsWith('/servers')) data = { servers: [{ id: 'server-1', code: 'GLOBAL', name: 'Global' }] };
+    else if (path.endsWith('/products')) data = { products: [{ id: 'product-1', name: '86 Diamonds', amountMinor: 1550000, currency: 'UZS', starsPrice: 65 }] };
+    else if (path === '/wallet') data = { balanceMinor: 5000000, currency: 'UZS' };
+    else if (path === '/app/config') data = { supportUrl: 'https://t.me/uzdonate_support', telegramBotUrl: 'https://t.me/uzdonate1bot', telegramPaymentsEnabled: true };
+    else if (path === '/topups') data = { topUps: [] };
+    else if (path === '/orders' && !body) data = { orders };
+    else if (path === '/orders' || path === '/telegram/invoices') {
+      const order = { id: 'order-1', orderNumber: 'UZD123', game: games[0], items: [{ productName: '86 Diamonds' }], playerId: body.playerId, zoneId: body.zoneId, amountMinor: tg ? 6500 : 1550000, currency: tg ? 'XTR' : 'UZS', status: 'COMPLETED', createdAt: '2026-09-15T10:00:00Z' };
+      orders = [order]; data = path.includes('invoices') ? { invoiceUrl: 'https://t.me/$test-invoice', orderId: 'order-1' } : order;
+    } else if (path === '/payments/wallet') data = { status: 'SUCCEEDED' };
+    else if (path === '/orders/order-1') data = orders[0];
+    else return route.fulfill({ status: 404, json: { error: { message: 'Not found' } } });
+    await route.fulfill({ json: data });
+  });
+  return sent;
+}
+async function noOverflow(page: Page) {
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+}
+
+test('catalog filters, light mode and responsive layout', async ({ page }, info) => {
+  const errors: string[] = []; page.on('pageerror', (error) => errors.push(error.message));
+  await mockStore(page); await page.goto('/');
+  await expect(page.locator('.game-card')).toHaveCount(4);
+  await noOverflow(page);
+  await page.screenshot({ path: `../artifacts/catalog-${info.project.name}.png`, fullPage: true });
+  await page.getByLabel("O'yin qidirish").fill('PUBG');
+  await expect(page.locator('.game-card')).toHaveCount(1);
+  await page.getByRole('button', { name: 'Qidiruvni tozalash' }).click();
+  await page.getByLabel('Faqat mavjudlar').check();
+  await expect(page.locator('.game-card')).toHaveCount(3);
+  await page.getByRole('button', { name: 'Mavzuni almashtirish' }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  await noOverflow(page); expect(errors).toEqual([]);
+});
+test('checkout validates player and zone, pays and shows server order', async ({ page }, info) => {
+  const sent = await mockStore(page); await page.goto('/');
+  await page.locator('.game-card').first().click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await page.getByRole('radio').first().click();
+  await page.getByLabel('Player ID', { exact: true }).fill('123456789');
+  await page.getByLabel('Zone ID', { exact: true }).fill('1234');
+  await page.getByRole('button', { name: 'Davom etish' }).click();
+  await expect(page.getByText('Buyurtmani tasdiqlang')).toBeVisible();
+  await page.screenshot({ path: `../artifacts/checkout-${info.project.name}.png` });
+  await page.getByRole('button', { name: /to'lash/ }).click();
+  await expect(page.getByRole('heading', { name: 'Xarid bajarildi' })).toBeVisible();
+  const checkout = sent.find((item) => item.path === '/orders')!;
+  expect(checkout.body.zoneId).toBe('1234'); expect(checkout.body.idempotencyKey).toBeTruthy();
+  await page.getByRole('button', { name: 'Tayyor', exact: true }).click();
+  await page.getByRole('button', { name: 'Buyurtmalar', exact: true }).filter({ visible: true }).click();
+  await expect(page.locator('.order-row')).toHaveCount(1); await noOverflow(page);
+});
+test('Telegram checkout uses signed login and Stars, without a fabricated wallet', async ({ page }) => {
+  const sent = await mockStore(page, true); await page.goto('/');
+  await expect(page.locator('.payment-indicator')).toContainText('Telegram Stars');
+  await expect(page.locator('.wallet-summary')).toHaveCount(0);
+  await page.locator('.game-card').first().click();
+  await page.getByRole('radio').first().click();
+  await page.getByLabel('Player ID', { exact: true }).fill('123456789');
+  await page.getByLabel('Zone ID', { exact: true }).fill('1234');
+  await page.getByRole('button', { name: 'Davom etish' }).click();
+  await page.getByRole('button', { name: "65 Stars to'lash" }).click();
+  await expect(page.getByRole('heading', { name: 'Xarid bajarildi' })).toBeVisible();
+  expect(sent.some((item) => item.path === '/auth/telegram')).toBe(true);
+  expect(sent.some((item) => item.path === '/telegram/invoices')).toBe(true);
+  expect(sent.some((item) => item.path === '/payments/wallet')).toBe(false);
+});
+test('failed catalog request has a working retry', async ({ page }) => {
+  await mockStore(page); let failures = 1;
+  await page.route('**/api/v1/games', (route) => failures-- > 0 ? route.fulfill({ status: 503, json: { error: { message: 'Offline' } } }) : route.fallback());
+  await page.goto('/'); await expect(page.getByRole('alert')).toBeVisible();
+  await page.getByRole('button', { name: 'Qayta urinish' }).click();
+  await expect(page.locator('.game-card')).toHaveCount(4);
+});

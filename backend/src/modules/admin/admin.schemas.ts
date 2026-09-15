@@ -39,14 +39,15 @@ export const adminUpdateProductSchema = z
   .object({
     isActive: z.boolean().optional(),
     amountMinor: z.number().int().positive().optional(),
+    starsPrice: z.number().int().min(1).max(100000).nullable().optional(),
     // Nullable (not just optional) so the same field can explicitly clear a
     // previously-set cost back to "unknown" — e.g. the supplier price
     // changed and nobody's confirmed the new one yet — without that silently
     // reading as "free."  omitted = leave whatever's there alone.
     costMinor: z.number().int().nonnegative().nullable().optional(),
   })
-  .refine((data) => data.isActive !== undefined || data.amountMinor !== undefined || data.costMinor !== undefined, {
-    message: 'At least one of isActive, amountMinor, or costMinor must be provided',
+  .refine((data) => Object.keys(data).length > 0, {
+    message: 'At least one product field must be provided',
   });
 
 const gameAvailabilityValues = ['ACTIVE', 'COMING_SOON', 'DISABLED'] as const;
@@ -109,6 +110,7 @@ export const adminCreateProductSchema = z.object({
   name: z.string().trim().min(1).max(120),
   description: z.string().trim().max(500).optional(),
   amountMinor: z.number().int().positive(),
+  starsPrice: z.number().int().min(1).max(100000).optional(),
   // What this actually costs you (the supplier/provider price), separate
   // from amountMinor (what the customer pays) — powers the profit stats on
   // the dashboard. Optional: left unset, this product's sales are simply

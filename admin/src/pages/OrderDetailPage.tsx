@@ -97,7 +97,7 @@ export function OrderDetailPage() {
                 {t('orderDetail.retryFulfillment')}
               </button>
             )}
-            {(data.status === 'COMPLETED' || data.status === 'PAID' || data.status === 'FULFILLING') && (
+            {(data.status === 'COMPLETED' || data.status === 'PAID' || (data.status === 'FAILED' && data.payments.some((payment) => payment.status === 'SUCCEEDED'))) && (
               <>
                 <input
                   placeholder={t('orderDetail.refundReasonPlaceholder')}
@@ -105,7 +105,7 @@ export function OrderDetailPage() {
                   onChange={(e) => setRefundReason(e.target.value)}
                 />
                 <button className="btn btn-danger" disabled={busy} onClick={() => setConfirmingRefund(true)}>
-                  {t('orderDetail.refundToWallet')}
+                  {data.currency === 'XTR' ? 'Telegram Stars: ' : ''}{t('orderDetail.refundToWallet')}
                 </button>
               </>
             )}

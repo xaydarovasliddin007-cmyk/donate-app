@@ -15,9 +15,10 @@ describe('order state machine', () => {
     expect(canTransition('PROCESSING', 'FAILED')).toBe(true);
   });
 
-  it('allows refunds only from PAID or COMPLETED', () => {
+  it('allows refunds from paid, completed or failed fulfillment states', () => {
     expect(canTransition('PAID', 'REFUNDED')).toBe(true);
     expect(canTransition('COMPLETED', 'REFUNDED')).toBe(true);
+    expect(canTransition('FAILED', 'REFUNDED')).toBe(true);
     expect(canTransition('PENDING', 'REFUNDED')).toBe(false);
   });
 

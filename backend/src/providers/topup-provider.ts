@@ -9,7 +9,7 @@ export interface TopupProviderAdapter {
 
   validatePlayer(params: TopupValidatePlayerParams): Promise<TopupValidatePlayerResult>;
   createTopup(params: CreateTopupParams): Promise<CreateTopupResult>;
-  getTopupStatus(providerTransactionId: string): Promise<TopupStatusResult>;
+  getTopupStatus(providerTransactionId: string, params?: CreateTopupParams): Promise<TopupStatusResult>;
 }
 
 export interface TopupValidatePlayerParams {
@@ -44,6 +44,8 @@ export interface CreateTopupParams {
 
 export interface CreateTopupResult {
   success: boolean;
+  /** Accepted asynchronously is not the same as delivered. */
+  status?: TopupStatus;
   providerTransactionId?: string;
   reason?: string;
   raw?: unknown;

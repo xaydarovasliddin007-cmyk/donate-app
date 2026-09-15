@@ -59,6 +59,13 @@ async function makeUserWithOrder(startingWalletBalanceMinor = 0) {
 }
 
 describe('payment webhook + wallet-pay pipeline (live DB)', () => {
+  it('does not reveal another customer payment on idempotency replay', async () => {
+    const { user, order } = await makeUserWithOrder();
+    const other = await makeUserWithOrder();
+    const input = { orderId: order.id, providerCode: 'DEV_MOCK_PAYMENT', idempotencyKey: randomUUID() };
+    await createPayment(ctx, user.id, input);
+    await expect(createPayment(ctx, other.user.id, input)).rejects.toThrow('does not belong to you');
+  });
   beforeAll(async () => {
     const game = await prisma.game.create({
       data: {
@@ -224,6 +231,28 @@ describe('payment webhook + wallet-pay pipeline (live DB)', () => {
 
     const finalOrder = await prisma.order.findUniqueOrThrow({ where: { id: order.id } });
     expect(finalOrder.status).toBe('COMPLETED');
+  });
+
+  it('two concurrent wallet payments with different keys debit only once', async () => {
+    const { user, order } = await makeUserWithOrder(ORDER_AMOUNT_MINOR * 3);
+    const payments = await Promise.all([
+      payWithWallet(ctx, user.id, order.id, `parallel-a:${order.id}`),
+      payWithWallet(ctx, user.id, order.id, `parallel-b:${order.id}`),
+    ]);
+    expect(payments[0].id).toBe(payments[1].id);
+    expect((await prisma.wallet.findUniqueOrThrow({ where: { userId: user.id } })).balanceMinor).toBe(ORDER_AMOUNT_MINOR * 2);
+    expect(await prisma.walletTransaction.count({ where: { orderId: order.id, type: 'PURCHASE' } })).toBe(1);
+    expect(await prisma.providerAttempt.count({ where: { orderId: order.id } })).toBe(1);
+  });
+
+  it('a wallet retry after adding funds can reuse its failed payment key', async () => {
+    const { user, order } = await makeUserWithOrder(0);
+    const key = `retry-funded:${order.id}`;
+    await expect(payWithWallet(ctx, user.id, order.id, key)).rejects.toThrow(InsufficientBalanceError);
+    await prisma.wallet.update({ where: { userId: user.id }, data: { balanceMinor: ORDER_AMOUNT_MINOR } });
+    const payment = await payWithWallet(ctx, user.id, order.id, key);
+    expect(payment.status).toBe('SUCCEEDED');
+    expect((await prisma.wallet.findUniqueOrThrow({ where: { userId: user.id } })).balanceMinor).toBe(0);
   });
 
   it('payWithWallet on insufficient balance fails the payment, leaves the order PENDING (not FAILED), and touches no balance', async () => {

@@ -10,6 +10,7 @@ import { recordPlayerProfileFromOrder } from '../saved-games/saved-games.service
 import * as walletService from '../wallet/wallet.service.js';
 import { assertTransition } from './order-state-machine.js';
 import type { CreateOrderInput, ValidatePlayerInput } from './orders.schemas.js';
+import { telegramApi, TelegramApiError } from '../telegram/telegram-api.js';
 
 interface OrderContext {
   prisma: PrismaClient;
@@ -61,7 +62,7 @@ function toPublicOrder(
  * juggle types when threading the current status through a multi-step flow.
  */
 async function transitionOrder(
-  ctx: OrderContext,
+  ctx: { prisma: PrismaClient | Prisma.TransactionClient },
   order: { id: string; status: OrderStatus },
   toStatus: OrderStatus,
   reason?: string,
@@ -79,7 +80,7 @@ async function transitionOrder(
   return toStatus;
 }
 
-export async function createOrder(ctx: OrderContext, userId: string, input: CreateOrderInput) {
+export async function createOrder(ctx: OrderContext, userId: string, input: CreateOrderInput, channel: 'app' | 'telegram' = 'app') {
   const existing = await ctx.prisma.order.findUnique({
     where: { idempotencyKey: input.idempotencyKey },
     include: { game: true, items: true },
@@ -123,6 +124,7 @@ export async function createOrder(ctx: OrderContext, userId: string, input: Crea
       gameId: input.gameId,
       isActive: true,
       serverId: resolvedGameServerId,
+      ...(isProduction ? { isTest: false } : {}),
     },
   });
   if (!product) {
@@ -158,7 +160,12 @@ export async function createOrder(ctx: OrderContext, userId: string, input: Crea
     where: { id: userId },
     select: { discountPercent: true },
   });
-  const chargedAmountMinor = applyDiscount(product.amountMinor, discountPercent);
+  if (channel === 'telegram' && !product.starsPrice) {
+    throw new ValidationError('Telegram Stars price has not been configured for this product');
+  }
+  const chargedAmountMinor = channel === 'telegram'
+    ? Math.max(1, applyDiscount(product.starsPrice!, discountPercent)) * 100
+    : applyDiscount(product.amountMinor, discountPercent);
 
   const order = await ctx.prisma.$transaction(async (tx) => {
     const created = await tx.order.create({
@@ -170,7 +177,7 @@ export async function createOrder(ctx: OrderContext, userId: string, input: Crea
         serverId: input.serverId,
         zoneId: input.zoneId,
         amountMinor: chargedAmountMinor,
-        currency: product.currency,
+        currency: channel === 'telegram' ? 'XTR' : product.currency,
         discountPercent,
         status: 'PENDING',
         idempotencyKey: input.idempotencyKey,
@@ -184,7 +191,7 @@ export async function createOrder(ctx: OrderContext, userId: string, input: Crea
             // Snapshotted now so a later edit to the product's cost never
             // rewrites this order's already-reported profit — see
             // OrderItem.costMinorSnapshot's doc comment.
-            costMinorSnapshot: product.costMinor,
+            costMinorSnapshot: channel === 'telegram' ? null : product.costMinor,
           },
         },
       },
@@ -314,8 +321,24 @@ export async function fulfillPaidOrder(ctx: OrderContext, orderId: string): Prom
     include: { items: true },
   });
 
-  let status = await transitionOrder(ctx, { id: order.id, status: order.status }, 'PAID', 'Payment confirmed');
-  status = await transitionOrder(ctx, { id: order.id, status }, 'PROCESSING', 'Fulfillment started');
+  if (!['PENDING', 'PAID'].includes(order.status)) return;
+  // Only one callback may claim fulfillment when the payment provider retries.
+  const claimed = await ctx.prisma.$transaction(async (tx) => {
+    const result = await tx.order.updateMany({
+      where: { id: order.id, status: order.status },
+      data: { status: 'PROCESSING', paidAt: order.paidAt ?? new Date() },
+    });
+    if (!result.count) return false;
+    if (order.status === 'PENDING') {
+      assertTransition('PENDING', 'PAID');
+      await tx.orderStatusHistory.create({ data: { orderId, fromStatus: 'PENDING', toStatus: 'PAID', reason: 'Payment confirmed' } });
+    }
+    assertTransition('PAID', 'PROCESSING');
+    await tx.orderStatusHistory.create({ data: { orderId, fromStatus: 'PAID', toStatus: 'PROCESSING', reason: 'Fulfillment started' } });
+    return true;
+  });
+  if (!claimed) return;
+  const status = 'PROCESSING' as const;
 
   const item = order.items[0];
   if (!item) {
@@ -360,6 +383,10 @@ export async function retryFulfillment(ctx: OrderContext, orderId: string): Prom
     include: { items: true },
   });
 
+  if (!order.paidAt || order.status !== 'FAILED') {
+    throw new ConflictError('Only paid, failed orders can be retried');
+  }
+
   const item = order.items[0];
   if (!item) {
     throw new ConflictError('Order has no line items to fulfill');
@@ -374,12 +401,12 @@ export async function retryFulfillment(ctx: OrderContext, orderId: string): Prom
     throw new ConflictError('No active fulfillment provider configured for this product');
   }
 
-  const status = await transitionOrder(
-    ctx,
-    { id: order.id, status: order.status },
-    'PROCESSING',
-    'Fulfillment retried by admin',
-  );
+  const status = await ctx.prisma.$transaction(async (tx) => {
+    const claimed = await tx.order.updateMany({ where: { id: orderId, status: 'FAILED', paidAt: { not: null } }, data: { status: 'PROCESSING', failureReason: null } });
+    if (!claimed.count) throw new ConflictError('Order is already being processed');
+    await tx.orderStatusHistory.create({ data: { orderId, fromStatus: 'FAILED', toStatus: 'PROCESSING', reason: 'Fulfillment retried by admin' } });
+    return 'PROCESSING' as const;
+  });
   await runFulfillmentAttempt(
     ctx,
     {
@@ -434,12 +461,14 @@ async function runFulfillmentAttempt(
       providerId: providerProduct.providerId,
       providerProductCode: providerProduct.providerProductCode,
       attemptNumber,
-      status: result.success ? 'SUCCESS' : 'FAILED',
+      status: result.status ?? (result.success ? 'SUCCESS' : 'FAILED'),
       providerTransactionId: result.providerTransactionId,
       responsePayload: (result.raw ?? {}) as Prisma.InputJsonValue,
-      completedAt: new Date(),
+      completedAt: result.status === 'PENDING' ? null : new Date(),
     },
   });
+
+  if (result.status === 'PENDING') return;
 
   if (result.success) {
     await transitionOrder(ctx, order, 'COMPLETED', 'Fulfillment succeeded');
@@ -487,18 +516,28 @@ export async function refundOrderToWallet(
     throw new NotFoundError('Order not found');
   }
 
-  await transitionOrder(ctx, order, 'REFUNDED', reason ?? 'Refunded by admin');
+  if (!order.paidAt) throw new ConflictError('Only paid orders can be refunded');
+  if (order.currency === 'XTR') {
+    assertTransition(order.status, 'REFUNDED');
+    const payment = await ctx.prisma.payment.findFirst({ where: { orderId, status: 'SUCCEEDED', currency: 'XTR' } });
+    const user = await ctx.prisma.user.findUniqueOrThrow({ where: { id: order.userId } });
+    if (!payment?.telegramChargeId || !user.telegramId) throw new ConflictError('Telegram charge is missing');
+    try {
+      await telegramApi('refundStarPayment', { user_id: Number(user.telegramId), telegram_payment_charge_id: payment.telegramChargeId });
+    } catch (error) {
+      if (!(error instanceof TelegramApiError) || !error.description.includes('CHARGE_ALREADY_REFUNDED')) throw error;
+    }
+    await transitionOrder(ctx, order, 'REFUNDED', reason ?? 'Telegram Stars refunded by admin');
+    return ctx.prisma.order.findUniqueOrThrow({ where: { id: orderId } });
+  }
 
-  await walletService.creditWallet(ctx, {
-    userId: order.userId,
-    type: 'REFUND',
-    amountMinor: order.amountMinor,
-    // Deterministic on the order — retrying this admin action never double-credits.
-    idempotencyKey: `refund:${order.id}`,
-    reference: `Refund for order ${order.orderNumber}`,
-    orderId: order.id,
-    createdByAdminId: adminId,
-    reason,
+  if (order.currency !== 'UZS') throw new ConflictError('Wallet refunds require UZS');
+  await ctx.prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT id FROM orders WHERE id = ${orderId}::uuid FOR UPDATE`;
+    const current = await tx.order.findUniqueOrThrow({ where: { id: orderId } });
+    assertTransition(current.status, 'REFUNDED');
+    await walletService.creditOrderRefund(tx, { userId: order.userId, orderId, amountMinor: order.amountMinor, adminId, reason });
+    await transitionOrder({ prisma: tx }, current, 'REFUNDED', reason ?? 'Refunded by admin');
   });
 
   notifyAdmins(

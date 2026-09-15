@@ -338,7 +338,7 @@ export async function updateProductAdmin(
   ctx: AdminContext,
   adminId: string,
   productId: string,
-  changes: { isActive?: boolean; amountMinor?: number; costMinor?: number | null },
+  changes: { isActive?: boolean; amountMinor?: number; costMinor?: number | null; starsPrice?: number | null },
 ) {
   const existing = await ctx.prisma.product.findUnique({ where: { id: productId } });
   if (!existing) {
@@ -636,7 +636,7 @@ export async function getStatsAdmin(ctx: AdminContext, range: { from: Date; to: 
     // summing across users/games directly is safe. Revisit if a second
     // currency is ever introduced.
     ctx.prisma.order.groupBy({
-      by: ['userId'],
+      by: ['userId', 'currency'],
       where: { status: 'COMPLETED', completedAt: { gte: range.from, lte: range.to } },
       _sum: { amountMinor: true },
       _count: { _all: true },
@@ -646,7 +646,7 @@ export async function getStatsAdmin(ctx: AdminContext, range: { from: Date; to: 
     // Same shape, grouped by game instead of user — which titles are
     // actually driving revenue this range.
     ctx.prisma.order.groupBy({
-      by: ['gameId'],
+      by: ['gameId', 'currency'],
       where: { status: 'COMPLETED', completedAt: { gte: range.from, lte: range.to } },
       _sum: { amountMinor: true },
       _count: { _all: true },
@@ -664,7 +664,7 @@ export async function getStatsAdmin(ctx: AdminContext, range: { from: Date; to: 
   // dashboard say "profit is incomplete" instead of presenting a partial
   // number as if it were the whole picture.
   const completedItemsInRange = await ctx.prisma.orderItem.findMany({
-    where: { order: { status: 'COMPLETED', completedAt: { gte: range.from, lte: range.to } } },
+    where: { order: { status: 'COMPLETED', currency: 'UZS', completedAt: { gte: range.from, lte: range.to } } },
     select: { quantity: true, totalAmountMinor: true, costMinorSnapshot: true, order: { select: { gameId: true } } },
   });
   let profitInRangeMinor = 0;
@@ -710,18 +710,20 @@ export async function getStatsAdmin(ctx: AdminContext, range: { from: Date; to: 
     ),
     topUpsByStatus: Object.fromEntries(topUpsByStatus.map((row) => [row.status, row._count._all])),
     topClients: topClientsRaw.map((row) => ({
+      currency: row.currency,
       user: userById.get(row.userId) ?? null,
       totalSpentMinor: row._sum.amountMinor ?? 0,
       orderCount: row._count._all,
     })),
     topGames: topGamesRaw.map((row) => ({
+      currency: row.currency,
       game: gameById.get(row.gameId) ?? null,
       revenueMinor: row._sum.amountMinor ?? 0,
       orderCount: row._count._all,
       // 0 whenever every item sold for this game in range had no cost
       // entered — same "unknown, not zero" caveat as profitInRangeMinor
       // below, just scoped to one game instead of the whole range.
-      profitMinor: profitByGameId.get(row.gameId) ?? 0,
+      profitMinor: row.currency === 'UZS' ? profitByGameId.get(row.gameId) ?? 0 : null,
     })),
     // UZS-only for now, same simplification topClients/topGames already
     // make — revisit if a second order currency is ever introduced.

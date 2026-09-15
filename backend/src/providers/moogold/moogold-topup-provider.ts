@@ -115,6 +115,7 @@ export class MooGoldTopupProvider implements TopupProviderAdapter {
       if (isSuccess && orderId) {
         return {
           success: true,
+          status: 'PENDING',
           providerTransactionId: orderId,
           raw: data,
         };
@@ -141,6 +142,7 @@ export class MooGoldTopupProvider implements TopupProviderAdapter {
 
     try {
       const response = await fetch(`${BASE_URL}/${path}`, {
+        signal: AbortSignal.timeout(8000),
         method: 'POST',
         headers: this.getAuthHeaders(path, payload),
         body: JSON.stringify(payload),

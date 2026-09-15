@@ -1,12 +1,11 @@
 services:
   - type: web
-    name: uzdonate-api
-    runtime: node
+    name: donate-app
+    runtime: docker
     plan: free
-    rootDir: backend
-    buildCommand: npm install && npx prisma generate && npm run build
-    startCommand: npx prisma migrate deploy && npm run prisma:seed && npm run start
-    healthCheckPath: /health
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /ready
     envVars:
       - key: NODE_ENV
         value: production
@@ -14,21 +13,17 @@ services:
         value: 10000
       - key: DATABASE_URL
         sync: false
-      - key: JWT_SECRET
+      - key: JWT_ACCESS_SECRET
         generateValue: true
-      - key: ADMIN_TOKEN
+      - key: JWT_REFRESH_SECRET
         generateValue: true
-      - key: ALLOWED_ORIGINS
-        value: "*"
-
-  - type: web
-    name: uzdonate-admin
-    runtime: static
-    plan: free
-    rootDir: admin
-    buildCommand: npm install && npm run build
-    staticPublishPath: dist
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
+      - key: ADMIN_JWT_ACCESS_SECRET
+        generateValue: true
+      - key: CORS_ORIGIN
+        value: https://donate-app-5vhs.onrender.com
+      - key: PUBLIC_APP_URL
+        value: https://donate-app-5vhs.onrender.com
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_WEBHOOK_SECRET
+        generateValue: true

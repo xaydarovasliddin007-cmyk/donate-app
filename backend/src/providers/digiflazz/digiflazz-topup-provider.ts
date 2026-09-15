@@ -66,6 +66,7 @@ export class DigiflazzTopupProvider implements TopupProviderAdapter {
 
   async createTopup(params: CreateTopupParams): Promise<CreateTopupResult> {
     const response = await fetch(`${BASE_URL}/transaction`, {
+      signal: AbortSignal.timeout(15000),
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -88,24 +89,29 @@ export class DigiflazzTopupProvider implements TopupProviderAdapter {
       // resolves later via getTopupStatus() or the configured webhook.
       // Only "Gagal" is a real failure.
       success: data.status !== 'Gagal',
+      status: data.status === 'Sukses' ? 'SUCCESS' : data.status === 'Gagal' ? 'FAILED' : 'PENDING',
       providerTransactionId: data.ref_id ?? params.referenceId,
       reason: data.message,
       raw,
     };
   }
 
-  async getTopupStatus(providerTransactionId: string): Promise<TopupStatusResult> {
+  async getTopupStatus(providerTransactionId: string, params?: CreateTopupParams): Promise<TopupStatusResult> {
+    if (!params) return { status: 'PENDING' };
     // Per Digiflazz's docs, a pending transaction's current state is
     // fetched by resubmitting the *same* ref_id to the transaction
     // endpoint (not a separate status GET) — Digiflazz recognizes the
     // duplicate ref_id and returns its latest status instead of creating a
     // second order.
     const response = await fetch(`${BASE_URL}/transaction`, {
+      signal: AbortSignal.timeout(8000),
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         username: this.username,
         ref_id: providerTransactionId,
+        buyer_sku_code: params.providerProductCode,
+        customer_no: params.serverId ? `${params.playerId}${params.serverId}` : params.playerId,
         sign: this.sign(providerTransactionId),
       }),
     });

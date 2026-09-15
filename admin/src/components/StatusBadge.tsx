@@ -1,7 +1,7 @@
 const TONES: Record<string, 'neutral' | 'success' | 'warning' | 'danger'> = {
   PENDING: 'warning',
   PAID: 'neutral',
-  FULFILLING: 'neutral',
+  PROCESSING: 'neutral',
   COMPLETED: 'success',
   SUCCEEDED: 'success',
   VERIFIED: 'success',

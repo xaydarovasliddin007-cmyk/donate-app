@@ -1,4 +1,6 @@
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { getTopupProvider } from '../src/providers/registry.js';
+import { reconcileFulfillment } from '../src/modules/orders/fulfillment-worker.js';
 import { PrismaClient } from '@prisma/client';
 import { generateOrderNumber } from '../src/lib/order-number.js';
 import {
@@ -280,5 +282,50 @@ describe('order purchase pipeline (live DB)', () => {
 
     const walletAfterSecondAttempt = await prisma.wallet.findUniqueOrThrow({ where: { userId: user.id } });
     expect(walletAfterSecondAttempt.balanceMinor).toBe(order.amountMinor);
+  });
+
+  it('does not retry or refund an unpaid failed order', async () => {
+    const user = await makeUser();
+    const order = await createRawPendingOrder(user.id, 'unpaid-player', 100_00);
+    createdOrderIds.push(order.id);
+    await prisma.order.update({ where: { id: order.id }, data: { status: 'FAILED' } });
+    const admin = await prisma.adminUser.findFirstOrThrow();
+    await expect(retryFulfillment(ctx, order.id)).rejects.toThrow('Only paid');
+    await expect(refundOrderToWallet(ctx, admin.id, order.id)).rejects.toThrow('Only paid');
+    expect(await prisma.providerAttempt.count({ where: { orderId: order.id } })).toBe(0);
+  });
+
+  it('keeps accepted delivery PROCESSING until the provider confirms completion', async () => {
+    const user = await makeUser();
+    const order = await createRawPendingOrder(user.id, 'async-delivery', 100_00);
+    createdOrderIds.push(order.id);
+    const provider = getTopupProvider('DEV_MOCK_TOPUP');
+    const submit = vi.spyOn(provider, 'createTopup').mockResolvedValue({ success: true, status: 'PENDING', providerTransactionId: 'async-reference' });
+    const status = vi.spyOn(provider, 'getTopupStatus').mockResolvedValue({ status: 'PENDING' });
+    try {
+      await fulfillPaidOrder(ctx, order.id);
+      expect((await prisma.order.findUniqueOrThrow({ where: { id: order.id } })).status).toBe('PROCESSING');
+      await reconcileFulfillment(prisma);
+      expect((await prisma.order.findUniqueOrThrow({ where: { id: order.id } })).completedAt).toBeNull();
+      status.mockResolvedValue({ status: 'SUCCESS' });
+      await Promise.all([reconcileFulfillment(prisma), reconcileFulfillment(prisma)]);
+      expect((await prisma.order.findUniqueOrThrow({ where: { id: order.id } })).status).toBe('COMPLETED');
+      expect(await prisma.orderStatusHistory.count({ where: { orderId: order.id, toStatus: 'COMPLETED' } })).toBe(1);
+      expect(submit).toHaveBeenCalledTimes(1);
+    } finally { submit.mockRestore(); status.mockRestore(); }
+  });
+
+  it('rolls back refund status when the wallet credit cannot commit', async () => {
+    const user = await makeUser();
+    const order = await createRawPendingOrder(user.id, 'atomic-refund', 100_00);
+    createdOrderIds.push(order.id);
+    await fulfillPaidOrder(ctx, order.id);
+    await expect(refundOrderToWallet(ctx, '00000000-0000-4000-8000-000000000000', order.id)).rejects.toThrow();
+    expect((await prisma.order.findUniqueOrThrow({ where: { id: order.id } })).status).toBe('COMPLETED');
+    expect((await prisma.wallet.findUniqueOrThrow({ where: { userId: user.id } })).balanceMinor).toBe(0);
+    const admin = await prisma.adminUser.findFirstOrThrow();
+    const outcomes = await Promise.allSettled([refundOrderToWallet(ctx, admin.id, order.id), refundOrderToWallet(ctx, admin.id, order.id)]);
+    expect(outcomes.filter((result) => result.status === 'fulfilled')).toHaveLength(1);
+    expect((await prisma.wallet.findUniqueOrThrow({ where: { userId: user.id } })).balanceMinor).toBe(order.amountMinor);
   });
 });

@@ -48,6 +48,7 @@ model User {
   // that creates a user must set at least one of passwordHash/googleId.
   passwordHash    String?    @map("password_hash")
   googleId        String?    @unique @map("google_id")
+  telegramId      String?    @unique @map("telegram_id")
   avatarUrl       String?    @map("avatar_url")
   displayName     String?    @map("display_name")
   locale          String     @default("uz")
@@ -335,6 +336,7 @@ model Product {
   name        String
   description String?
   amountMinor Int         @map("amount_minor")
+  starsPrice  Int?        @map("stars_price")
   // What this actually costs (the supplier/provider price), separate from
   // amountMinor (what the customer pays) — the input the profit stats on
   // the admin dashboard are built from. Null means "not entered yet," not
@@ -541,6 +543,8 @@ model Payment {
   currency       String        @default("UZS")
   status         PaymentStatus @default(PENDING)
   idempotencyKey String        @unique @map("idempotency_key")
+  checkoutUrl    String?       @map("checkout_url")
+  telegramChargeId String?     @unique @map("telegram_charge_id")
   createdAt      DateTime      @default(now()) @map("created_at")
   updatedAt      DateTime      @updatedAt @map("updated_at")
 

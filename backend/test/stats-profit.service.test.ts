@@ -121,4 +121,14 @@ describe('profit stats + cost-data isolation (live DB)', () => {
       expect(item).not.toHaveProperty('costMinorSnapshot');
     }
   });
+
+  it('never adds Stars to UZS rankings or profit', async () => {
+    const order = await makeCompletedOrder(productNoCostId, 9900, null);
+    await prisma.order.update({ where: { id: order.id }, data: { currency: 'XTR' } });
+    const stats = await adminService.getStatsAdmin(ctx, { from: new Date(Date.now() - 60_000), to: new Date(Date.now() + 60_000) });
+    const rows = stats.topGames.filter((row) => row.game?.id === gameId);
+    expect(rows.find((row) => row.currency === 'UZS')?.revenueMinor).toBe(KNOWN_SALE_MINOR + UNKNOWN_SALE_MINOR);
+    expect(rows.find((row) => row.currency === 'XTR')?.revenueMinor).toBe(9900);
+    expect(rows.find((row) => row.currency === 'XTR')?.profitMinor).toBeNull();
+  });
 });

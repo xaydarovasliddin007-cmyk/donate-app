@@ -29,10 +29,12 @@ import { adminRoutes } from './modules/admin/admin.routes.js';
 import { paymeWebhookRoutes } from './providers/payme/payme-webhook.js';
 import { clickWebhookRoutes } from './providers/click/click-webhook.js';
 import { humoWebhookRoutes } from './modules/topup/humo-webhook.js';
+import { telegramRoutes } from './modules/telegram/telegram.routes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const adminPublicPath = path.resolve(__dirname, '../public/admin');
+const webappPublicPath = path.resolve(__dirname, '../public/webapp');
 
 export async function buildApp() {
   const app = Fastify({
@@ -47,8 +49,16 @@ export async function buildApp() {
   // nested /api/v1 plugin tree would silently leave those routes on
   // Fastify's default (differently-shaped) error output.
   app.setNotFoundHandler((request, reply) => {
-    if (request.url.startsWith('/admin') && fs.existsSync(path.join(adminPublicPath, 'index.html'))) {
+    const pathname = request.url.split('?')[0] ?? '';
+    const htmlNavigation = ['GET', 'HEAD'].includes(request.method) && !path.extname(pathname);
+    if (htmlNavigation && pathname.startsWith('/admin/') && fs.existsSync(path.join(adminPublicPath, 'index.html'))) {
       return reply.type('text/html').send(fs.readFileSync(path.join(adminPublicPath, 'index.html'), 'utf8'));
+    }
+    if (
+      htmlNavigation && pathname.startsWith('/webapp/') &&
+      fs.existsSync(path.join(webappPublicPath, 'index.html'))
+    ) {
+      return reply.type('text/html').send(fs.readFileSync(path.join(webappPublicPath, 'index.html'), 'utf8'));
     }
     reply.status(404).send({
       error: { code: 'NOT_FOUND', message: `Route ${request.method} ${request.url} not found` },
@@ -79,6 +89,12 @@ export async function buildApp() {
   });
 
   await app.register(helmet, { contentSecurityPolicy: false });
+  app.addHook('onSend', async (request, reply) => {
+    if (request.url.startsWith('/webapp/')) {
+      reply.removeHeader('x-frame-options');
+      reply.header('Content-Security-Policy', "frame-ancestors 'self' https://web.telegram.org https://*.telegram.org https://telegram.org");
+    }
+  });
   if (fs.existsSync(adminPublicPath)) {
     await app.register(fastifyStatic, {
       root: adminPublicPath,
@@ -89,6 +105,22 @@ export async function buildApp() {
     app.get('/admin', (req, reply) => {
       return reply.redirect('/admin/');
     });
+  }
+
+  if (fs.existsSync(webappPublicPath)) {
+    await app.register(fastifyStatic, {
+      root: webappPublicPath,
+      prefix: '/webapp/',
+      decorateReply: false,
+    });
+
+    app.get('/webapp', (req, reply) => {
+      return reply.redirect('/webapp/');
+    });
+    app.get('/superapp', (req, reply) => {
+      return reply.redirect('/webapp/');
+    });
+    app.get('/superapp/', (req, reply) => reply.redirect('/webapp/'));
   }
   await app.register(cors, {
     origin: env.CORS_ORIGIN.split(',').map((o) => o.trim()),
@@ -134,6 +166,7 @@ export async function buildApp() {
       await api.register(walletRoutes);
       await api.register(topupRoutes);
       await api.register(notificationsRoutes);
+      await api.register(telegramRoutes);
       await api.register(adminRoutes, { prefix: '/admin' });
     },
     { prefix: `/api/${env.API_VERSION}` },

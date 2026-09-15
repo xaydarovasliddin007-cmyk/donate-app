@@ -11,7 +11,7 @@ import { ErrorRetry } from '../components/ErrorRetry';
 import { useToast } from '../components/Toast';
 import { useLocale } from '../i18n/LocaleContext';
 
-const STATUSES: OrderStatus[] = ['PENDING', 'PAID', 'FULFILLING', 'COMPLETED', 'FAILED', 'REFUNDED'];
+const STATUSES: OrderStatus[] = ['PENDING', 'PAID', 'PROCESSING', 'COMPLETED', 'FAILED', 'CANCELLED', 'REFUNDED'];
 // The server caps a single page at 100 — matches adminListOrdersQuerySchema's limit.
 const EXPORT_LIMIT = 100;
 

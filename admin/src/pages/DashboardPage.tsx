@@ -129,10 +129,10 @@ export function DashboardPage() {
                   </thead>
                   <tbody>
                     {data.topClients.map((row, i) => (
-                      <tr key={row.user?.id ?? i}>
+                      <tr key={`${row.user?.id ?? i}-${row.currency}`}>
                         <td>{row.user?.displayName ?? row.user?.email ?? row.user?.publicId ?? '—'}</td>
                         <td>{row.orderCount}</td>
-                        <td>{formatMinor(row.totalSpentMinor, 'UZS')}</td>
+                        <td>{formatMinor(row.totalSpentMinor, row.currency)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -155,11 +155,11 @@ export function DashboardPage() {
                   </thead>
                   <tbody>
                     {data.topGames.map((row, i) => (
-                      <tr key={row.game?.id ?? i}>
+                      <tr key={`${row.game?.id ?? i}-${row.currency}`}>
                         <td>{row.game?.name ?? '—'}</td>
                         <td>{row.orderCount}</td>
-                        <td>{formatMinor(row.revenueMinor, 'UZS')}</td>
-                        <td>{formatMinor(row.profitMinor, 'UZS')}</td>
+                        <td>{formatMinor(row.revenueMinor, row.currency)}</td>
+                        <td>{row.profitMinor == null ? '-' : formatMinor(row.profitMinor, row.currency)}</td>
                       </tr>
                     ))}
                   </tbody>

@@ -198,6 +198,7 @@ export class FazerCardsTopupProvider implements TopupProviderAdapter {
       // "completed" both mean the order was accepted — getTopupStatus()
       // resolves "processing" into its final state later.
       success: raw.order.status !== 'failed',
+      status: raw.order.status === 'completed' ? 'SUCCESS' : raw.order.status === 'failed' ? 'FAILED' : 'PENDING',
       providerTransactionId: raw.order.id,
       raw,
     };
@@ -205,6 +206,7 @@ export class FazerCardsTopupProvider implements TopupProviderAdapter {
 
   async getTopupStatus(providerTransactionId: string): Promise<TopupStatusResult> {
     const response = await fetch(`${BASE_URL}/orders/${providerTransactionId}`, {
+      signal: AbortSignal.timeout(8000),
       method: 'GET',
       headers: this.headers(),
     });

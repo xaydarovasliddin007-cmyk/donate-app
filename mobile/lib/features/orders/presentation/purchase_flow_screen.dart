@@ -944,7 +944,6 @@ class _PaymentStep extends ConsumerWidget {
 
 class _PaymentRadioTile extends StatelessWidget {
   const _PaymentRadioTile({
-    this.icon,
     this.leading,
     required this.title,
     required this.subtitle,
@@ -953,7 +952,6 @@ class _PaymentRadioTile extends StatelessWidget {
     this.enabled = true,
   });
 
-  final IconData? icon;
   final Widget? leading;
   final String title;
   final String? subtitle;
@@ -1007,10 +1005,7 @@ class _PaymentRadioTile extends StatelessWidget {
                   ),
                 ),
               const SizedBox(width: AppSpacing.sm),
-              if (leading != null)
-                leading!
-              else if (icon != null)
-                Icon(icon, size: 18, color: theme.colorScheme.onSurfaceVariant),
+              ?leading,
               const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: Column(

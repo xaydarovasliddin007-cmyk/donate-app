@@ -1,4 +1,5 @@
-import { env } from '../config/env.js';
+import { env, isProduction } from '../config/env.js';
+import { ServiceUnavailableError } from '../lib/errors.js';
 import { ApiGamesTopupProvider } from './apigames/apigames-topup-provider.js';
 import { ClickProvider } from './click/click-provider.js';
 import { DigiflazzTopupProvider } from './digiflazz/digiflazz-topup-provider.js';
@@ -53,9 +54,17 @@ if (env.SMILEONE_UID && env.SMILEONE_EMAIL && env.SMILEONE_API_KEY) {
 }
 
 export function getTopupProvider(code: string): TopupProviderAdapter {
-  return topupAdapters[code] ?? defaultTopupAdapter;
+  const adapter = topupAdapters[code];
+  if (!adapter || (isProduction && (code.startsWith('DEV_') || code === 'APIGAMES'))) {
+    throw new ServiceUnavailableError('Fulfillment provider is not configured');
+  }
+  return adapter;
 }
 
 export function getPaymentProvider(code: string): PaymentProviderAdapter {
-  return paymentAdapters[code] ?? defaultPaymentAdapter;
+  const adapter = paymentAdapters[code];
+  if (!adapter || (isProduction && code.startsWith('DEV_'))) {
+    throw new ServiceUnavailableError('Payment provider is not configured');
+  }
+  return adapter;
 }

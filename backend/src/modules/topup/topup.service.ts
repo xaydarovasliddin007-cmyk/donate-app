@@ -89,7 +89,7 @@ const AMOUNT_BUMP_STEP_MINOR = 100;
  * exact single match, so a collision just falls back to the existing
  * "ambiguous match, needs manual review" path.
  */
-async function pickUniqueAmount(ctx: TopUpContext, requestedAmountMinor: number, now: Date): Promise<number> {
+async function pickUniqueAmount(ctx: { prisma: Pick<PrismaClient, 'topUpRequest'> }, requestedAmountMinor: number, now: Date): Promise<number> {
   for (let bump = 0; bump < MAX_AMOUNT_BUMP_ATTEMPTS; bump++) {
     const candidate = requestedAmountMinor + bump * AMOUNT_BUMP_STEP_MINOR;
     const clash = await ctx.prisma.topUpRequest.findFirst({
@@ -153,17 +153,15 @@ export async function reserveTopUpRequest(
   // two now diverge for PAYNET_TERMINAL (see above), and this is what
   // determines both the TTL and which UI the client renders.
   const resolvedType = type ?? activeMethods[0]!.type;
-  // Exact amount entered by the user — no bumping or distortion
-  const resolvedAmountMinor = amountMinor;
   const ttlMs = RESERVATION_TTL_MS[resolvedType];
-
-  const request = await ctx.prisma.topUpRequest.create({
-    data: {
-      userId,
-      type: resolvedType,
-      amountMinor: resolvedAmountMinor,
-      expiresAt: new Date(now.getTime() + ttlMs),
-    },
+  const request = await ctx.prisma.$transaction(async (tx) => {
+    // Serialize amount allocation across server processes, not just this instance.
+    if (resolvedType === 'CARD_TRANSFER') await tx.$executeRaw`SELECT pg_advisory_xact_lock(8632112221)`;
+    const resolvedAmountMinor = resolvedType === 'CARD_TRANSFER'
+      ? await pickUniqueAmount({ prisma: tx }, amountMinor, now) : amountMinor;
+    return tx.topUpRequest.create({
+      data: { userId, type: resolvedType, amountMinor: resolvedAmountMinor, expiresAt: new Date(now.getTime() + ttlMs) },
+    });
   });
 
   return { ...request, receivingMethods: activeMethods };

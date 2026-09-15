@@ -107,7 +107,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           padding: const EdgeInsets.only(bottom: AppSpacing.xl),
           children: [
             const SizedBox(height: AppSpacing.md),
-            const WalletBalanceCard(),
+            if (user == null)
+              _GuestHero(
+                onBrowse: () => context.go('/catalog'),
+                onCreateAccount: () => context.push('/register'),
+              )
+            else
+              const WalletBalanceCard(),
             const SizedBox(height: AppSpacing.md),
             _SearchLauncher(
               hintText: l10n.homeSearchHint,

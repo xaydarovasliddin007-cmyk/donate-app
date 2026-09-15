@@ -18,6 +18,7 @@ export interface Stats {
   walletLiabilityByCurrency: Record<string, number>;
   topUpsByStatus: Record<string, number>;
   topClients: {
+    currency: string;
     user: {
       id: string;
       publicId: string;
@@ -29,12 +30,13 @@ export interface Stats {
     orderCount: number;
   }[];
   topGames: {
+    currency: string;
     game: { id: string; name: string; slug: string } | null;
     revenueMinor: number;
     orderCount: number;
     // 0 whenever every item sold for this game in range had no cost
     // entered — same "unknown, not zero" caveat as profitInRangeMinor.
-    profitMinor: number;
+    profitMinor: number | null;
   }[];
   // UZS-only for now, same simplification topClients/topGames make.
   profitInRangeMinor: number;
@@ -44,7 +46,7 @@ export interface Stats {
   profitCostUnknownItemCount: number;
 }
 
-export type OrderStatus = 'PENDING' | 'PAID' | 'FULFILLING' | 'COMPLETED' | 'FAILED' | 'REFUNDED';
+export type OrderStatus = 'PENDING' | 'PAID' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELLED' | 'REFUNDED';
 export type PaymentStatus = 'PENDING' | 'SUCCEEDED' | 'FAILED' | 'CANCELLED';
 export type TopUpRequestStatus = 'PENDING' | 'VERIFIED' | 'REJECTED' | 'EXPIRED';
 export type ProviderType = 'PAYMENT' | 'TOPUP';
@@ -237,6 +239,7 @@ export interface GameServer {
 }
 
 export interface Product {
+  starsPrice: number | null;
   id: string;
   gameId: string;
   serverId: string | null;

@@ -1,5 +1,10 @@
-import 'dotenv/config';
+import { config } from 'dotenv';
 import { z } from 'zod';
+
+if (process.env.NODE_ENV !== 'test') {
+  config({ quiet: true });
+  config({ path: '.env.telegram', quiet: true });
+}
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
@@ -45,6 +50,9 @@ const envSchema = z.object({
   // rather than failing the request that triggered it.
   TELEGRAM_BOT_TOKEN: z.string().trim().min(1).optional(),
   TELEGRAM_ADMIN_CHAT_ID: z.string().trim().min(1).optional(),
+  TELEGRAM_WEBHOOK_SECRET: z.string().regex(/^[A-Za-z0-9_-]{32,256}$/).optional(),
+  PUBLIC_APP_URL: z.string().url().optional(),
+  SUPPORT_TELEGRAM_URL: z.string().url().default('https://t.me/The_Anonimous_uzb'),
 
   // Optional: Payme and Click are real, fully-wired payment adapters (see
   // src/providers/payme, src/providers/click) that only register themselves
@@ -53,7 +61,7 @@ const envSchema = z.object({
   // gateway can't be invented; see backend/README.md for setup.
   PAYME_MERCHANT_ID: z.string().trim().min(1).optional(),
   PAYME_SECRET_KEY: z.string().trim().min(1).optional(),
-  PAYME_TEST_MODE: z.coerce.boolean().default(true),
+  PAYME_TEST_MODE: z.enum(['true', 'false']).default('true').transform((value) => value === 'true'),
 
   CLICK_MERCHANT_ID: z.string().trim().min(1).optional(),
   CLICK_SERVICE_ID: z.string().trim().min(1).optional(),
@@ -131,6 +139,17 @@ function loadEnv() {
       .join('\n');
     console.error(`Invalid environment configuration:\n${issues}`);
     process.exit(1);
+  }
+  if (parsed.data.NODE_ENV === 'production') {
+    const keys = ['JWT_ACCESS_SECRET', 'JWT_REFRESH_SECRET', 'ADMIN_JWT_ACCESS_SECRET'] as const;
+    for (const key of keys) {
+      if (!process.env[key] || /fallback|replace-with/i.test(parsed.data[key])) {
+        throw new Error(`${key} must be a private random secret in production`);
+      }
+    }
+    if (new Set(keys.map((key) => parsed.data[key])).size !== keys.length) {
+      throw new Error('Customer and admin signing secrets must be different');
+    }
   }
   return parsed.data;
 }

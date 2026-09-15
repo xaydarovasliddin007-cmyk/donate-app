@@ -142,3 +142,48 @@ export function debitWallet(
 ) {
   return applyLedgerEntry(ctx, { ...input, direction: 'DEBIT' });
 }
+
+/** Shares the caller's transaction so order payment and wallet debit commit together. */
+export async function debitOrderWallet(tx: Prisma.TransactionClient, input: {
+  userId: string; orderId: string; paymentId: string; amountMinor: number; currency: string;
+}) {
+  if (!Number.isSafeInteger(input.amountMinor) || input.amountMinor < 0) throw new Error('Invalid debit amount');
+  const rows = await tx.$queryRaw<{ id: string; balance_minor: number; currency: string }[]>`
+    UPDATE wallets SET balance_minor = balance_minor - ${input.amountMinor}, updated_at = now()
+    WHERE user_id = ${input.userId}::uuid AND currency = ${input.currency}
+      AND balance_minor >= ${input.amountMinor}
+    RETURNING id, balance_minor, currency
+  `;
+  const wallet = rows[0];
+  if (!wallet) throw new InsufficientBalanceError();
+  if (input.amountMinor > 0) {
+    await tx.walletTransaction.create({ data: {
+      walletId: wallet.id, type: 'PURCHASE', direction: 'DEBIT', amountMinor: input.amountMinor,
+      currency: wallet.currency, balanceAfterMinor: wallet.balance_minor,
+      idempotencyKey: `wallet-order:${input.orderId}`, orderId: input.orderId,
+      reference: `Payment ${input.paymentId}`,
+    } });
+  }
+}
+
+/** The order lock and refund status share this transaction with the ledger credit. */
+export async function creditOrderRefund(tx: Prisma.TransactionClient, input: {
+  userId: string; orderId: string; amountMinor: number; adminId: string; reason?: string;
+}) {
+  if (!Number.isSafeInteger(input.amountMinor) || input.amountMinor < 0) throw new Error('Invalid refund amount');
+  if (input.amountMinor === 0) return;
+  await tx.wallet.upsert({ where: { userId: input.userId }, create: { userId: input.userId }, update: {} });
+  const rows = await tx.$queryRaw<{ id: string; balance_minor: number }[]>`
+    UPDATE wallets SET balance_minor = balance_minor + ${input.amountMinor}, updated_at = now()
+    WHERE user_id = ${input.userId}::uuid AND currency = 'UZS'
+    RETURNING id, balance_minor
+  `;
+  const wallet = rows[0];
+  if (!wallet) throw new Error('Refund wallet currency mismatch');
+  await tx.walletTransaction.create({ data: {
+    walletId: wallet.id, type: 'REFUND', direction: 'CREDIT', amountMinor: input.amountMinor,
+    currency: 'UZS', balanceAfterMinor: wallet.balance_minor, idempotencyKey: `refund:${input.orderId}`,
+    orderId: input.orderId, createdByAdminId: input.adminId, reason: input.reason,
+    reference: `Refund for order ${input.orderId}`,
+  } });
+}

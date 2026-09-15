@@ -7,6 +7,9 @@ import argon2 from 'argon2';
 const prisma = new PrismaClient();
 
 async function main() {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('Development seed is disabled in production. Manage live catalog and administrators through the admin panel.');
+  }
   // --- Providers ------------------------------------------------------------
   const topupProvider = await prisma.provider.upsert({
     where: { code: 'DEV_MOCK_TOPUP' },
