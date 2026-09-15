@@ -121,6 +121,7 @@ export async function buildApp() {
       return reply.redirect('/webapp/');
     });
     app.get('/superapp/', (req, reply) => reply.redirect('/webapp/'));
+    app.get('/', (_req, reply) => reply.redirect('/webapp/'));
   }
   await app.register(cors, {
     origin: env.CORS_ORIGIN.split(',').map((o) => o.trim()),
