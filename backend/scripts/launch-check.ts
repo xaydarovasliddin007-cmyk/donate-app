@@ -40,7 +40,10 @@ try {
   check('Active product fulfillment configured', unavailable.length === 0, `${unavailable.length} unavailable product(s)`);
   const methods = await prisma.receivingMethod.count({ where: { isActive: true } });
   check('App wallet receiving methods', methods > 0);
-} catch { check('Database/schema access', false, 'Start PostgreSQL and apply migrations.'); }
+} catch (error) {
+  const detail = error instanceof Error ? error.message.split('\n').filter(Boolean).at(-1) : 'Unknown database error';
+  check('Database/schema access', false, detail);
+}
 finally { await prisma.$disconnect(); }
 console.log('Live delivery and settlement still require a controlled operator purchase with real provider accounts.');
 process.exitCode = failed ? 1 : 0;
