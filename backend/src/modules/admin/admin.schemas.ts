@@ -131,6 +131,9 @@ export const adminCreateProviderProductSchema = z.object({
   // The provider's own SKU/code for this exact product (e.g. Apigames'
   // `kode_produk`) — opaque to us, comes from the provider's catalog.
   providerProductCode: z.string().trim().min(1).max(120),
+  // Normalized to the product currency's minor unit (UZS uses tiyin).
+  // Null/omitted mappings remain usable, but priced mappings are preferred.
+  costMinor: z.number().int().nonnegative().optional(),
   // Lower priority is tried first, so a real provider can be added at 0
   // ahead of the dev mock without deleting the mock mapping.
   priority: z.number().int().min(0).default(0),
@@ -140,6 +143,7 @@ export const adminCreateProviderProductSchema = z.object({
 export const adminUpdateProviderProductSchema = z
   .object({
     providerProductCode: z.string().trim().min(1).max(120).optional(),
+    costMinor: z.number().int().nonnegative().nullable().optional(),
     priority: z.number().int().min(0).optional(),
     isActive: z.boolean().optional(),
   })

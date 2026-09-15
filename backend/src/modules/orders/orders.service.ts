@@ -11,6 +11,7 @@ import * as walletService from '../wallet/wallet.service.js';
 import { assertTransition } from './order-state-machine.js';
 import type { CreateOrderInput, ValidatePlayerInput } from './orders.schemas.js';
 import { telegramApi, TelegramApiError } from '../telegram/telegram-api.js';
+import { listFulfillmentCandidates, type FulfillmentCandidate } from './provider-router.js';
 
 interface OrderContext {
   prisma: PrismaClient;
@@ -131,11 +132,7 @@ export async function createOrder(ctx: OrderContext, userId: string, input: Crea
     throw new NotFoundError('Product not found or unavailable');
   }
 
-  const providerProduct = await ctx.prisma.providerProduct.findFirst({
-    where: { productId: product.id, isActive: true, provider: { isActive: true, type: 'TOPUP' } },
-    orderBy: { priority: 'asc' },
-    include: { provider: true },
-  });
+  const [providerProduct] = await listFulfillmentCandidates(ctx.prisma, product.id);
   if (!providerProduct) {
     throw new NotFoundError('No fulfillment provider is currently configured for this product');
   }
@@ -258,11 +255,7 @@ export async function validatePlayer(ctx: OrderContext, input: ValidatePlayerInp
     throw new NotFoundError('Product not found or unavailable');
   }
 
-  const providerProduct = await ctx.prisma.providerProduct.findFirst({
-    where: { productId: product.id, isActive: true, provider: { isActive: true, type: 'TOPUP' } },
-    orderBy: { priority: 'asc' },
-    include: { provider: true },
-  });
+  const [providerProduct] = await listFulfillmentCandidates(ctx.prisma, product.id);
   if (!providerProduct) {
     throw new NotFoundError('No fulfillment provider is currently configured for this product');
   }
@@ -346,13 +339,9 @@ export async function fulfillPaidOrder(ctx: OrderContext, orderId: string): Prom
     return;
   }
 
-  const providerProduct = await ctx.prisma.providerProduct.findFirst({
-    where: { productId: item.productId, isActive: true, provider: { isActive: true, type: 'TOPUP' } },
-    orderBy: { priority: 'asc' },
-    include: { provider: true },
-  });
+  const providerProducts = await listFulfillmentCandidates(ctx.prisma, item.productId);
 
-  if (!providerProduct) {
+  if (!providerProducts.length) {
     await ctx.prisma.order.update({
       where: { id: order.id },
       data: { failureReason: 'No active fulfillment provider configured' },
@@ -361,7 +350,7 @@ export async function fulfillPaidOrder(ctx: OrderContext, orderId: string): Prom
     return;
   }
 
-  await runFulfillmentAttempt(
+  await runFulfillmentCandidates(
     ctx,
     {
       id: order.id,
@@ -372,7 +361,7 @@ export async function fulfillPaidOrder(ctx: OrderContext, orderId: string): Prom
       zoneId: order.zoneId,
       serverId: order.serverId,
     },
-    providerProduct,
+    providerProducts,
   );
 }
 
@@ -392,12 +381,17 @@ export async function retryFulfillment(ctx: OrderContext, orderId: string): Prom
     throw new ConflictError('Order has no line items to fulfill');
   }
 
-  const providerProduct = await ctx.prisma.providerProduct.findFirst({
-    where: { productId: item.productId, isActive: true, provider: { isActive: true, type: 'TOPUP' } },
-    orderBy: { priority: 'asc' },
-    include: { provider: true },
-  });
-  if (!providerProduct) {
+  const attemptedProviderIds = (await ctx.prisma.providerAttempt.findMany({
+    where: { orderId, status: 'FAILED' },
+    select: { providerId: true },
+  })).map((attempt) => attempt.providerId);
+  let providerProducts = await listFulfillmentCandidates(ctx.prisma, item.productId, attemptedProviderIds);
+  // An explicit admin retry may try the cheapest ladder again after every
+  // provider has already rejected the order once.
+  if (!providerProducts.length) {
+    providerProducts = await listFulfillmentCandidates(ctx.prisma, item.productId);
+  }
+  if (!providerProducts.length) {
     throw new ConflictError('No active fulfillment provider configured for this product');
   }
 
@@ -407,7 +401,7 @@ export async function retryFulfillment(ctx: OrderContext, orderId: string): Prom
     await tx.orderStatusHistory.create({ data: { orderId, fromStatus: 'FAILED', toStatus: 'PROCESSING', reason: 'Fulfillment retried by admin' } });
     return 'PROCESSING' as const;
   });
-  await runFulfillmentAttempt(
+  await runFulfillmentCandidates(
     ctx,
     {
       id: order.id,
@@ -418,8 +412,57 @@ export async function retryFulfillment(ctx: OrderContext, orderId: string): Prom
       zoneId: order.zoneId,
       serverId: order.serverId,
     },
-    providerProduct,
+    providerProducts,
   );
+}
+
+async function runFulfillmentCandidates(
+  ctx: OrderContext,
+  order: {
+    id: string;
+    orderNumber: string;
+    userId: string;
+    status: OrderStatus;
+    playerId: string;
+    zoneId: string | null;
+    serverId: string | null;
+  },
+  providerProducts: FulfillmentCandidate[],
+): Promise<void> {
+  let lastReason = 'Every active fulfillment provider rejected the order';
+
+  for (const providerProduct of providerProducts) {
+    const outcome = await runFulfillmentAttempt(ctx, order, providerProduct);
+    if (outcome.status === 'PENDING') return;
+    if (outcome.status === 'SUCCESS') {
+      await transitionOrder(ctx, order, 'COMPLETED', `Fulfillment succeeded via ${providerProduct.provider.code}`);
+      notifyAdmins(`✅ <b>Order completed</b> #${order.orderNumber}\nProvider: ${providerProduct.provider.code}`);
+      await createNotification(ctx, {
+        userId: order.userId,
+        type: 'ORDER_SUCCESS',
+        title: 'Top-up completed',
+        body: `Order #${order.orderNumber} was delivered successfully.`,
+        deepLink: `/orders/${order.id}`,
+      });
+      return;
+    }
+    lastReason = outcome.reason;
+    if (!outcome.canFallback) break;
+  }
+
+  await ctx.prisma.order.update({
+    where: { id: order.id },
+    data: { failureReason: lastReason },
+  });
+  await transitionOrder(ctx, order, 'FAILED', lastReason);
+  notifyAdmins(`❌ <b>Order failed</b> #${order.orderNumber}\nReason: ${lastReason}`);
+  await createNotification(ctx, {
+    userId: order.userId,
+    type: 'ORDER_FAILED',
+    title: 'Order failed',
+    body: `Order #${order.orderNumber} could not be completed. We'll help sort it out.`,
+    deepLink: `/orders/${order.id}`,
+  });
 }
 
 async function runFulfillmentAttempt(
@@ -433,69 +476,67 @@ async function runFulfillmentAttempt(
     zoneId: string | null;
     serverId: string | null;
   },
-  providerProduct: { providerId: string; providerProductCode: string; provider: { code: string } },
-): Promise<void> {
+  providerProduct: FulfillmentCandidate,
+): Promise<{ status: 'PENDING' | 'SUCCESS' | 'FAILED'; reason: string; canFallback: boolean }> {
   const adapter = getTopupProvider(providerProduct.provider.code);
   const attemptNumber =
     (await ctx.prisma.providerAttempt.count({ where: { orderId: order.id } })) + 1;
 
-  const result = await adapter.createTopup({
-    providerProductCode: providerProduct.providerProductCode,
-    playerId: order.playerId,
-    // The adapter's serverId means "real identity", not pricing region —
-    // see the zoneId comment on the Order model.
-    serverId: order.zoneId ?? undefined,
-    // The GameServer.code the buyer picked before checkout (e.g. "ASIA") —
-    // the pricing region, not their account identity. Most providers never
-    // need this (zoneId alone identifies the account), but some categories
-    // require the region as its own field on the order itself (Genshin
-    // Impact's "server" select on FazerCards) — see gameServerCode's doc
-    // comment on CreateTopupParams.
-    gameServerCode: order.serverId ?? undefined,
-    referenceId: order.id,
-  });
+  let result;
+  try {
+    result = await adapter.createTopup({
+      providerProductCode: providerProduct.providerProductCode,
+      playerId: order.playerId,
+      // The adapter's serverId means "real identity", not pricing region —
+      // see the zoneId comment on the Order model.
+      serverId: order.zoneId ?? undefined,
+      // The GameServer.code the buyer picked before checkout (e.g. "ASIA") —
+      // the pricing region, not their account identity. Most providers never
+      // need this (zoneId alone identifies the account), but some categories
+      // require the region as its own field on the order itself (Genshin
+      // Impact's "server" select on FazerCards) — see gameServerCode's doc
+      // comment on CreateTopupParams.
+      gameServerCode: order.serverId ?? undefined,
+      referenceId: order.id,
+    });
+  } catch (error) {
+    result = {
+      success: false,
+      reason: error instanceof Error ? error.message : 'Provider request failed without a confirmed response',
+      canFallback: false,
+    };
+  }
 
+  // A timeout/empty response is not proof that the supplier rejected the
+  // order: it may have accepted it and lost the response. Keep that attempt
+  // pending for manual reconciliation instead of risking a duplicate top-up
+  // through the next-cheapest supplier.
+  const attemptStatus = result.status ?? (result.success ? 'SUCCESS' : result.canFallback ? 'FAILED' : 'PENDING');
   await ctx.prisma.providerAttempt.create({
     data: {
       orderId: order.id,
       providerId: providerProduct.providerId,
       providerProductCode: providerProduct.providerProductCode,
       attemptNumber,
-      status: result.status ?? (result.success ? 'SUCCESS' : 'FAILED'),
+      status: attemptStatus,
       providerTransactionId: result.providerTransactionId,
       responsePayload: (result.raw ?? {}) as Prisma.InputJsonValue,
-      completedAt: result.status === 'PENDING' ? null : new Date(),
+      completedAt: attemptStatus === 'PENDING' ? null : new Date(),
     },
   });
 
-  if (result.status === 'PENDING') return;
-
-  if (result.success) {
-    await transitionOrder(ctx, order, 'COMPLETED', 'Fulfillment succeeded');
-    notifyAdmins(`✅ <b>Order completed</b> #${order.orderNumber}`);
-    await createNotification(ctx, {
-      userId: order.userId,
-      type: 'ORDER_SUCCESS',
-      title: 'Top-up completed',
-      body: `Order #${order.orderNumber} was delivered successfully.`,
-      deepLink: `/orders/${order.id}`,
-    });
-  } else {
-    const reason = result.reason ?? 'Fulfillment failed';
-    await ctx.prisma.order.update({
-      where: { id: order.id },
-      data: { failureReason: reason },
-    });
-    await transitionOrder(ctx, order, 'FAILED', reason);
-    notifyAdmins(`❌ <b>Order failed</b> #${order.orderNumber}\nReason: ${reason}`);
-    await createNotification(ctx, {
-      userId: order.userId,
-      type: 'ORDER_FAILED',
-      title: 'Order failed',
-      body: `Order #${order.orderNumber} could not be completed. We'll help sort it out.`,
-      deepLink: `/orders/${order.id}`,
+  if (attemptStatus !== 'FAILED' && providerProduct.costMinor != null) {
+    await ctx.prisma.orderItem.updateMany({
+      where: { orderId: order.id },
+      data: { costMinorSnapshot: providerProduct.costMinor },
     });
   }
+
+  return {
+    status: attemptStatus,
+    reason: result.reason ?? `${providerProduct.provider.code} rejected fulfillment`,
+    canFallback: result.canFallback === true,
+  };
 }
 
 /**

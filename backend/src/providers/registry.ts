@@ -22,6 +22,9 @@ const defaultPaymentAdapter: PaymentProviderAdapter = new MockPaymentProvider();
 
 const topupAdapters: Record<string, TopupProviderAdapter> = {
   DEV_MOCK_TOPUP: defaultTopupAdapter,
+  // A second isolated adapter lets development and integration tests verify
+  // cheapest-provider selection and fallback without touching a real API.
+  DEV_MOCK_TOPUP_BACKUP: new MockTopupProvider('DEV_MOCK_TOPUP_BACKUP'),
 };
 
 const paymentAdapters: Record<string, PaymentProviderAdapter> = {

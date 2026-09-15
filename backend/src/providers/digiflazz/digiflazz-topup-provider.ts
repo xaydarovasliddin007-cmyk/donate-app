@@ -92,6 +92,7 @@ export class DigiflazzTopupProvider implements TopupProviderAdapter {
       status: data.status === 'Sukses' ? 'SUCCESS' : data.status === 'Gagal' ? 'FAILED' : 'PENDING',
       providerTransactionId: data.ref_id ?? params.referenceId,
       reason: data.message,
+      canFallback: data.status === 'Gagal',
       raw,
     };
   }

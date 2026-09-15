@@ -105,6 +105,7 @@ export class MooGoldTopupProvider implements TopupProviderAdapter {
         return {
           success: false,
           reason: data?.message || `MooGold HTTP ${response.status}`,
+          canFallback: Boolean(data),
           raw: data,
         };
       }
@@ -124,6 +125,7 @@ export class MooGoldTopupProvider implements TopupProviderAdapter {
       return {
         success: false,
         reason: data.message || 'MooGold order creation rejected',
+        canFallback: true,
         raw: data,
       };
     } catch (err) {

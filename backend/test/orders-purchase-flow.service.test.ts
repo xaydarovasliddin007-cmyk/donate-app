@@ -21,6 +21,7 @@ const ctx = { prisma };
 
 let gameId: string;
 let productId: string;
+let backupProviderId: string;
 const createdUserIds: string[] = [];
 const createdOrderIds: string[] = [];
 
@@ -106,6 +107,28 @@ describe('order purchase pipeline (live DB)', () => {
         isActive: true,
       },
     });
+
+    const backupProvider = await prisma.provider.upsert({
+      where: { code: 'DEV_MOCK_TOPUP_BACKUP' },
+      update: { isActive: true, healthStatus: 'HEALTHY' },
+      create: {
+        code: 'DEV_MOCK_TOPUP_BACKUP',
+        name: 'Development Mock Top-up Backup',
+        type: 'TOPUP',
+        isActive: true,
+        healthStatus: 'HEALTHY',
+      },
+    });
+    backupProviderId = backupProvider.id;
+    await prisma.providerProduct.create({
+      data: {
+        productId,
+        providerId: backupProvider.id,
+        providerProductCode: 'VITEST_ORDERS_FLOW_BACKUP_SKU',
+        priority: 10,
+        isActive: true,
+      },
+    });
   });
 
   afterAll(async () => {
@@ -115,6 +138,7 @@ describe('order purchase pipeline (live DB)', () => {
     await prisma.orderItem.deleteMany({ where: { orderId: { in: createdOrderIds } } });
     await prisma.order.deleteMany({ where: { id: { in: createdOrderIds } } });
     await prisma.providerProduct.deleteMany({ where: { productId } });
+    await prisma.provider.delete({ where: { id: backupProviderId } });
     await prisma.walletTransaction.deleteMany({ where: { wallet: { userId: { in: createdUserIds } } } });
     await prisma.wallet.deleteMany({ where: { userId: { in: createdUserIds } } });
     await prisma.user.deleteMany({ where: { id: { in: createdUserIds } } });
@@ -212,6 +236,63 @@ describe('order purchase pipeline (live DB)', () => {
       orderBy: { createdAt: 'asc' },
     });
     expect(history.map((h) => h.toStatus)).toEqual(['PENDING', 'PAID', 'PROCESSING', 'COMPLETED']);
+  });
+
+  it('routes to the cheapest configured provider and snapshots its actual cost', async () => {
+    const user = await makeUser();
+    const primary = await prisma.provider.findUniqueOrThrow({ where: { code: 'DEV_MOCK_TOPUP' } });
+    await prisma.providerProduct.update({
+      where: { providerId_productId: { providerId: primary.id, productId } },
+      data: { costMinor: 20_000_00 },
+    });
+    await prisma.providerProduct.update({
+      where: { providerId_productId: { providerId: backupProviderId, productId } },
+      data: { costMinor: 10_000_00 },
+    });
+
+    const order = await createRawPendingOrder(user.id, 'cheapest-route', 50_000_00);
+    createdOrderIds.push(order.id);
+    await fulfillPaidOrder(ctx, order.id);
+
+    const [attempt] = await prisma.providerAttempt.findMany({ where: { orderId: order.id } });
+    expect(attempt?.providerId).toBe(backupProviderId);
+    const item = await prisma.orderItem.findFirstOrThrow({ where: { orderId: order.id } });
+    expect(item.costMinorSnapshot).toBe(10_000_00);
+  });
+
+  it('falls back to the next-cheapest provider after a definitive rejection', async () => {
+    const user = await makeUser();
+    const primary = await prisma.provider.findUniqueOrThrow({ where: { code: 'DEV_MOCK_TOPUP' } });
+    const cheap = getTopupProvider('DEV_MOCK_TOPUP_BACKUP');
+    const reject = vi.spyOn(cheap, 'createTopup').mockResolvedValue({
+      success: false,
+      status: 'FAILED',
+      reason: 'Out of stock',
+      canFallback: true,
+    });
+    try {
+      const order = await createRawPendingOrder(user.id, 'fallback-route', 50_000_00);
+      createdOrderIds.push(order.id);
+      await fulfillPaidOrder(ctx, order.id);
+
+      expect((await prisma.order.findUniqueOrThrow({ where: { id: order.id } })).status).toBe('COMPLETED');
+      const attempts = await prisma.providerAttempt.findMany({
+        where: { orderId: order.id },
+        orderBy: { attemptNumber: 'asc' },
+      });
+      expect(attempts.map((attempt) => attempt.providerId)).toEqual([backupProviderId, primary.id]);
+      expect(attempts.map((attempt) => attempt.status)).toEqual(['FAILED', 'SUCCESS']);
+    } finally {
+      reject.mockRestore();
+      await prisma.providerProduct.update({
+        where: { providerId_productId: { providerId: primary.id, productId } },
+        data: { costMinor: null },
+      });
+      await prisma.providerProduct.update({
+        where: { providerId_productId: { providerId: backupProviderId, productId } },
+        data: { costMinor: null, isActive: false },
+      });
+    }
   });
 
   it('marks the order FAILED with a reason when the provider rejects the player id', async () => {

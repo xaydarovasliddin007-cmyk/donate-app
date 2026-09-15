@@ -17,7 +17,7 @@ import type {
  * are reachable without special test infrastructure.
  */
 export class MockTopupProvider implements TopupProviderAdapter {
-  readonly code = 'DEV_MOCK_TOPUP';
+  constructor(readonly code = 'DEV_MOCK_TOPUP') {}
 
   async validatePlayer(params: TopupValidatePlayerParams): Promise<TopupValidatePlayerResult> {
     if (params.playerId.endsWith('000')) {
@@ -28,7 +28,7 @@ export class MockTopupProvider implements TopupProviderAdapter {
 
   async createTopup(params: CreateTopupParams): Promise<CreateTopupResult> {
     if (params.playerId.endsWith('000')) {
-      return { success: false, reason: 'Player ID not found' };
+      return { success: false, reason: 'Player ID not found', canFallback: true };
     }
     return {
       success: true,

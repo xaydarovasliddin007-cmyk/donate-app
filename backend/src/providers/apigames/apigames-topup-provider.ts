@@ -93,6 +93,7 @@ export class ApiGamesTopupProvider implements TopupProviderAdapter {
       status: raw.data.status === 'Sukses' ? 'SUCCESS' : raw.data.status === 'Gagal' ? 'FAILED' : 'PENDING',
       providerTransactionId: raw.data.trx_id,
       reason: raw.data.message,
+      canFallback: raw.data.status === 'Gagal',
       raw,
     };
   }

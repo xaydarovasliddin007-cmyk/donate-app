@@ -277,6 +277,8 @@ export interface ProviderProduct {
   providerId: string;
   productId: string;
   providerProductCode: string;
+  costMinor: number | null;
+  priceUpdatedAt: string | null;
   priority: number;
   isActive: boolean;
   createdAt: string;

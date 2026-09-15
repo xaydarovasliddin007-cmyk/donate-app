@@ -9,6 +9,7 @@ import { SkeletonRows } from '../components/SkeletonRows';
 import { ErrorRetry } from '../components/ErrorRetry';
 import { useToast } from '../components/Toast';
 import { useLocale } from '../i18n/LocaleContext';
+import { formatMinor } from '../lib/money';
 
 export function ProductProviderMappingsPage() {
   const { t } = useLocale();
@@ -31,6 +32,8 @@ export function ProductProviderMappingsPage() {
   const [providerId, setProviderId] = useState('');
   const [code, setCode] = useState('');
   const [priority, setPriority] = useState('0');
+  const [cost, setCost] = useState('');
+  const [costDrafts, setCostDrafts] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [togglingId, setTogglingId] = useState<string | null>(null);
@@ -42,22 +45,49 @@ export function ProductProviderMappingsPage() {
       setFormError(t('providerMappings.fieldsRequired'));
       return;
     }
+    const costMajor = cost.trim() === '' ? undefined : Number(cost);
+    if (costMajor !== undefined && (!Number.isFinite(costMajor) || costMajor < 0)) {
+      setFormError(t('providerMappings.invalidCost'));
+      return;
+    }
     setSubmitting(true);
     setFormError(null);
     try {
       await api.post(`/admin/products/${productId}/provider-mappings`, {
         providerId,
         providerProductCode: code.trim(),
+        costMinor: costMajor === undefined ? undefined : Math.round(costMajor * 100),
         priority: Number(priority) || 0,
       });
       setProviderId('');
       setCode('');
       setPriority('0');
+      setCost('');
       reload();
     } catch (err) {
       setFormError(err instanceof ApiError ? err.message : t('providerMappings.createFailed'));
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function saveCost(mapping: ProviderProduct) {
+    const draft = costDrafts[mapping.id] ?? (mapping.costMinor == null ? '' : String(mapping.costMinor / 100));
+    const major = draft.trim() === '' ? null : Number(draft);
+    if (major !== null && (!Number.isFinite(major) || major < 0)) {
+      showError(t('providerMappings.invalidCost'));
+      return;
+    }
+    setTogglingId(mapping.id);
+    try {
+      await api.patch(`/admin/provider-mappings/${mapping.id}`, {
+        costMinor: major === null ? null : Math.round(major * 100),
+      });
+      reload();
+    } catch (err) {
+      showError(err instanceof ApiError ? err.message : t('providerMappings.updateFailed'));
+    } finally {
+      setTogglingId(null);
     }
   }
 
@@ -114,6 +144,15 @@ export function ProductProviderMappingsPage() {
             <input
               type="number"
               min="0"
+              step="0.01"
+              placeholder={t('providerMappings.costPlaceholder', { currency: product?.currency ?? 'UZS' })}
+              value={cost}
+              onChange={(e) => setCost(e.target.value)}
+              style={{ width: 150 }}
+            />
+            <input
+              type="number"
+              min="0"
               step="1"
               placeholder={t('providerMappings.priorityPlaceholder')}
               value={priority}
@@ -134,13 +173,14 @@ export function ProductProviderMappingsPage() {
             <tr>
               <th>{t('providerMappings.colProvider')}</th>
               <th>{t('providerMappings.colCode')}</th>
+              <th>{t('providerMappings.colCost')}</th>
               <th>{t('providerMappings.colPriority')}</th>
               <th>{t('providerMappings.colActive')}</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
-            <SkeletonRows columns={5} />
+            <SkeletonRows columns={6} />
           </tbody>
         </table>
       )}
@@ -151,6 +191,7 @@ export function ProductProviderMappingsPage() {
             <tr>
               <th>{t('providerMappings.colProvider')}</th>
               <th>{t('providerMappings.colCode')}</th>
+              <th>{t('providerMappings.colCost')}</th>
               <th>{t('providerMappings.colPriority')}</th>
               <th>{t('providerMappings.colActive')}</th>
               <th></th>
@@ -166,6 +207,30 @@ export function ProductProviderMappingsPage() {
                   )}
                 </td>
                 <td className="muted">{mapping.providerProductCode}</td>
+                <td>
+                  <div className="toolbar">
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      aria-label={t('providerMappings.colCost')}
+                      value={costDrafts[mapping.id] ?? (mapping.costMinor == null ? '' : String(mapping.costMinor / 100))}
+                      placeholder={mapping.costMinor == null ? t('providerMappings.unknownCost') : undefined}
+                      onChange={(e) => setCostDrafts((current) => ({ ...current, [mapping.id]: e.target.value }))}
+                      style={{ width: 120 }}
+                    />
+                    <button
+                      className="btn btn-secondary"
+                      disabled={togglingId === mapping.id}
+                      onClick={() => saveCost(mapping)}
+                    >
+                      {t('common.save')}
+                    </button>
+                  </div>
+                  {mapping.costMinor != null && (
+                    <div className="muted">{formatMinor(mapping.costMinor, product?.currency ?? 'UZS')}</div>
+                  )}
+                </td>
                 <td>{mapping.priority}</td>
                 <td>
                   <ActiveBadge active={mapping.isActive} />
@@ -192,7 +257,7 @@ export function ProductProviderMappingsPage() {
             ))}
             {data.mappings.length === 0 && (
               <tr>
-                <td colSpan={5} className="muted">
+                <td colSpan={6} className="muted">
                   {t('providerMappings.empty')}
                 </td>
               </tr>

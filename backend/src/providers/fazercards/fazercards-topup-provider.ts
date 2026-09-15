@@ -190,7 +190,12 @@ export class FazerCardsTopupProvider implements TopupProviderAdapter {
 
     const raw = (await response.json().catch(() => null)) as FazerCardsOrderResponse | null;
     if (!response.ok || !raw?.ok || !raw.order?.id) {
-      return { success: false, reason: raw?.error ?? `FazerCards responded ${response.status}`, raw };
+      return {
+        success: false,
+        reason: raw?.error ?? `FazerCards responded ${response.status}`,
+        canFallback: raw?.ok === false && Boolean(raw.error),
+        raw,
+      };
     }
 
     return {
@@ -200,6 +205,7 @@ export class FazerCardsTopupProvider implements TopupProviderAdapter {
       success: raw.order.status !== 'failed',
       status: raw.order.status === 'completed' ? 'SUCCESS' : raw.order.status === 'failed' ? 'FAILED' : 'PENDING',
       providerTransactionId: raw.order.id,
+      canFallback: raw.order.status === 'failed',
       raw,
     };
   }

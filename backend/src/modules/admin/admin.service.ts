@@ -460,7 +460,7 @@ export async function listProviderProductsForProductAdmin(ctx: AdminContext, pro
   return ctx.prisma.providerProduct.findMany({
     where: { productId },
     include: providerInclude,
-    orderBy: { priority: 'asc' },
+    orderBy: [{ costMinor: { sort: 'asc', nulls: 'last' } }, { priority: 'asc' }],
   });
 }
 
@@ -495,6 +495,8 @@ export async function createProviderProductAdmin(
       productId,
       providerId: input.providerId,
       providerProductCode: input.providerProductCode,
+      costMinor: input.costMinor,
+      priceUpdatedAt: input.costMinor === undefined ? undefined : new Date(),
       priority: input.priority,
       isActive: input.isActive,
     },
@@ -506,7 +508,7 @@ export async function createProviderProductAdmin(
     action: 'provider_product.create',
     entityType: 'ProviderProduct',
     entityId: created.id,
-    metadata: { productId, providerId: input.providerId, providerProductCode: input.providerProductCode },
+    metadata: { productId, providerId: input.providerId, providerProductCode: input.providerProductCode, costMinor: input.costMinor },
   });
 
   return created;
@@ -525,7 +527,10 @@ export async function updateProviderProductAdmin(
 
   const updated = await ctx.prisma.providerProduct.update({
     where: { id },
-    data: changes,
+    data: {
+      ...changes,
+      priceUpdatedAt: changes.costMinor === undefined ? undefined : new Date(),
+    },
     include: providerInclude,
   });
 
@@ -535,7 +540,7 @@ export async function updateProviderProductAdmin(
     entityType: 'ProviderProduct',
     entityId: id,
     metadata: {
-      before: { providerProductCode: existing.providerProductCode, priority: existing.priority, isActive: existing.isActive },
+      before: { providerProductCode: existing.providerProductCode, costMinor: existing.costMinor, priority: existing.priority, isActive: existing.isActive },
       after: changes,
     },
   });

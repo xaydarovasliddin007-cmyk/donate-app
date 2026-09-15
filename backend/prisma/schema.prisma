@@ -409,14 +409,19 @@ model ProviderProduct {
   productId           String   @map("product_id") @db.Uuid
   product             Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   providerProductCode String   @map("provider_product_code")
+  // Provider buy price normalized to the Product currency's minor unit.
+  // Routing sorts by this first; null means the price has not been synced
+  // yet and is therefore considered only after every priced mapping.
+  costMinor           Int?     @map("cost_minor")
+  priceUpdatedAt      DateTime? @map("price_updated_at")
   // Lower priority is tried first — enables automatic fallback to another
-  // provider for the same product when the primary one is unhealthy.
+  // provider when two mappings have the same/unknown cost.
   priority            Int      @default(0)
   isActive            Boolean  @default(true) @map("is_active")
   createdAt           DateTime @default(now()) @map("created_at")
 
   @@unique([providerId, productId])
-  @@index([productId])
+  @@index([productId, isActive, costMinor, priority])
   @@map("provider_products")
 }
 

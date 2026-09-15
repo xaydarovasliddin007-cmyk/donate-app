@@ -154,6 +154,7 @@ export class SmileOneTopupProvider implements TopupProviderAdapter {
         return {
           success: false,
           reason: data?.message || `Smile.One HTTP ${response.status}`,
+          canFallback: Boolean(data),
           raw: data,
         };
       }
@@ -171,6 +172,7 @@ export class SmileOneTopupProvider implements TopupProviderAdapter {
       return {
         success: false,
         reason: data.message || 'Smile.One order failed',
+        canFallback: true,
         raw: data,
       };
     } catch (err) {

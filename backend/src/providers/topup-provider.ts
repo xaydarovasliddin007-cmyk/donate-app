@@ -48,6 +48,8 @@ export interface CreateTopupResult {
   status?: TopupStatus;
   providerTransactionId?: string;
   reason?: string;
+  /** True only when the provider definitively rejected the order before delivery. */
+  canFallback?: boolean;
   raw?: unknown;
 }
 

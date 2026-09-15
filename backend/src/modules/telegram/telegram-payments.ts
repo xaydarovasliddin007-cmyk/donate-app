@@ -4,6 +4,7 @@ import { fulfillPaidOrder } from '../orders/orders.service.js';
 import { telegramApi } from './telegram-api.js';
 import { getTopupProvider } from '../../providers/registry.js';
 import { isProduction } from '../../config/env.js';
+import { listFulfillmentCandidates } from '../orders/provider-router.js';
 
 interface Context { prisma: PrismaClient }
 
@@ -64,10 +65,7 @@ export async function checkStarsCheckout(ctx: Context, telegramId: number, input
   if (!item?.product.isActive || (isProduction && item.product.isTest) || item.product.game.availability !== 'ACTIVE') {
     throw new ConflictError('Product is no longer available');
   }
-  const fulfillment = await ctx.prisma.providerProduct.findFirst({
-    where: { productId: item.productId, isActive: true, provider: { isActive: true, type: 'TOPUP' } },
-    include: { provider: true }, orderBy: { priority: 'asc' },
-  });
+  const [fulfillment] = await listFulfillmentCandidates(ctx.prisma, item.productId);
   if (!fulfillment) throw new ConflictError('Delivery is temporarily unavailable');
   getTopupProvider(fulfillment.provider.code);
 }
