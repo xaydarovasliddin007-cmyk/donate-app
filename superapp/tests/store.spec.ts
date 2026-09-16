@@ -28,6 +28,9 @@ async function mockStore(page: Page, tg = false) {
     else if (path.endsWith('/products')) data = { products: [{ id: 'product-1', name: '86 Diamonds', amountMinor: 1550000, currency: 'UZS', starsPrice: 65 }] };
     else if (path === '/wallet') data = { balanceMinor: 5000000, currency: 'UZS' };
     else if (path === '/app/config') data = { supportUrl: 'https://t.me/uzdonate_support', telegramBotUrl: 'https://t.me/uzdonate1bot', telegramPaymentsEnabled: true };
+    else if (path === '/topups/receiving-methods') data = { receivingMethods: [{ id: 'method-1', type: 'CARD_TRANSFER', cardNumber: '8600 1234 5678 9012', cardHolderName: 'UZDONATE', bankName: 'Humo' }] };
+    else if (path === '/topups/reserve') data = { id: 'topup-1', amountMinor: body.amountMinor, currency: 'UZS', type: body.type, status: 'PENDING', expiresAt: new Date(Date.now() + 420000).toISOString(), receivingMethods: [{ id: 'method-1', type: 'CARD_TRANSFER', cardNumber: '8600 1234 5678 9012', cardHolderName: 'UZDONATE', bankName: 'Humo' }] };
+    else if (path === '/topups/topup-1/confirm-paid') data = { id: 'topup-1', status: 'PENDING' };
     else if (path === '/topups') data = { topUps: [] };
     else if (path === '/orders' && !body) data = { orders };
     else if (path === '/orders' || path === '/telegram/invoices') {
@@ -47,9 +50,11 @@ async function noOverflow(page: Page) {
 test('catalog filters, light mode and responsive layout', async ({ page }, info) => {
   const errors: string[] = []; page.on('pageerror', (error) => errors.push(error.message));
   await mockStore(page); await page.goto('/');
-  await expect(page.locator('.game-card')).toHaveCount(4);
+  await expect(page.locator('.game-card')).toHaveCount(3);
   await noOverflow(page);
   await page.screenshot({ path: `../artifacts/catalog-${info.project.name}.png`, fullPage: true });
+  await page.getByRole('button', { name: "O'yinlar", exact: true }).filter({ visible: true }).click();
+  await expect(page.locator('.game-card')).toHaveCount(4);
   await page.getByLabel("O'yin qidirish").fill('PUBG');
   await expect(page.locator('.game-card')).toHaveCount(1);
   await page.getByRole('button', { name: 'Qidiruvni tozalash' }).click();
@@ -58,6 +63,17 @@ test('catalog filters, light mode and responsive layout', async ({ page }, info)
   await page.getByRole('button', { name: 'Mavzuni almashtirish' }).click();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   await noOverflow(page); expect(errors).toEqual([]);
+});
+test('wallet top-up chooses the payment method before amount', async ({ page }) => {
+  const sent = await mockStore(page); await page.goto('/');
+  await page.getByRole('button', { name: "Balans to'ldirish", exact: true }).click();
+  await expect(page.getByRole('heading', { name: "To'lov usulini tanlang" })).toBeVisible();
+  await page.getByRole('button', { name: /Bank kartasi/ }).click();
+  await expect(page.getByRole('heading', { name: 'Summani kiriting' })).toBeVisible();
+  await page.getByLabel("Summa, so'm").fill('75000');
+  await page.getByRole('button', { name: "To'lov rekvizitlari" }).click();
+  await expect(page.getByText('8600 1234 5678 9012')).toBeVisible();
+  expect(sent.find((item) => item.path === '/topups/reserve')?.body).toMatchObject({ amountMinor: 7500000, type: 'CARD_TRANSFER' });
 });
 test('checkout validates player and zone, pays and shows server order', async ({ page }, info) => {
   const sent = await mockStore(page); await page.goto('/');
@@ -97,5 +113,5 @@ test('failed catalog request has a working retry', async ({ page }) => {
   await page.route('**/api/v1/games', (route) => failures-- > 0 ? route.fulfill({ status: 503, json: { error: { message: 'Offline' } } }) : route.fallback());
   await page.goto('/'); await expect(page.getByRole('alert')).toBeVisible();
   await page.getByRole('button', { name: 'Qayta urinish' }).click();
-  await expect(page.locator('.game-card')).toHaveCount(4);
+  await expect(page.locator('.game-card')).toHaveCount(3);
 });

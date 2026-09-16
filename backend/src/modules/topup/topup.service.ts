@@ -353,39 +353,16 @@ export async function confirmTopUpPaid(ctx: TopUpContext, userId: string, topUpR
     throw new ConflictError(`Only PENDING top-up requests can be updated (this one is ${request.status})`);
   }
 
-  // Credit user's wallet automatically with the exact requested amount
-  await walletService.creditWallet(ctx, {
-    userId: request.userId,
-    type: 'TOPUP',
-    amountMinor: request.amountMinor,
-    idempotencyKey: `topup:${request.id}`,
-    reference: `Top-up ${request.id}`,
-    topUpRequestId: request.id,
-  });
-
   const updated = await ctx.prisma.topUpRequest.update({
     where: { id: request.id },
-    data: {
-      status: 'VERIFIED',
-      userConfirmedPaidAt: new Date(),
-      reviewedAt: new Date(),
-      autoVerified: true,
-    },
+    data: { userConfirmedPaidAt: new Date() },
     include: { receivingMethod: true },
   });
 
   notifyAdmins(
-    `✅ <b>Top-up auto-credited</b> — ${formatMinorAmount(request.amountMinor, request.currency)}\n` +
-      `User ID: ${request.userId}\nAmount added to wallet automatically.`,
+    `💳 <b>User marked top-up as paid</b> — ${formatMinorAmount(request.amountMinor, request.currency)}\n` +
+      `User ID: ${request.userId}\nVerify the payment before crediting the wallet.`,
   );
-
-  await createNotification(ctx, {
-    userId: request.userId,
-    type: 'TOPUP_SUCCESS',
-    title: 'Top-up successful',
-    body: `${formatMinorAmount(request.amountMinor, request.currency)} was added to your UZDONATE wallet.`,
-    deepLink: '/wallet',
-  });
 
   return updated;
 }

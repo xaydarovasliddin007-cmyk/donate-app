@@ -25,11 +25,12 @@ export interface Order {
 }
 export interface ReceivingMethod {
   id: string; type: 'CARD_TRANSFER' | 'QR_CODE' | 'PAYNET_TERMINAL';
-  cardNumber: string; cardHolderName: string; bankName: string | null;
-  instructions: string | null; qrImageUrl: string | null;
+  cardNumber: string | null; cardHolderName: string; bankName: string | null;
+  qrPayload?: string | null; instructions?: string | null; qrImageUrl?: string | null;
 }
 export interface TopUp {
   id: string; amountMinor: number; currency: string; status: string;
+  type?: ReceivingMethod['type']; userReference?: string | null;
   expiresAt: string | null; receivingMethod: ReceivingMethod | null;
   createdAt: string; userConfirmedPaidAt: string | null;
 }

@@ -175,6 +175,18 @@ describe('topup reservation + auto-verification (live DB)', () => {
     expect(result).toBeNull();
   });
 
+  it('does not credit the wallet when a user only marks a transfer as paid', async () => {
+    const user = await makeUser();
+    const reservation = await topupService.reserveTopUpRequest(ctx, user.id, 27000_00, 'CARD_TRANSFER');
+
+    const updated = await topupService.confirmTopUpPaid(ctx, user.id, reservation.id);
+
+    expect(updated.status).toBe('PENDING');
+    expect(updated.userConfirmedPaidAt).not.toBeNull();
+    const wallet = await prisma.wallet.findUniqueOrThrow({ where: { userId: user.id } });
+    expect(wallet.balanceMinor).toBe(0);
+  });
+
   describe('reserving against a specific receiving-method type', () => {
     let qrMethodId: string;
 

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
-import { ArrowRight, ArrowUpRight, BadgePercent, CheckCircle2, ChevronRight, Clock3, Copy, Gamepad2, Headphones, Home, LoaderCircle, Moon, Package, Plus, RefreshCw, Search, ShieldCheck, Sparkles, Star, Sun, UserRound, Wallet as WalletIcon, X } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, CheckCircle2, ChevronRight, Clock3, Copy, Gamepad2, Headphones, Home, LoaderCircle, Moon, Package, Plus, RefreshCw, Search, ShieldCheck, Sparkles, Star, Sun, UserRound, Wallet as WalletIcon, X } from 'lucide-react';
 import type { AppConfig, Game, Order, Session, TopUp, User, Wallet } from './types';
 import { api, errorText, login, signIn } from './services/api';
 import { haptic, inTelegram, openTelegram, telegram } from './services/telegram';
@@ -8,7 +8,7 @@ import { WalletSheet } from './components/WalletSheet';
 import { Sheet } from './components/Sheet';
 import { date, ErrorBox, GameCard, money, statuses } from './components/ui';
 
-type Tab = 'shop' | 'orders' | 'profile';
+type Tab = 'shop' | 'games' | 'orders' | 'profile';
 const defaultConfig: AppConfig = { supportUrl: 'https://t.me/The_Anonimous_uzb', telegramBotUrl: 'https://t.me/uzdonate1bot', telegramPaymentsEnabled: false };
 
 export default function App() {
@@ -31,12 +31,15 @@ export default function App() {
   const [order, setOrder] = useState<Order | null>(null);
   const [showWallet, setShowWallet] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
-  const [showPromo, setShowPromo] = useState(false);
+  const [bannerIndex, setBannerIndex] = useState(0);
   const [theme, setTheme] = useState(() => {
     try { return localStorage.getItem('uzdonate_theme') || 'dark'; } catch { return 'dark'; }
   });
   const accountLoading = useRef(false);
   const tg = inTelegram();
+  const carouselGames = ['mobile-legends', 'pubg-mobile', 'free-fire']
+    .map((slug) => games.find((item) => item.slug === slug))
+    .filter((item): item is Game => Boolean(item));
 
   const refreshAccount = useCallback(async () => {
     if (accountLoading.current) return;
@@ -80,16 +83,26 @@ export default function App() {
     document.addEventListener('visibilitychange', refresh);
     return () => { clearInterval(interval); document.removeEventListener('visibilitychange', refresh); };
   }, [user, refreshAccount]);
+  useEffect(() => {
+    if (carouselGames.length < 2) return;
+    const timer = window.setInterval(() => setBannerIndex((index) => (index + 1) % carouselGames.length), 4500);
+    return () => clearInterval(timer);
+  }, [games]);
 
   function navigate(next: Tab) { setTab(next); haptic(); window.scrollTo({ top: 0, behavior: 'instant' }); }
-  function showCatalog() { navigate('shop'); window.setTimeout(() => document.querySelector('#catalog')?.scrollIntoView({ behavior: 'smooth' }), 50); }
+  function showCatalog() { navigate('games'); }
   const categories = [...new Set(games.map((item) => item.category).filter(Boolean))] as string[];
   const filtered = games.filter((item) => (!onlyAvailable || item.isPurchasable) &&
     (category === 'all' || item.category === category) && `${item.name} ${item.slug}`.toLowerCase().includes(query.trim().toLowerCase()));
   const activeOrders = orders.filter((item) => ['PENDING', 'PAID', 'PROCESSING'].includes(item.status));
   const filteredOrders = orderFilter === 'all' ? orders : orderFilter === 'active' ? activeOrders : orders.filter((item) => !['PENDING', 'PAID', 'PROCESSING'].includes(item.status));
-  const navigation = [{ id: 'shop' as const, icon: Home, label: 'Asosiy' }, { id: 'orders' as const, icon: Package, label: 'Buyurtmalar' }, { id: 'profile' as const, icon: UserRound, label: 'Profil' }];
-  const featuredGame = filtered.find((item) => item.isPurchasable) || games.find((item) => item.isPurchasable);
+  const navigation = [{ id: 'shop' as const, icon: Home, label: 'Asosiy' }, { id: 'games' as const, icon: Gamepad2, label: "O'yinlar" }, { id: 'orders' as const, icon: Package, label: 'Buyurtmalar' }, { id: 'profile' as const, icon: UserRound, label: 'Profil' }];
+  const featuredGame = carouselGames[bannerIndex % Math.max(carouselGames.length, 1)] || games.find((item) => item.isPurchasable);
+  const featuredCopy: Record<string, string> = {
+    'mobile-legends': 'Olmoslarni tez va xavfsiz xarid qiling.',
+    'pubg-mobile': 'UC paketlari eng qulay narxlarda.',
+    'free-fire': 'Diamond paketlari bir necha bosishda.',
+  };
 
   return <div className="app-shell">
     <header className="app-header"><div className="header-inner">
@@ -112,20 +125,29 @@ export default function App() {
         {accountError && <ErrorBox message={accountError} retry={() => void authenticate()}/>}
         {activeOrders.length > 0 && <button className="activity-strip" onClick={() => navigate('orders')}><Clock3 size={18}/><span>{activeOrders.length} ta buyurtmangiz jarayonda</span><ArrowRight size={18}/></button>}
         <section className="quick-actions" aria-label="Tezkor amallar">
-          <button onClick={() => setShowPromo(true)}><span><BadgePercent size={21}/></span><strong>Promokod</strong><ChevronRight size={17}/></button>
+          <button onClick={() => setShowWallet(true)}><span><WalletIcon size={21}/></span><strong>Balans to'ldirish</strong><ChevronRight size={17}/></button>
           <button onClick={() => openTelegram(config.supportUrl)}><span><Headphones size={21}/></span><strong>Yordam</strong><ChevronRight size={17}/></button>
         </section>
         {featuredGame && <button className="featured-banner" onClick={() => { haptic(); setGame(featuredGame); }}>
-          <div className="featured-copy"><span><Sparkles size={14}/> TEZKOR TOP-UP</span><h2>Eng yaxshi narxlar shu yerda</h2><p>{featuredGame.name} va boshqa mashhur o'yinlar uchun xavfsiz xarid.</p><strong>Xaridni boshlash <ArrowRight size={17}/></strong></div>
+          <div className="featured-copy"><span><Sparkles size={14}/> TEZKOR TOP-UP</span><h2>{featuredGame.name}</h2><p>{featuredCopy[featuredGame.slug] || "Eng yaxshi narxlar va tezkor yetkazib berish."}</p><strong>Xaridni boshlash <ArrowRight size={17}/></strong></div>
           {featuredGame.logoUrl && <img src={featuredGame.logoUrl} alt=""/>}
+          {carouselGames.length > 1 && <span className="banner-dots" aria-label="Bannerlar">{carouselGames.map((item, index) => <i key={item.id} className={index === bannerIndex % carouselGames.length ? 'active' : ''}/>)}</span>}
         </button>}
-        <section id="catalog" aria-label="Katalog">
-          <div className="catalog-toolbar"><div><span className="eyebrow accent-text">KATALOG</span><h2>Mashhur o'yinlar <span className="count">{games.length}</span></h2></div><label className="search-field"><Search size={19}/><input aria-label="O'yin qidirish" placeholder="O'yin qidirish" value={query} onChange={(event) => setQuery(event.target.value)}/>{query && <button className="icon-button small" title="Qidiruvni tozalash" aria-label="Qidiruvni tozalash" onClick={() => setQuery('')}><X size={16}/></button>}</label></div>
-          <div className="catalog-filters"><div className="category-strip" aria-label="Kategoriyalar"><button className={`chip ${category === 'all' ? 'active' : ''}`} aria-pressed={category === 'all'} onClick={() => setCategory('all')}>Barchasi</button>{categories.map((item) => <button key={item} className={`chip ${category === item ? 'active' : ''}`} aria-pressed={category === item} onClick={() => setCategory(item)}>{item}</button>)}</div></div>
-          <div className="catalog-meta"><span>{loading ? 'Katalog yuklanmoqda' : `${filtered.length} ta natija`}</span><label className="toggle-label"><input type="checkbox" checked={onlyAvailable} onChange={(event) => setOnlyAvailable(event.target.checked)}/>Faqat mavjudlar</label></div>
-          {catalogError ? <ErrorBox message={catalogError} retry={() => void loadCatalog()}/> : loading ? <div className="games-grid" aria-label="Katalog yuklanmoqda" aria-busy="true">{Array.from({ length: 8 }, (_, i) => <div key={i} className="game-skeleton skeleton"/>)}</div> : filtered.length ? <div className="games-grid">{filtered.map((item) => <GameCard key={item.id} game={item} onSelect={(selected) => { haptic(); setGame(selected); }}/>)}</div> : <div className="empty-state"><Search size={35}/><h3>O'yin topilmadi</h3><p>Boshqa nom yoki kategoriyani tanlang.</p><button className="button secondary" onClick={() => { setQuery(''); setCategory('all'); setOnlyAvailable(false); }}>Filtrlarni tozalash</button></div>}
+        <section id="catalog" className="home-catalog" aria-label="Mashhur o'yinlar">
+          <div className="catalog-toolbar"><div><span className="eyebrow accent-text">KATALOG</span><h2>Mashhur o'yinlar</h2></div><button className="catalog-all" onClick={showCatalog}>Barchasi <ArrowRight size={17}/></button></div>
+          {catalogError ? <ErrorBox message={catalogError} retry={() => void loadCatalog()}/> : loading ? <div className="games-grid" aria-label="Katalog yuklanmoqda" aria-busy="true">{Array.from({ length: 6 }, (_, i) => <div key={i} className="game-skeleton skeleton"/>)}</div> : <div className="games-grid">{games.filter((item) => item.isPurchasable).slice(0, 6).map((item) => <GameCard key={item.id} game={item} onSelect={(selected) => { haptic(); setGame(selected); }}/>)}</div>}
         </section>
         <section className="support-band"><div><Headphones size={25}/><div><h3>Yordam kerakmi?</h3><p>Buyurtma yoki to'lov bo'yicha bizga yozing.</p></div></div><button className="button secondary" onClick={() => openTelegram(config.supportUrl)}>Bog'lanish <ArrowUpRight size={17}/></button></section>
+      </>}
+
+      {tab === 'games' && <>
+        <div className="page-heading games-heading"><div><span className="eyebrow accent-text">BARCHA O'YINLAR</span><h1>O'yinni tanlang</h1></div><span className="count">{games.length}</span></div>
+        <section aria-label="O'yinlar katalogi">
+          <label className="search-field games-search"><Search size={19}/><input aria-label="O'yin qidirish" placeholder="O'yin qidirish" value={query} onChange={(event) => setQuery(event.target.value)}/>{query && <button className="icon-button small" title="Qidiruvni tozalash" aria-label="Qidiruvni tozalash" onClick={() => setQuery('')}><X size={16}/></button>}</label>
+          <div className="catalog-filters"><div className="category-strip" aria-label="Kategoriyalar"><button className={`chip ${category === 'all' ? 'active' : ''}`} aria-pressed={category === 'all'} onClick={() => setCategory('all')}>Barchasi</button>{categories.map((item) => <button key={item} className={`chip ${category === item ? 'active' : ''}`} aria-pressed={category === item} onClick={() => setCategory(item)}>{item}</button>)}</div></div>
+          <div className="catalog-meta"><span>{loading ? 'Katalog yuklanmoqda' : `${filtered.length} ta natija`}</span><label className="toggle-label"><input type="checkbox" checked={onlyAvailable} onChange={(event) => setOnlyAvailable(event.target.checked)}/>Faqat mavjudlar</label></div>
+          {catalogError ? <ErrorBox message={catalogError} retry={() => void loadCatalog()}/> : loading ? <div className="games-grid all-games-grid" aria-label="Katalog yuklanmoqda" aria-busy="true">{Array.from({ length: 8 }, (_, i) => <div key={i} className="game-skeleton skeleton"/>)}</div> : filtered.length ? <div className="games-grid all-games-grid">{filtered.map((item) => <GameCard key={item.id} game={item} onSelect={(selected) => { haptic(); setGame(selected); }}/>)}</div> : <div className="empty-state"><Search size={35}/><h3>O'yin topilmadi</h3><p>Boshqa nom yoki kategoriyani tanlang.</p><button className="button secondary" onClick={() => { setQuery(''); setCategory('all'); setOnlyAvailable(false); }}>Filtrlarni tozalash</button></div>}
+        </section>
       </>}
 
       {tab === 'orders' && <>
@@ -154,28 +176,16 @@ export default function App() {
     </main>
     <nav className="bottom-nav" aria-label="Asosiy bo'limlar">
       <button aria-current={tab === 'shop' ? 'page' : undefined} className={tab === 'shop' ? 'active' : ''} onClick={() => navigate('shop')}><span><Home size={21}/></span>Asosiy</button>
-      <button onClick={showCatalog}><span><Gamepad2 size={21}/></span>O'yinlar</button>
-      <button className="nav-wallet" onClick={() => tg ? showCatalog() : setShowWallet(true)}><span><WalletIcon size={22}/></span>{tg ? "To'lov" : "To'ldirish"}</button>
+      <button aria-current={tab === 'games' ? 'page' : undefined} className={tab === 'games' ? 'active' : ''} onClick={showCatalog}><span><Gamepad2 size={21}/></span>O'yinlar</button>
+      <button className="nav-wallet" onClick={() => setShowWallet(true)}><span><WalletIcon size={22}/></span>Balans</button>
       <button aria-current={tab === 'orders' ? 'page' : undefined} className={tab === 'orders' ? 'active' : ''} onClick={() => navigate('orders')}><span><Package size={21}/>{activeOrders.length > 0 && <i/>}</span>Buyurtmalar</button>
       <button aria-current={tab === 'profile' ? 'page' : undefined} className={tab === 'profile' ? 'active' : ''} onClick={() => navigate('profile')}><span><UserRound size={21}/></span>Profil</button>
     </nav>
     {game && <Checkout key={game.id} game={game} authenticated={Boolean(user)} wallet={wallet} onClose={() => setGame(null)} onUpdated={refreshAccount}/>}
-    {showWallet && !tg && <WalletSheet onClose={() => setShowWallet(false)} onUpdated={refreshAccount}/>}
+    {showWallet && <WalletSheet onClose={() => setShowWallet(false)} onUpdated={refreshAccount}/>}
     {showLogin && <LoginSheet onClose={() => setShowLogin(false)} onLogin={(session) => { setUser(session.user); setShowLogin(false); void refreshAccount(); }}/>} 
-    {showPromo && <PromoSheet onClose={() => setShowPromo(false)} onApplied={refreshAccount}/>}
     {order && <OrderSheet order={orders.find((item) => item.id === order.id) || order} onClose={() => setOrder(null)} onUpdated={refreshAccount} supportUrl={config.supportUrl}/>}
   </div>;
-}
-
-function PromoSheet({ onClose, onApplied }: { onClose: () => void; onApplied: () => void }) {
-  const [code, setCode] = useState(''); const [busy, setBusy] = useState(false);
-  const [error, setError] = useState(''); const [success, setSuccess] = useState(false);
-  async function submit(event: FormEvent) {
-    event.preventDefault(); if (busy || !code.trim()) return; setBusy(true); setError('');
-    try { await api('/promo-codes/redeem', { code: code.trim() }); setSuccess(true); onApplied(); }
-    catch (err) { setError(errorText(err)); } finally { setBusy(false); }
-  }
-  return <Sheet title="Promokod" onClose={onClose} busy={busy}>{success ? <div className="checkout-result"><CheckCircle2 size={48}/><h3>Promokod faollashtirildi</h3><p>Bonus balansingizga qo'shildi.</p><button className="button primary" onClick={onClose}>Tayyor</button></div> : <form className="checkout-form" onSubmit={submit}><p className="muted">Promokodni kiriting va bonusni balansingizga oling.</p><label>Promokod<input autoFocus value={code} onChange={(event) => setCode(event.target.value.toUpperCase())} placeholder="UZDONATE" maxLength={32}/></label>{error && <ErrorBox message={error}/>}<button className="button primary" disabled={busy || !code.trim()}>{busy ? <LoaderCircle size={18} className="spin"/> : <BadgePercent size={18}/>}Faollashtirish</button></form>}</Sheet>;
 }
 
 function LoginSheet({ onClose, onLogin }: { onClose: () => void; onLogin: (session: Session) => void }) {

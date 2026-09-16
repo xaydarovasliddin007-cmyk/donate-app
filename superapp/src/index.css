@@ -63,8 +63,14 @@ img { display: block; max-width: 100%; }
 .featured-copy h2 { max-width: 430px; margin: 14px 0 9px; font-size: 30px; }
 .featured-copy p { max-width: 460px; color: #c8ccda; font-size: 12px; }
 .featured-copy>strong { display: inline-flex; align-items: center; gap: 8px; margin-top: 24px; font-size: 12px; }
+.banner-dots { position: absolute; left: 30px; bottom: 13px; display: flex; gap: 5px; }
+.banner-dots i { width: 16px; height: 3px; border-radius: 3px; background: #ffffff4a; }
+.banner-dots i.active { background: var(--accent-2); }
 .catalog-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding-bottom: 22px; }
 .catalog-toolbar h2 { display: flex; align-items: center; gap: 10px; margin-top: 4px; }
+.catalog-all { display: inline-flex; align-items: center; gap: 7px; color: var(--accent-2); background: none; font-size: 12px; font-weight: 800; }
+.games-search { margin-bottom: 14px; width: 100%; }
+.games-heading { padding-bottom: 18px; }
 .count { display: inline-flex; align-items: center; justify-content: center; min-width: 27px; height: 25px; padding: 0 7px; font-size: 12px; border-radius: 5px; background: var(--raised); color: var(--muted); }
 .search-field { width: 300px; height: 46px; border: 1px solid var(--border); border-radius: 7px; display: flex; align-items: center; padding: 0 12px; gap: 10px; background: var(--surface); color: var(--muted); }
 .search-field input { width: 100%; min-width: 0; background: none; border: 0; color: var(--text); outline: none; font-size: 13px; padding: 0; }
@@ -193,6 +199,25 @@ input[type='checkbox'] { accent-color: var(--accent); width: 15px; height: 15px;
 .bank-details>div { flex: 1; min-width: 0; display: grid; gap: 8px; }
 .bank-details strong { font-size: 16px; overflow-wrap: anywhere; }
 .bank-details span { font-size: 11px; color: var(--muted); }
+.topup-step { display: grid; gap: 18px; }
+.topup-step h3,.stack>div>h3 { margin-top: 5px; }
+.payment-method-list { display: grid; gap: 10px; }
+.payment-method-list>button { width: 100%; min-height: 72px; display: flex; align-items: center; gap: 13px; padding: 12px; text-align: left; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; }
+.payment-method-list>button:hover { border-color: var(--accent); }
+.payment-method-list>button>span { width: 43px; height: 43px; display: grid; place-items: center; color: var(--accent-2); background: var(--raised); border-radius: 7px; }
+.payment-method-list>button>div { flex: 1; min-width: 0; display: grid; gap: 4px; }
+.payment-method-list strong { font-size: 13px; }
+.payment-method-list small { color: var(--muted); font-size: 10px; line-height: 1.45; }
+.method-check { color: var(--border); }
+.topup-back { width: fit-content; display: inline-flex; align-items: center; gap: 7px; padding: 0; color: var(--muted); background: none; font-size: 11px; font-weight: 700; }
+.topup-total { padding: 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; }
+.topup-total .amount-display { margin-top: 5px; }
+.bank-methods,.qr-methods { display: grid; gap: 9px; }
+.qr-methods { grid-template-columns: repeat(auto-fit,minmax(170px,1fr)); }
+.qr-method { display: grid; justify-items: center; gap: 7px; padding: 16px; background: #fff; color: #171a25; border-radius: 8px; text-align: center; }
+.qr-method span { color: #687188; font-size: 10px; }
+.payment-qr { width: min(220px,100%); aspect-ratio: 1; object-fit: contain; }
+.stack.compact { gap: 13px; }
 .skeleton { background: var(--raised); animation: pulse 1.8s ease-in-out infinite; border-radius: 8px; }
 .game-skeleton { aspect-ratio: .85; }
 .product-skeleton { height: 140px; }
@@ -222,13 +247,13 @@ input[type='checkbox'] { accent-color: var(--accent); width: 15px; height: 15px;
   .featured-copy h2 { margin: 10px 0 6px; font-size: 21px; line-height: 1.22; }
   .featured-copy p { font-size: 10px; line-height: 1.5; }
   .featured-copy>strong { margin-top: 15px; font-size: 10px; }
+  .banner-dots { left: 20px; bottom: 8px; }
   .catalog-toolbar { flex-direction: column; align-items: stretch; gap: 12px; padding-bottom: 15px; }
   .catalog-toolbar>div { min-width: 0; }
   .catalog-toolbar h2 { font-size: 17px; white-space: nowrap; }
   .search-field { width: 100%; padding: 0 12px; }
   .search-field input { min-width: 0; }
-  .games-grid { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: minmax(108px,29vw); gap: 11px; overflow-x: auto; padding: 2px 1px 10px; scrollbar-width: none; }
-  .games-grid::-webkit-scrollbar { display: none; }
+  .games-grid { grid-template-columns: repeat(2,minmax(0,1fr)); grid-auto-flow: row; gap: 11px; padding: 2px 1px 10px; }
   .game-cover { aspect-ratio: 1; } .game-card-caption { padding: 10px; min-height: 68px; gap: 4px; }
   .game-card h3 { font-size: 12px; } .game-card-caption>svg { width: 16px; }
   .category-strip { margin-right: -13px; padding-right: 13px; }
