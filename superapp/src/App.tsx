@@ -119,6 +119,7 @@ export default function App() {
 
     <main className="main-content">
       {config.testMode && <p className="eyebrow accent-text" role="status">Sinov muhiti</p>}
+      <div className="tab-view" key={tab}>
       {tab === 'shop' && <>
         <section className="store-heading">
           <div className="welcome-row">
@@ -177,6 +178,7 @@ export default function App() {
         </div>
         {!tg && topups.length > 0 && <section className="topup-history"><h2>Balans to'ldirish tarixi</h2>{topups.map((item) => <div key={item.id} className="history-row"><div><strong>{money(item.amountMinor)}</strong><small>{date(item.createdAt)}</small></div><span className={`status ${item.status === 'VERIFIED' ? 'status-completed' : ''}`}>{{ VERIFIED: 'Tasdiqlandi', PENDING: 'Tekshirilmoqda', REJECTED: 'Rad etildi', EXPIRED: 'Muddat tugadi' }[item.status] || item.status}</span></div>)}</section>}
       </>}
+      </div>
       <footer className="app-footer"><span>UZDONATE</span><span>O'yiningiz bilan birga.</span><a href="privacy.html" target="_blank" rel="noreferrer">Maxfiylik</a></footer>
     </main>
     <nav className="bottom-nav" aria-label="Asosiy bo'limlar">

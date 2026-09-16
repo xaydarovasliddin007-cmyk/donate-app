@@ -54,6 +54,7 @@ test('catalog filters, light mode and responsive layout', async ({ page }, info)
   await noOverflow(page);
   await page.screenshot({ path: `../artifacts/catalog-${info.project.name}.png`, fullPage: true });
   await page.getByRole('button', { name: "O'yinlar", exact: true }).filter({ visible: true }).click();
+  await expect(page.locator('.tab-view')).toHaveCSS('animation-name', 'tab-enter');
   await expect(page.locator('.game-card')).toHaveCount(4);
   await page.getByLabel("O'yin qidirish").fill('PUBG');
   await expect(page.locator('.game-card')).toHaveCount(1);
