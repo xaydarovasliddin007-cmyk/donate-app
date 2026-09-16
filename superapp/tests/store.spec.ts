@@ -104,6 +104,8 @@ test('wallet top-up chooses the payment method before amount', async ({ page }, 
   await page.getByLabel("Summa, so'm").fill('75000');
   await page.getByRole('button', { name: "To'lov rekvizitlari" }).click();
   await expect(page.getByText('9860 1234 5678 9012')).toBeVisible();
+  await expect(page.getByText('Avtomatik tekshirilmoqda')).toBeVisible();
+  await expect(page.getByRole('button', { name: "To'lovni amalga oshirdim" })).toHaveCount(0);
   expect(sent.find((item) => item.path === '/topups/reserve')?.body).toMatchObject({ amountMinor: 7500000, type: 'CARD_TRANSFER', channel: 'HUMO' });
 });
 

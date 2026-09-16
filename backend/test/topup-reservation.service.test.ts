@@ -149,7 +149,7 @@ describe('topup reservation + auto-verification (live DB)', () => {
     expect(wallet.balanceMinor).toBe(reservation.amountMinor);
   });
 
-  it('keeps HUMO and UZCARD reservations on their selected card network', async () => {
+  it('routes both HUMO and UZCARD choices to the configured HUMO card', async () => {
     const humoUser = await makeUser();
     const uzcardUser = await makeUser();
     const humo = await topupService.reserveTopUpRequest(ctx, humoUser.id, 25100_00, 'CARD_TRANSFER', 'HUMO');
@@ -158,7 +158,7 @@ describe('topup reservation + auto-verification (live DB)', () => {
     expect(humo.channel).toBe('HUMO');
     expect(humo.receivingMethods.map((method) => method.id)).toEqual([testCardAId]);
     expect(uzcard.channel).toBe('UZCARD');
-    expect(uzcard.receivingMethods.map((method) => method.id)).toEqual([testCardBId]);
+    expect(uzcard.receivingMethods.map((method) => method.id)).toEqual([testCardAId]);
   });
 
   it('uses HUMO cards and HUMO auto-verification as the UZCARD fallback', async () => {

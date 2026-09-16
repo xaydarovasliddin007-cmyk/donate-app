@@ -2,7 +2,8 @@ import type { CardNetwork, PrismaClient, ReceivingMethod, ReceivingMethodType, T
 import { env } from '../../config/env.js';
 import { ConflictError, ForbiddenError, NotFoundError, TopUpAmountBusyError, ValidationError } from '../../lib/errors.js';
 import { formatMinorAmount } from '../../lib/money.js';
-import { notifyAdmins, sendTopUpReceiptPhoto } from '../../lib/telegram.js';
+import { logger } from '../../lib/logger.js';
+import { sendTopUpReceiptPhoto } from '../../lib/telegram.js';
 import { createNotification } from '../notifications/notifications.service.js';
 import * as walletService from '../wallet/wallet.service.js';
 import type { CreateTopUpRequestInput, HumoTransactionInput, SubmitTopUpReceiptInput } from './topup.schemas.js';
@@ -42,10 +43,11 @@ function isConfiguredCard(method: ReceivingMethod) {
 export async function listTopUpOptions(ctx: TopUpContext) {
   const methods = await listActiveReceivingMethods(ctx);
   const cards = methods.filter(isConfiguredCard);
+  const hasHumoCard = cards.some((method) => method.cardNetwork === 'HUMO');
   const autoFeedConfigured = Boolean(env.CARD_TRANSACTION_WEBHOOK_SECRET || env.HUMO_WEBHOOK_SECRET);
   return [
-    { id: 'HUMO' as const, label: 'HUMO', mode: 'AUTO' as const, available: autoFeedConfigured && cards.some((m) => m.cardNetwork === 'HUMO') },
-    { id: 'UZCARD' as const, label: 'UZCARD', mode: 'AUTO' as const, available: autoFeedConfigured && cards.length > 0 },
+    { id: 'HUMO' as const, label: 'HUMO', mode: 'AUTO' as const, available: autoFeedConfigured && hasHumoCard },
+    { id: 'UZCARD' as const, label: 'UZCARD', mode: 'AUTO' as const, available: autoFeedConfigured && hasHumoCard },
     { id: 'BANKOMAT' as const, label: 'Bankomat', mode: 'MANUAL' as const, available: cards.length > 0 },
   ];
 }
@@ -66,11 +68,6 @@ export async function createTopUpRequest(ctx: TopUpContext, userId: string, inpu
     },
     include: { receivingMethod: true },
   });
-
-  notifyAdmins(
-    `💰 <b>New top-up request</b> — ${formatMinorAmount(request.amountMinor, request.currency)}\n` +
-      `Method: ${method.cardHolderName}\nAwaiting verification.`,
-  );
 
   return request;
 }
@@ -136,10 +133,7 @@ async function requireAvailableAmount(ctx: { prisma: Pick<PrismaClient, 'topUpRe
  */
 function receivingMethodsForType(allActiveMethods: ReceivingMethod[], type?: ReceivingMethodType, channel?: TopUpChannel) {
   if (channel === 'HUMO' || channel === 'UZCARD') {
-    const networkCards = allActiveMethods.filter((m) => isConfiguredCard(m) && m.cardNetwork === channel);
-    if (networkCards.length > 0) return networkCards;
-    if (channel === 'UZCARD') return allActiveMethods.filter((m) => isConfiguredCard(m) && m.cardNetwork === 'HUMO');
-    return networkCards;
+    return allActiveMethods.filter((method) => isConfiguredCard(method) && method.cardNetwork === 'HUMO');
   }
   if (channel === 'BANKOMAT') return allActiveMethods.filter(isConfiguredCard);
   if (!type) return allActiveMethods;
@@ -244,10 +238,6 @@ async function finalizeVerification(ctx: TopUpContext, requestId: string, option
     include: { receivingMethod: true },
   });
 
-  notifyAdmins(
-    `✅ <b>Top-up verified${options.autoVerified ? ' (auto)' : ''}</b> — ` +
-      `${formatMinorAmount(request.amountMinor, request.currency)}`,
-  );
   await createNotification(ctx, {
     userId: request.userId,
     type: 'TOPUP_SUCCESS',
@@ -309,11 +299,11 @@ export async function autoVerifyFromCardTransaction(ctx: TopUpContext, input: Hu
   const [match] = matches;
   if (matches.length !== 1 || !match) {
     if (matches.length > 1) {
-      notifyAdmins(
-        `⚠️ <b>Ambiguous auto top-up match</b> — ${matches.length} pending requests match ` +
-          `${formatMinorAmount(input.amountMinor, 'UZS')}. Needs manual review.\n` +
-          (input.rawMessage ? `Message: ${input.rawMessage}` : ''),
-      );
+      logger.warn({
+        matchCount: matches.length,
+        amountMinor: input.amountMinor,
+        transactionId: input.transactionId,
+      }, 'Ambiguous auto top-up match');
     }
     return null;
   }
@@ -355,11 +345,6 @@ export async function submitTopUpReference(
     data: { userReference, userConfirmedPaidAt: new Date() },
     include: { receivingMethod: true },
   });
-
-  notifyAdmins(
-    `🧾 <b>Terminal receipt submitted</b> — ${formatMinorAmount(request.amountMinor, request.currency)}\n` +
-      `Receipt #: ${userReference}\nNeeds review.`,
-  );
 
   return updated;
 }
@@ -413,13 +398,9 @@ export async function submitTopUpReceipt(
 }
 
 /**
- * Fired by the mobile "I've paid" tap for CARD_TRANSFER/QR_CODE — the two
- * types with no automated proof-of-payment feed at all for QR (Paynet's own
- * auto-verify webhook isn't built yet) and only a best-effort SMS listener
- * for CARD_TRANSFER. Never credits anything by itself; just tells the admin
- * queue this reservation is worth checking now instead of waiting out its
- * countdown untouched. Safe to call more than once (e.g. the bot beats the
- * tap to it) — it only ever updates a timestamp and sends one more alert.
+ * Records a legacy mobile client's "I've paid" tap without crediting the
+ * wallet or notifying admins. Card reservations are verified only by the
+ * trusted transaction feed; Bankomat review uses submitTopUpReceipt().
  */
 export async function confirmTopUpPaid(ctx: TopUpContext, userId: string, topUpRequestId: string) {
   const request = await ctx.prisma.topUpRequest.findUnique({ where: { id: topUpRequestId } });
@@ -437,11 +418,6 @@ export async function confirmTopUpPaid(ctx: TopUpContext, userId: string, topUpR
     data: { userConfirmedPaidAt: new Date() },
     include: { receivingMethod: true },
   });
-
-  notifyAdmins(
-    `💳 <b>User marked top-up as paid</b> — ${formatMinorAmount(request.amountMinor, request.currency)}\n` +
-      `User ID: ${request.userId}\nVerify the payment before crediting the wallet.`,
-  );
 
   return updated;
 }
@@ -533,7 +509,6 @@ export async function verifyTopUpRequest(ctx: TopUpContext, adminId: string, top
     include: { receivingMethod: true },
   });
 
-  notifyAdmins(`✅ <b>Top-up verified</b> — ${formatMinorAmount(request.amountMinor, request.currency)}`);
   await createNotification(ctx, {
     userId: request.userId,
     type: 'TOPUP_SUCCESS',

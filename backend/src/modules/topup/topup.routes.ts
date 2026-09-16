@@ -104,9 +104,8 @@ export async function topupRoutes(app: FastifyInstance) {
     },
   );
 
-  // Fired by the "I've paid" tap (CARD_TRANSFER/QR_CODE) — pings admins so a
-  // QR top-up (no automated verification feed at all) doesn't just sit
-  // unnoticed until someone happens to check the queue.
+  // Legacy mobile clients still call this after a card transfer. It records
+  // the timestamp only; card verification remains fully automatic.
   app.post<{ Params: { id: string } }>(
     '/topups/:id/confirm-paid',
     { preHandler: authenticate },
