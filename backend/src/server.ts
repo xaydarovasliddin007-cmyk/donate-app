@@ -8,10 +8,23 @@ async function main() {
   const app = await buildApp();
 
   await app.listen({ port: env.PORT, host: env.HOST });
-  const stopCardListener = await startCardTransactionListener(app.log).catch((err) => {
-    app.log.error({ err }, 'Card transaction listener failed to start');
-    return async () => {};
-  });
+  let stopCardListener = async () => {};
+  let listenerStart: Promise<void> | undefined;
+  const startListener = () => {
+    listenerStart = startCardTransactionListener(app.log)
+      .then((stop) => { stopCardListener = stop; })
+      .catch((err) => { app.log.error({ err }, 'Card transaction listener failed to start'); });
+  };
+  // Render briefly runs the old and new instances together during a deploy.
+  // Opening the same Telegram user session in both invalidates its auth key,
+  // so let the old instance shut down before the replacement connects.
+  const listenerDelayMs = process.env.RENDER ? 45_000 : 0;
+  const listenerTimer = listenerDelayMs > 0 ? setTimeout(startListener, listenerDelayMs) : undefined;
+  if (listenerTimer) {
+    app.log.info({ delayMs: listenerDelayMs }, 'Card transaction listener scheduled');
+  } else {
+    startListener();
+  }
   let reconciliation: Promise<void> | undefined;
   const reconcile = () => {
     reconciliation ??= reconcileFulfillment(app.prisma)
@@ -24,7 +37,9 @@ async function main() {
 
   closeWithGrace({ delay: 5000 }, async ({ err }) => {
     clearInterval(timer);
+    if (listenerTimer) clearTimeout(listenerTimer);
     await reconciliation;
+    await listenerStart;
     await stopCardListener();
     if (err) {
       app.log.error({ err }, 'Shutting down due to error');
