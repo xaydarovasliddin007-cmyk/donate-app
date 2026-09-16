@@ -68,6 +68,7 @@ test('wallet top-up chooses the payment method before amount', async ({ page }, 
   const sent = await mockStore(page); await page.goto('/');
   await page.getByRole('button', { name: "Balans to'ldirish", exact: true }).click();
   await expect(page.getByRole('heading', { name: "To'lov usulini tanlang" })).toBeVisible();
+  if (info.project.name !== 'desktop') await expect(page.getByRole('navigation', { name: "Balans sahifasi bo'limlari" })).toBeVisible();
   await page.screenshot({ path: `../artifacts/wallet-${info.project.name}.png`, fullPage: true });
   await page.getByRole('button', { name: /Humo/ }).click();
   await expect(page.getByRole('heading', { name: 'Summani kiriting' })).toBeVisible();

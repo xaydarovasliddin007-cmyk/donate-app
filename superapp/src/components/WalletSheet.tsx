@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import QRCode from 'qrcode';
-import { ArrowLeft, Banknote, CheckCircle2, ChevronRight, Copy, CreditCard, HelpCircle, LoaderCircle, QrCode, WalletCards } from 'lucide-react';
+import { ArrowLeft, Banknote, CheckCircle2, ChevronRight, Copy, CreditCard, Gamepad2, HelpCircle, Home, LoaderCircle, Package, QrCode, UserRound, WalletCards } from 'lucide-react';
 import type { ReceivingMethod, TopUp, Wallet } from '../types';
 import { api, errorText } from '../services/api';
 import { Sheet } from './Sheet';
 import { ErrorBox, money } from './ui';
 
-export function WalletSheet({ wallet, onClose, onUpdated }: { wallet: Wallet | null; onClose: () => void; onUpdated: () => void }) {
+export function WalletSheet({ wallet, onClose, onUpdated, onNavigate }: { wallet: Wallet | null; onClose: () => void; onUpdated: () => void; onNavigate: (tab: 'shop' | 'games' | 'orders' | 'profile') => void }) {
   const [methods, setMethods] = useState<ReceivingMethod[]>([]);
   const [selectedType, setSelectedType] = useState<ReceivingMethod['type'] | null>(null);
   const [selectedMethodId, setSelectedMethodId] = useState<string | null>(null);
@@ -94,6 +94,13 @@ export function WalletSheet({ wallet, onClose, onUpdated }: { wallet: Wallet | n
         <button className="button primary" type="submit" disabled={busy}>{busy ? <LoaderCircle className="spin" size={18}/> : <CreditCard size={18}/>}To'lov rekvizitlari</button>
       </form>}
     </div>
+    <nav className="bottom-nav wallet-bottom-nav" aria-label="Balans sahifasi bo'limlari">
+      <button onClick={() => onNavigate('shop')}><span><Home size={21}/></span>Asosiy</button>
+      <button onClick={() => onNavigate('games')}><span><Gamepad2 size={21}/></span>O'yinlar</button>
+      <button className="nav-wallet active" aria-current="page"><span><WalletCards size={22}/></span>Balans</button>
+      <button onClick={() => onNavigate('orders')}><span><Package size={21}/></span>Buyurtmalar</button>
+      <button onClick={() => onNavigate('profile')}><span><UserRound size={21}/></span>Profil</button>
+    </nav>
   </Sheet>;
 }
 
