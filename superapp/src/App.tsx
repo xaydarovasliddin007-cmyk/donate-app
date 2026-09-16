@@ -187,8 +187,27 @@ export default function App() {
       <button aria-current={tab === 'profile' ? 'page' : undefined} className={tab === 'profile' ? 'active' : ''} onClick={() => navigate('profile')}><span><UserRound size={21}/></span>Profil</button>
     </nav>
     {game && <Checkout key={game.id} game={game} authenticated={Boolean(user)} wallet={wallet} onClose={() => setGame(null)} onUpdated={refreshAccount}/>}
-    {showWallet && <WalletSheet wallet={wallet} onClose={() => setShowWallet(false)} onUpdated={refreshAccount} onNavigate={(next) => { setShowWallet(false); navigate(next); }}/>} 
-    {showLogin && <LoginSheet onClose={() => setShowLogin(false)} onLogin={(session) => { setUser(session.user); setShowLogin(false); void refreshAccount(); }}/>} 
+    {showWallet && (
+      <WalletSheet
+        wallet={wallet}
+        onClose={() => setShowWallet(false)}
+        onUpdated={refreshAccount}
+        onNavigate={(next) => {
+          setShowWallet(false);
+          navigate(next);
+        }}
+      />
+    )}
+    {showLogin && (
+      <LoginSheet
+        onClose={() => setShowLogin(false)}
+        onLogin={(session) => {
+          setUser(session.user);
+          setShowLogin(false);
+          void refreshAccount();
+        }}
+      />
+    )}
     {order && <OrderSheet order={orders.find((item) => item.id === order.id) || order} onClose={() => setOrder(null)} onUpdated={refreshAccount} supportUrl={config.supportUrl}/>}
   </div>{showIntro && <div className="launch-screen" aria-hidden="true"><div className="launch-mark"><img src="assets-store/brand.png" alt=""/><i/></div><strong>UZDONATE<span>.</span></strong><small>PLAY. TOP UP. WIN.</small></div>}</>;
 }
