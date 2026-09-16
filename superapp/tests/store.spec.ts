@@ -51,6 +51,13 @@ test('catalog filters, light mode and responsive layout', async ({ page }, info)
   const errors: string[] = []; page.on('pageerror', (error) => errors.push(error.message));
   await mockStore(page); await page.goto('/');
   await expect(page.locator('.game-card')).toHaveCount(3);
+  if (info.project.name !== 'desktop') {
+    const mobileNav = page.getByRole('navigation', { name: "Asosiy bo'limlar" }).filter({ visible: true });
+    const dockBottom = await mobileNav.evaluate((element) => Math.round(element.getBoundingClientRect().bottom));
+    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+    expect(await mobileNav.evaluate((element) => Math.round(element.getBoundingClientRect().bottom))).toBe(dockBottom);
+    await page.evaluate(() => window.scrollTo(0, 0));
+  }
   await noOverflow(page);
   await page.screenshot({ path: `../artifacts/catalog-${info.project.name}.png`, fullPage: true });
   await page.getByRole('button', { name: "O'yinlar", exact: true }).filter({ visible: true }).click();
