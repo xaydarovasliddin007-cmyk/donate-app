@@ -149,6 +149,7 @@ export async function getUserDetailAdmin(ctx: AdminContext, userId: string) {
       publicId: true,
       email: true,
       phone: true,
+      telegramId: true,
       displayName: true,
       avatarUrl: true,
       locale: true,

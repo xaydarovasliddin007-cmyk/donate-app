@@ -149,6 +149,7 @@ export interface UserDetail {
     publicId: string;
     email: string | null;
     phone: string | null;
+    telegramId: string | null;
     displayName: string | null;
     avatarUrl: string | null;
     locale: string;

@@ -97,6 +97,8 @@ export function UserDetailPage() {
             <dd>{user.email ?? '—'}</dd>
             <dt>{t('userDetail.phone')}</dt>
             <dd>{user.phone ?? '—'}</dd>
+            <dt>{t('userDetail.telegramId')}</dt>
+            <dd>{user.telegramId ?? '—'}</dd>
             <dt>{t('userDetail.role')}</dt>
             <dd>{user.role}</dd>
             <dt>{t('userDetail.status')}</dt>
