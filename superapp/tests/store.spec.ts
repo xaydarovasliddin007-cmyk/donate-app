@@ -6,7 +6,7 @@ const games = [
   { id: 'game-3', slug: 'free-fire', name: 'Free Fire', category: 'Battle Royale', logoUrl: '/assets-store/diamond.png', availability: 'ACTIVE', isPurchasable: true },
   { id: 'game-4', slug: 'valorant', name: 'Valorant', category: 'FPS', logoUrl: null, availability: 'COMING_SOON', isPurchasable: false },
 ];
-async function mockStore(page: Page, tg = false) {
+async function mockStore(page: Page, tg = false, busyTopup = false) {
   let orders: object[] = [];
   const sent: { path: string; body: Record<string, unknown> }[] = [];
   await page.route('https://telegram.org/**', (route) => route.fulfill({ contentType: 'text/javascript', body: '' }));
@@ -33,7 +33,10 @@ async function mockStore(page: Page, tg = false) {
       { id: 'UZCARD', label: 'UZCARD', mode: 'AUTO', available: true },
       { id: 'BANKOMAT', label: 'Bankomat', mode: 'MANUAL', available: true },
     ] };
-    else if (path === '/topups/reserve') data = { id: 'topup-1', amountMinor: body.amountMinor, currency: 'UZS', type: body.type, channel: body.channel, status: 'PENDING', expiresAt: new Date(Date.now() + 420000).toISOString(), receivingMethods: [{ id: 'method-1', type: 'CARD_TRANSFER', cardNumber: '9860 1234 5678 9012', cardHolderName: 'UZDONATE', bankName: 'Test Bank', cardNetwork: body.channel === 'UZCARD' ? 'UZCARD' : 'HUMO' }] };
+    else if (path === '/topups/reserve') {
+      if (busyTopup && body.amountMinor === 5000000) return route.fulfill({ status: 409, json: { error: { code: 'TOPUP_AMOUNT_BUSY', message: 'Busy', details: { requestedAmountMinor: 5000000, suggestedAmountsMinor: [5010000, 5020000] } } } });
+      data = { id: 'topup-1', amountMinor: body.amountMinor, currency: 'UZS', type: body.type, channel: body.channel, status: 'PENDING', expiresAt: new Date(Date.now() + 420000).toISOString(), receivingMethods: [{ id: 'method-1', type: 'CARD_TRANSFER', cardNumber: '9860 1234 5678 9012', cardHolderName: 'UZDONATE', bankName: 'Test Bank', cardNetwork: body.channel === 'UZCARD' ? 'UZCARD' : 'HUMO' }] };
+    }
     else if (path === '/topups/topup-1/confirm-paid') data = { id: 'topup-1', status: 'PENDING' };
     else if (path === '/topups/topup-1/receipt') data = { id: 'topup-1', status: 'PENDING', userReference: 'Telegram chek #1' };
     else if (path === '/topups') data = { topUps: [] };
@@ -96,6 +99,22 @@ test('wallet top-up chooses the payment method before amount', async ({ page }, 
   await page.getByRole('button', { name: "To'lov rekvizitlari" }).click();
   await expect(page.getByText('9860 1234 5678 9012')).toBeVisible();
   expect(sent.find((item) => item.path === '/topups/reserve')?.body).toMatchObject({ amountMinor: 7500000, type: 'CARD_TRANSFER', channel: 'HUMO' });
+});
+
+test('busy top-up amount stays exact and offers free alternatives', async ({ page }) => {
+  const sent = await mockStore(page, false, true); await page.goto('/');
+  await page.getByRole('button', { name: "Balans to'ldirish", exact: true }).click();
+  await page.getByRole('button', { name: /^HUMO/ }).click();
+  await page.getByRole('button', { name: "To'lov rekvizitlari" }).click();
+  await expect(page.getByText("50 000 so'm hozircha band")).toBeVisible();
+  await expect(page.getByRole('button', { name: "50 100 so'm" })).toBeVisible();
+  await page.waitForTimeout(450);
+  await page.screenshot({ path: '../artifacts/topup-amount-busy.png' });
+  await page.getByRole('button', { name: "50 100 so'm" }).click();
+  await page.getByRole('button', { name: "To'lov rekvizitlari" }).click();
+  await expect(page.getByText('9860 1234 5678 9012')).toBeVisible();
+  const reserves = sent.filter((item) => item.path === '/topups/reserve');
+  expect(reserves.map((item) => item.body.amountMinor)).toEqual([5000000, 5010000]);
 });
 
 test('bankomat top-up sends a receipt for admin review', async ({ page }) => {

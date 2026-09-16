@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import QRCode from 'qrcode';
-import { ArrowLeft, CheckCircle2, ChevronRight, Copy, CreditCard, Gamepad2, HelpCircle, Home, ImageUp, Landmark, LoaderCircle, Package, UserRound, WalletCards } from 'lucide-react';
+import { AlertCircle, ArrowLeft, CheckCircle2, ChevronRight, Copy, CreditCard, Gamepad2, HelpCircle, Home, ImageUp, Landmark, LoaderCircle, Package, UserRound, WalletCards } from 'lucide-react';
 import type { ReceivingMethod, TopUp, TopUpOption, Wallet } from '../types';
-import { api, errorText } from '../services/api';
+import { api, ApiError, errorText } from '../services/api';
 import { Sheet } from './Sheet';
 import { ErrorBox, money } from './ui';
 
@@ -12,6 +12,7 @@ export function WalletSheet({ wallet, onClose, onUpdated, onNavigate }: { wallet
   const [balance, setBalance] = useState<Wallet | null>(wallet);
   const [showGuide, setShowGuide] = useState(false);
   const [amount, setAmount] = useState('50000');
+  const [amountConflict, setAmountConflict] = useState<{ requested: number; suggestions: number[] } | null>(null);
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [receiptPreview, setReceiptPreview] = useState('');
   const [error, setError] = useState('');
@@ -21,6 +22,7 @@ export function WalletSheet({ wallet, onClose, onUpdated, onNavigate }: { wallet
   const [confirmed, setConfirmed] = useState(false);
   const [copied, setCopied] = useState(false);
   const lock = useRef(false);
+  const amountConflictRef = useRef<HTMLDivElement>(null);
   const [revision, setRevision] = useState(0);
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
@@ -32,6 +34,11 @@ export function WalletSheet({ wallet, onClose, onUpdated, onNavigate }: { wallet
     return () => { active = false; };
   }, [revision]);
   useEffect(() => { api<Wallet>('/wallet').then(setBalance).catch(() => {}); }, []);
+  useEffect(() => {
+    if (!amountConflict) return;
+    const timer = window.setTimeout(() => amountConflictRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 80);
+    return () => clearTimeout(timer);
+  }, [amountConflict]);
   useEffect(() => {
     if (!request || request.status !== 'PENDING') return;
     let active = true;
@@ -46,11 +53,19 @@ export function WalletSheet({ wallet, onClose, onUpdated, onNavigate }: { wallet
     event.preventDefault(); if (lock.current) return;
     const minor = Math.round(Number(amount) * 100);
     if (!Number.isSafeInteger(minor) || minor <= 0 || minor > 2_000_000_000) return;
-    lock.current = true; setBusy(true); setError('');
+    lock.current = true; setBusy(true); setError(''); setAmountConflict(null);
     if (!selectedChannel) return;
     const type: ReceivingMethod['type'] = selectedChannel === 'BANKOMAT' ? 'PAYNET_TERMINAL' : 'CARD_TRANSFER';
     try { setRequest(await api<TopUp & { receivingMethods: ReceivingMethod[] }>('/topups/reserve', { amountMinor: minor, type, channel: selectedChannel })); }
-    catch (err) { setError(errorText(err)); }
+    catch (err) {
+      if (err instanceof ApiError && err.code === 'TOPUP_AMOUNT_BUSY') {
+        const details = err.details as { requestedAmountMinor?: number; suggestedAmountsMinor?: number[] } | undefined;
+        setAmountConflict({
+          requested: (details?.requestedAmountMinor || minor) / 100,
+          suggestions: (details?.suggestedAmountsMinor || []).map((value) => value / 100),
+        });
+      } else setError(errorText(err));
+    }
     finally { setBusy(false); lock.current = false; }
   }
   async function confirm() {
@@ -90,8 +105,8 @@ export function WalletSheet({ wallet, onClose, onUpdated, onNavigate }: { wallet
   const requestMethods = request?.receivingMethod ? [request.receivingMethod] : request?.receivingMethods || [];
   const remaining = request?.expiresAt ? Math.max(0, Math.ceil((new Date(request.expiresAt).getTime() - now) / 1000)) : 0;
   const methodInfo: Record<TopUpOption['id'], { description: string; icon?: typeof CreditCard; asset?: string }> = {
-    HUMO: { description: "Avtomatik tasdiqlanadi", asset: "/webapp/payment/humo.png" },
-    UZCARD: { description: "Avtomatik tasdiqlanadi", icon: CreditCard },
+    HUMO: { description: "Avtomatik tasdiqlanadi", asset: "payment/humo.png" },
+    UZCARD: { description: "Avtomatik tasdiqlanadi", asset: "payment/uzcard.png" },
     BANKOMAT: { description: "Screenshot orqali tasdiqlanadi", icon: Landmark },
   };
   return <Sheet title="Balansni to'ldirish" onClose={onClose} busy={busy} className="wallet-sheet">
@@ -100,7 +115,7 @@ export function WalletSheet({ wallet, onClose, onUpdated, onNavigate }: { wallet
       {error && <ErrorBox message={error} retry={() => setRevision((r) => r + 1)}/>}
       {request?.status === 'VERIFIED' ? <div className="checkout-result"><CheckCircle2 size={44}/><h3>Balans to'ldirildi</h3><p>{money(request.amountMinor)}</p><button className="button primary" onClick={onClose}>Tayyor</button></div> : request ? <>
         <div className="topup-total"><span className="eyebrow">TO'LOV SUMMASI</span><h3 className="amount-display">{money(request.amountMinor)}</h3></div>
-        {request.type === 'QR_CODE' ? <div className="qr-methods">{requestMethods.map((method) => method.qrPayload && <div className="qr-method" key={method.id}><GeneratedQr payload={method.qrPayload}/><strong>{method.cardHolderName}</strong><span>{method.bankName || 'QR orqali to‘lov'}</span></div>)}</div> : <div className="bank-methods">{requestMethods.map((method) => <div className="bank-details" key={method.id}>{request.channel === 'BANKOMAT' ? <Landmark size={25}/> : <img className="bank-card-logo" src="/webapp/payment/humo.png" alt="HUMO"/>}<div><span>{method.bankName || (request.type === 'PAYNET_TERMINAL' ? 'Bankomat uchun karta' : 'Qabul qiluvchi karta')}</span><strong>{method.cardNumber}</strong><span>{method.cardHolderName}</span></div>{method.cardNumber && <button className="icon-button" aria-label="Karta raqamini nusxalash" title={copied ? 'Nusxalandi' : 'Nusxalash'} onClick={async () => { try { await navigator.clipboard.writeText(method.cardNumber!); setCopied(true); } catch { setError('Karta raqamini belgilab nusxalang.'); } }}><Copy size={18}/></button>}</div>)}</div>}
+        {request.type === 'QR_CODE' ? <div className="qr-methods">{requestMethods.map((method) => method.qrPayload && <div className="qr-method" key={method.id}><GeneratedQr payload={method.qrPayload}/><strong>{method.cardHolderName}</strong><span>{method.bankName || 'QR orqali to‘lov'}</span></div>)}</div> : <div className="bank-methods">{requestMethods.map((method) => <div className="bank-details" key={method.id}>{request.channel === 'BANKOMAT' ? <Landmark size={25}/> : <img className="bank-card-logo" src={request.channel === 'UZCARD' ? 'payment/uzcard.png' : 'payment/humo.png'} alt={request.channel === 'UZCARD' ? 'UZCARD' : 'HUMO'}/>}<div><span>{method.bankName || (request.type === 'PAYNET_TERMINAL' ? 'Bankomat uchun karta' : 'Qabul qiluvchi karta')}</span><strong>{method.cardNumber}</strong><span>{method.cardHolderName}</span></div>{method.cardNumber && <button className="icon-button" aria-label="Karta raqamini nusxalash" title={copied ? 'Nusxalandi' : 'Nusxalash'} onClick={async () => { try { await navigator.clipboard.writeText(method.cardNumber!); setCopied(true); } catch { setError('Karta raqamini belgilab nusxalang.'); } }}><Copy size={18}/></button>}</div>)}</div>}
         <p className="notice">{request.type === 'PAYNET_TERMINAL' ? "Bankomatda aynan ko'rsatilgan summani o'tkazing va chekni rasmga olib yuklang." : "Aynan ko'rsatilgan summani o'tkazing. Balans to'lov tekshirilgandan keyin yangilanadi."}</p>
         {request.expiresAt && <p className="muted">Qolgan vaqt: {Math.floor(remaining / 60)}:{String(remaining % 60).padStart(2, '0')}</p>}
         {confirmed ? <div className="notice success"><CheckCircle2 size={20}/>Chek adminga yuborildi. Tasdiqlangach balans yangilanadi.</div> : request.type === 'PAYNET_TERMINAL' ? <form className="stack compact" onSubmit={submitReceipt}><label className="receipt-upload"><input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => chooseReceipt(event.target.files?.[0] || null)}/>{receiptPreview ? <img src={receiptPreview} alt="Yuklangan chek"/> : <span><ImageUp size={28}/><strong>Chek screenshotini yuklang</strong><small>JPG, PNG yoki WEBP · 5 MB gacha</small></span>}</label><button className="button primary" disabled={busy || remaining === 0 || !receiptFile}>{busy ? <LoaderCircle className="spin" size={18}/> : <ImageUp size={18}/>}Chekni yuborish</button></form> : <button className="button primary" disabled={busy || remaining === 0} onClick={confirm}>{busy ? <LoaderCircle className="spin" size={18}/> : <CheckCircle2 size={18}/>}To'lovni amalga oshirdim</button>}
@@ -110,8 +125,9 @@ export function WalletSheet({ wallet, onClose, onUpdated, onNavigate }: { wallet
         <button className="topup-back" type="button" onClick={() => setSelectedChannel(null)}><ArrowLeft size={17}/> To'lov usullari</button>
         <div><span className="eyebrow accent-text">2-QADAM</span><h3>Summani kiriting</h3></div>
         {selectedChannel && <div className="selected-payment-method">{(() => { const option = options.find((item) => item.id === selectedChannel); if (!option) return null; const info = methodInfo[option.id]; const InfoIcon = info.icon; return <>{info.asset ? <img src={info.asset} alt=""/> : InfoIcon ? <InfoIcon size={21}/> : null}<span>{option.label}</span><CheckCircle2 size={18}/></>; })()}</div>}
-        <label>Summa, so'm<input autoFocus type="number" min="1000" max="20000000" step="1" value={amount} onChange={(event) => setAmount(event.target.value)} required/></label>
-        <div className="amount-options">{[25000, 50000, 100000, 200000].map((value) => <button className={`chip ${Number(amount) === value ? 'active' : ''}`} type="button" key={value} onClick={() => setAmount(String(value))}>{value.toLocaleString('uz-UZ')}</button>)}</div>
+        <label>Summa, so'm<input autoFocus type="number" min="1000" max="20000000" step="1" value={amount} onChange={(event) => { setAmount(event.target.value); setAmountConflict(null); }} required/></label>
+        <div className="amount-options">{[25000, 50000, 100000, 200000].map((value) => <button className={`chip ${Number(amount) === value ? 'active' : ''}`} type="button" key={value} onClick={() => { setAmount(String(value)); setAmountConflict(null); }}>{value.toLocaleString('uz-UZ')}</button>)}</div>
+        {amountConflict && <div className="amount-conflict" ref={amountConflictRef} role="alert"><AlertCircle size={22}/><div><strong>{amountConflict.requested.toLocaleString('uz-UZ')} so'm hozircha band</strong><p>Iltimos, bo'sh summalardan birini tanlab qayta urinib ko'ring.</p>{amountConflict.suggestions.length > 0 && <div>{amountConflict.suggestions.map((value) => <button type="button" key={value} onClick={() => { setAmount(String(value)); setAmountConflict(null); }}>{value.toLocaleString('uz-UZ')} so'm</button>)}</div>}</div></div>}
         <button className="button primary" type="submit" disabled={busy}>{busy ? <LoaderCircle className="spin" size={18}/> : <CreditCard size={18}/>}To'lov rekvizitlari</button>
       </form>}
     </div>

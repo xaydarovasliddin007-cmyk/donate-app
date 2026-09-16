@@ -48,6 +48,13 @@ export class ConflictError extends AppError {
   }
 }
 
+export class TopUpAmountBusyError extends AppError {
+  constructor(details: { requestedAmountMinor: number; suggestedAmountsMinor: number[] }) {
+    super(409, 'TOPUP_AMOUNT_BUSY', 'The requested top-up amount is currently reserved', details);
+    this.name = 'TopUpAmountBusyError';
+  }
+}
+
 export class TooManyRequestsError extends AppError {
   constructor(message = 'Too many requests') {
     super(429, 'TOO_MANY_REQUESTS', message);

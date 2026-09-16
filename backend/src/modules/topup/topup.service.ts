@@ -1,6 +1,6 @@
 import type { CardNetwork, PrismaClient, ReceivingMethod, ReceivingMethodType, TopUpChannel } from '@prisma/client';
 import { env } from '../../config/env.js';
-import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../../lib/errors.js';
+import { ConflictError, ForbiddenError, NotFoundError, TopUpAmountBusyError, ValidationError } from '../../lib/errors.js';
 import { formatMinorAmount } from '../../lib/money.js';
 import { notifyAdmins, sendTopUpReceiptPhoto } from '../../lib/telegram.js';
 import { createNotification } from '../notifications/notifications.service.js';
@@ -75,22 +75,13 @@ export async function createTopUpRequest(ctx: TopUpContext, userId: string, inpu
   return request;
 }
 
-const MAX_AMOUNT_BUMP_ATTEMPTS = 100;
-
-// Bump granularity in minor units (1 so'm) — a collision must still land on
-// a whole-so'm amount, since that's the only precision any banking app, the
-// Paynet QR flow, or a human typing a transfer actually supports. Bumping by
-// raw minor units (tiyin) used to produce amounts like 50 000,03 UZS, which
-// nobody can actually pay — see the bug this replaced.
-const AMOUNT_BUMP_STEP_MINOR = 100;
+const AMOUNT_SUGGESTION_STEP_MINOR = 100 * 100;
+const AMOUNT_SUGGESTION_ATTEMPTS = 20;
 
 /**
- * Finds an amountMinor no other currently-live PENDING request is using,
- * starting from what the user asked for and adding a whole-so'm bump only
- * if that exact amount is already spoken for. This — not a card exclusively
- * reserved to one request — is what lets reserveTopUpRequest() show every
- * active card as a valid transfer target: whichever card the matching
- * transaction actually lands on, the amount alone identifies the request.
+ * Keeps the customer's requested amount unchanged. If it is already reserved,
+ * return two genuinely free alternatives in 100 so'm steps for the client to
+ * present. The user must explicitly choose a different amount.
  *
  * CARD_TRANSFER only (see reserveTopUpRequest) — it's the one type
  * autoVerifyFromCardTransaction() auto-credits by amount alone, so its
@@ -106,16 +97,22 @@ const AMOUNT_BUMP_STEP_MINOR = 100;
  * exact single match, so a collision just falls back to the existing
  * "ambiguous match, needs manual review" path.
  */
-async function pickUniqueAmount(ctx: { prisma: Pick<PrismaClient, 'topUpRequest'> }, requestedAmountMinor: number, now: Date): Promise<number> {
-  for (let bump = 0; bump < MAX_AMOUNT_BUMP_ATTEMPTS; bump++) {
-    const candidate = requestedAmountMinor + bump * AMOUNT_BUMP_STEP_MINOR;
-    const clash = await ctx.prisma.topUpRequest.findFirst({
-      where: { status: 'PENDING', amountMinor: candidate, expiresAt: { gt: now } },
-      select: { id: true },
-    });
-    if (!clash) return candidate;
-  }
-  throw new ConflictError('Too many top-ups are pending right now — please try again in a few minutes');
+async function requireAvailableAmount(ctx: { prisma: Pick<PrismaClient, 'topUpRequest'> }, requestedAmountMinor: number, now: Date): Promise<number> {
+  const candidates = Array.from(
+    { length: AMOUNT_SUGGESTION_ATTEMPTS + 1 },
+    (_, index) => requestedAmountMinor + index * AMOUNT_SUGGESTION_STEP_MINOR,
+  ).filter((amount) => amount <= 2_000_000_000);
+  const occupiedRows = await ctx.prisma.topUpRequest.findMany({
+    where: { status: 'PENDING', amountMinor: { in: candidates }, expiresAt: { gt: now } },
+    select: { amountMinor: true },
+  });
+  const occupied = new Set(occupiedRows.map((row) => row.amountMinor));
+  if (!occupied.has(requestedAmountMinor)) return requestedAmountMinor;
+
+  throw new TopUpAmountBusyError({
+    requestedAmountMinor,
+    suggestedAmountsMinor: candidates.slice(1).filter((amount) => !occupied.has(amount)).slice(0, 2),
+  });
 }
 
 /**
@@ -123,7 +120,7 @@ async function pickUniqueAmount(ctx: { prisma: Pick<PrismaClient, 'topUpRequest'
  * createTopUpRequest() (where the user picks a card up front and commits to
  * it), this shows every active receiving method and leaves receivingMethodId
  * null until a matching transaction (or a manual admin review) identifies
- * which one actually got the transfer — see pickUniqueAmount() for how the
+ * which one actually got the transfer — see requireAvailableAmount() for how the
  * exact amount stays unambiguous across every concurrently pending request.
  */
 /**
@@ -161,7 +158,7 @@ export async function reserveTopUpRequest(
 
   // Self-healing sweep: nothing depends on a background job for this — a
   // PENDING row past its own expiresAt already doesn't block a new
-  // reservation (see pickUniqueAmount), so this just keeps admin-facing
+  // reservation (see requireAvailableAmount), so this just keeps admin-facing
   // status accurate.
   await ctx.prisma.topUpRequest.updateMany({
     where: { status: 'PENDING', expiresAt: { lt: now } },
@@ -187,7 +184,7 @@ export async function reserveTopUpRequest(
     // Serialize amount allocation across server processes, not just this instance.
     if (resolvedType === 'CARD_TRANSFER') await tx.$executeRaw`SELECT pg_advisory_xact_lock(8632112221)`;
     const resolvedAmountMinor = resolvedType === 'CARD_TRANSFER'
-      ? await pickUniqueAmount({ prisma: tx }, amountMinor, now) : amountMinor;
+      ? await requireAvailableAmount({ prisma: tx }, amountMinor, now) : amountMinor;
     return tx.topUpRequest.create({
       data: { userId, type: resolvedType, channel, amountMinor: resolvedAmountMinor, expiresAt: new Date(now.getTime() + ttlMs) },
     });
@@ -268,15 +265,15 @@ async function finalizeVerification(ctx: TopUpContext, requestId: string, option
  * actually landed on one of OUR currently-active cards — a coincidental
  * amount match on an unrelated card must never auto-credit anyone — then
  * matches purely on exact amount + still-pending reservation, since
- * pickUniqueAmount() guarantees a CARD_TRANSFER request's amount is unique
+ * requireAvailableAmount() guarantees a CARD_TRANSFER request's amount is unique
  * among concurrently pending ones. Matching is scoped to type: 'CARD_TRANSFER'
  * for exactly that reason — QR_CODE and PAYNET_TERMINAL amounts get no such
- * guarantee (see pickUniqueAmount's doc comment) and PAYNET_TERMINAL sits
+ * guarantee (see requireAvailableAmount's doc comment) and PAYNET_TERMINAL sits
  * PENDING for up to an hour, so without this filter an unrelated real card
  * transfer that happens to share a round amount with someone's still-unpaid
  * terminal reservation would silently credit the wrong person's wallet. If
  * that's not exactly one request (should only happen from the narrow race
- * window noted on pickUniqueAmount, or a stale/duplicate notification),
+ * window noted on requireAvailableAmount, or a stale/duplicate notification),
  * this deliberately does nothing rather than guess — it falls back to
  * sitting there for manual admin review instead of risking a wrong credit.
  */

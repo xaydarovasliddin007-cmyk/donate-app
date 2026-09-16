@@ -118,18 +118,15 @@ describe('topup reservation + auto-verification (live DB)', () => {
     expect(reservation.receivingMethods.map((m) => m.id).sort()).toEqual([testCardAId, testCardBId].sort());
   });
 
-  it('bumps the amount by a whole so\'m — never a fraction — when it collides with another live pending request', async () => {
+  it('keeps the requested amount exact and suggests free 100 so\'m steps when it is busy', async () => {
     const user1 = await makeUser();
     const user2 = await makeUser();
     const first = await topupService.reserveTopUpRequest(ctx, user1.id, 10000_00);
-    const second = await topupService.reserveTopUpRequest(ctx, user2.id, 10000_00);
-
     expect(first.amountMinor).toBe(1000000);
-    // A bump anywhere but on a whole-so'm boundary would produce an amount
-    // (e.g. 10 000,03 UZS) nobody can actually transfer.
-    expect(second.amountMinor % 100).toBe(0);
-    expect(second.amountMinor).toBeGreaterThan(first.amountMinor);
-    expect(second.amountMinor).toBeLessThan(first.amountMinor + 100 * 100);
+    await expect(topupService.reserveTopUpRequest(ctx, user2.id, 10000_00)).rejects.toMatchObject({
+      code: 'TOPUP_AMOUNT_BUSY',
+      details: { requestedAmountMinor: 10000_00, suggestedAmountsMinor: [10100_00, 10200_00] },
+    });
   });
 
   it('auto-verifies on a matching amount + one of our active cards, credits the wallet, and records which card', async () => {

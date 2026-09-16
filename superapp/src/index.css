@@ -208,6 +208,14 @@ input[type='checkbox'] { accent-color: var(--accent); width: 15px; height: 15px;
 .checkout-result p { font-size: 13px; color: var(--muted); }
 .stack { display: flex; flex-direction: column; gap: 22px; }
 .amount-options { display: flex; gap: 8px; flex-wrap: wrap; }
+.amount-conflict { display: flex; align-items: flex-start; gap: 11px; padding: 14px; color: var(--text); background: color-mix(in srgb,var(--yellow) 8%,var(--surface)); border: 1px solid color-mix(in srgb,var(--yellow) 45%,var(--border)); border-radius: 8px; animation: amount-conflict-in .36s cubic-bezier(.2,.8,.2,1); }
+.amount-conflict>svg { flex: 0 0 auto; color: var(--yellow); }
+.amount-conflict>div { min-width: 0; display: grid; gap: 7px; }
+.amount-conflict strong { font-size: 13px; }
+.amount-conflict p { color: var(--muted); font-size: 11px; line-height: 1.55; }
+.amount-conflict>div>div { display: flex; flex-wrap: wrap; gap: 7px; }
+.amount-conflict button { min-height: 34px; padding: 7px 10px; color: var(--text); background: var(--raised); border: 1px solid color-mix(in srgb,var(--accent) 45%,var(--border)); border-radius: 6px; font-size: 11px; font-weight: 800; transition: transform .18s ease,border-color .18s ease,background .18s ease; }
+.amount-conflict button:hover { transform: translateY(-1px); border-color: var(--accent); background: color-mix(in srgb,var(--accent) 10%,var(--raised)); }
 .amount-display { font-size: 30px; }
 .bank-details { display: flex; align-items: center; gap: 15px; padding: 18px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
 .bank-details>div { flex: 1; min-width: 0; display: grid; gap: 8px; }
@@ -268,6 +276,7 @@ input[type='checkbox'] { accent-color: var(--accent); width: 15px; height: 15px;
 @keyframes pulse { 50% { opacity: .45; } }
 @keyframes tab-enter { from { opacity: 0; transform: translateY(10px) scale(.995); } to { opacity: 1; transform: none; } }
 @keyframes dock-select { 0% { transform: scale(.9); } 65% { transform: scale(1.04); } 100% { transform: scale(1); } }
+@keyframes amount-conflict-in { from { opacity: 0; transform: translateY(-7px) scale(.985); } to { opacity: 1; transform: none; } }
 @media (max-width: 900px) { .games-grid { grid-template-columns: repeat(3,minmax(0,1fr)); } .header-inner,.main-content { padding-left: 24px; padding-right: 24px; } .desktop-nav button { padding: 10px; } h1 { font-size: 30px; } }
 @media (max-width: 640px) {
   .header-inner { min-height: 62px; padding: 0 14px; gap: 12px; }

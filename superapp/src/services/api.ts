@@ -9,7 +9,7 @@ const key = 'uzdonate_session_v2';
 try { session = JSON.parse(sessionStorage.getItem(key) || 'null'); } catch { /* Storage may be unavailable in a webview. */ }
 
 export class ApiError extends Error {
-  constructor(public status: number, public code: string, message: string) { super(message); }
+  constructor(public status: number, public code: string, message: string, public details?: unknown) { super(message); }
 }
 export function errorText(error: unknown) {
   if (error instanceof ApiError) {
@@ -36,7 +36,7 @@ async function raw<T>(path: string, body?: unknown, token?: string): Promise<T> 
   });
   if (response.status === 204) return undefined as T;
   const data = await response.json().catch(() => null);
-  if (!response.ok) throw new ApiError(response.status, data?.error?.code || 'HTTP_ERROR', data?.error?.message || 'So\'rov bajarilmadi');
+  if (!response.ok) throw new ApiError(response.status, data?.error?.code || 'HTTP_ERROR', data?.error?.message || 'So\'rov bajarilmadi', data?.error?.details);
   return data as T;
 }
 export async function signIn(): Promise<Session> {
