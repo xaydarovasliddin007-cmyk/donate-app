@@ -179,6 +179,7 @@ export interface ReceivingMethod {
   cardNumber: string | null;
   cardHolderName: string;
   bankName: string | null;
+  cardNetwork: 'HUMO' | 'UZCARD' | null;
   qrPayload: string | null;
   isActive: boolean;
   sortOrder: number;

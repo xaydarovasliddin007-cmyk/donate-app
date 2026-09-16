@@ -15,6 +15,11 @@ describe('topup route protection', () => {
     expect(response.statusCode).not.toBe(401);
   });
 
+  it('GET /api/v1/topups/options is public', async () => {
+    const response = await app.inject({ method: 'GET', url: '/api/v1/topups/options' });
+    expect(response.statusCode).not.toBe(401);
+  });
+
   it('POST /api/v1/topups without a token returns 401', async () => {
     const response = await app.inject({
       method: 'POST',

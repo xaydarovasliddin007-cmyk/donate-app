@@ -779,6 +779,21 @@ enum ReceivingMethodType {
   @@map("receiving_method_type")
 }
 
+enum CardNetwork {
+  HUMO
+  UZCARD
+
+  @@map("card_network")
+}
+
+enum TopUpChannel {
+  HUMO
+  UZCARD
+  BANKOMAT
+
+  @@map("top_up_channel")
+}
+
 model ReceivingMethod {
   id   String              @id @default(uuid()) @db.Uuid
   type ReceivingMethodType @default(CARD_TRANSFER)
@@ -795,6 +810,9 @@ model ReceivingMethod {
   // field covers both rather than adding a separate "label" column.
   cardHolderName String  @map("card_holder_name")
   bankName       String? @map("bank_name")
+  // Required for new card-transfer methods. Kept nullable so legacy rows
+  // remain readable until an admin classifies or disables them.
+  cardNetwork    CardNetwork? @map("card_network")
   // The raw Paynet (or other provider) QR payload/link — rendered as an
   // actual QR image client-side. Only set for QR_CODE / PAYNET_TERMINAL.
   qrPayload String? @map("qr_payload")
@@ -805,6 +823,7 @@ model ReceivingMethod {
 
   topUpRequests TopUpRequest[]
 
+  @@index([type, cardNetwork, isActive])
   @@map("receiving_methods")
 }
 
@@ -838,6 +857,9 @@ model TopUpRequest {
   // for that once PAYNET_TERMINAL started reusing CARD_TRANSFER rows.
   // Nullable because rows created before this column existed have none.
   type              ReceivingMethodType? @map("type")
+  // Customer-facing rail. HUMO/UZCARD are auto-matched from a trusted bank
+  // transaction feed; BANKOMAT always waits for explicit admin review.
+  channel           TopUpChannel?       @map("channel")
   amountMinor       Int                @map("amount_minor")
   currency          String             @default("UZS")
   status            TopUpRequestStatus @default(PENDING)
@@ -878,6 +900,7 @@ model TopUpRequest {
   // crediting latency depends on this being an index lookup, not a scan
   // over every currently-pending row.
   @@index([status, amountMinor])
+  @@index([channel, status, amountMinor])
   @@map("top_up_requests")
 }
 

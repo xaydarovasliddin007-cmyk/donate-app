@@ -15,7 +15,7 @@ function typeLabel(t: (key: string) => string, type: TopUpRequestAdmin['type']) 
     case 'QR_CODE':
       return t('receivingMethods.typeQrCode');
     case 'PAYNET_TERMINAL':
-      return t('receivingMethods.typePaynetTerminal');
+      return t('receivingMethods.typeBankomat');
     case 'CARD_TRANSFER':
       return t('receivingMethods.typeCardTransfer');
     default:

@@ -25,6 +25,13 @@ describe('TopUp Schemas Validation', () => {
       expect(result.success).toBe(true);
     });
 
+    it('accepts HUMO, UZCARD and BANKOMAT channels only with matching request types', () => {
+      expect(reserveTopUpRequestSchema.safeParse({ amountMinor: 100_000_00, type: 'CARD_TRANSFER', channel: 'HUMO' }).success).toBe(true);
+      expect(reserveTopUpRequestSchema.safeParse({ amountMinor: 100_000_00, type: 'CARD_TRANSFER', channel: 'UZCARD' }).success).toBe(true);
+      expect(reserveTopUpRequestSchema.safeParse({ amountMinor: 100_000_00, type: 'PAYNET_TERMINAL', channel: 'BANKOMAT' }).success).toBe(true);
+      expect(reserveTopUpRequestSchema.safeParse({ amountMinor: 100_000_00, type: 'CARD_TRANSFER', channel: 'BANKOMAT' }).success).toBe(false);
+    });
+
     it('accepts valid amount with QR_CODE type', () => {
       const result = reserveTopUpRequestSchema.safeParse({
         amountMinor: 25_000_00,
@@ -55,6 +62,7 @@ describe('TopUp Schemas Validation', () => {
   describe('humoTransactionSchema', () => {
     it('accepts valid transaction input with card hint and amount', () => {
       const result = humoTransactionSchema.safeParse({
+        transactionId: 'humo:12345',
         cardHint: '8882',
         amountMinor: 100_000,
         rawMessage: 'Пополнение 1.000,00 UZS',
@@ -64,6 +72,7 @@ describe('TopUp Schemas Validation', () => {
 
     it('rejects card hint shorter than 4 digits', () => {
       const result = humoTransactionSchema.safeParse({
+        transactionId: 'humo:short-hint',
         cardHint: '12',
         amountMinor: 100_000,
       });
@@ -71,8 +80,8 @@ describe('TopUp Schemas Validation', () => {
     });
 
     it('rejects non-positive transaction amounts', () => {
-      expect(humoTransactionSchema.safeParse({ cardHint: '8882', amountMinor: 0 }).success).toBe(false);
-      expect(humoTransactionSchema.safeParse({ cardHint: '8882', amountMinor: -500 }).success).toBe(false);
+      expect(humoTransactionSchema.safeParse({ transactionId: 'humo:zero', cardHint: '8882', amountMinor: 0 }).success).toBe(false);
+      expect(humoTransactionSchema.safeParse({ transactionId: 'humo:negative', cardHint: '8882', amountMinor: -500 }).success).toBe(false);
     });
   });
 

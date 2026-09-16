@@ -1,15 +1,14 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import QRCode from 'qrcode';
-import { ArrowLeft, Banknote, CheckCircle2, ChevronRight, Copy, CreditCard, Gamepad2, HelpCircle, Home, LoaderCircle, Package, QrCode, UserRound, WalletCards } from 'lucide-react';
-import type { ReceivingMethod, TopUp, Wallet } from '../types';
+import { ArrowLeft, Banknote, CheckCircle2, ChevronRight, Copy, CreditCard, Gamepad2, HelpCircle, Home, LoaderCircle, Package, UserRound, WalletCards } from 'lucide-react';
+import type { ReceivingMethod, TopUp, TopUpOption, Wallet } from '../types';
 import { api, errorText } from '../services/api';
 import { Sheet } from './Sheet';
 import { ErrorBox, money } from './ui';
 
 export function WalletSheet({ wallet, onClose, onUpdated, onNavigate }: { wallet: Wallet | null; onClose: () => void; onUpdated: () => void; onNavigate: (tab: 'shop' | 'games' | 'orders' | 'profile') => void }) {
-  const [methods, setMethods] = useState<ReceivingMethod[]>([]);
-  const [selectedType, setSelectedType] = useState<ReceivingMethod['type'] | null>(null);
-  const [selectedMethodId, setSelectedMethodId] = useState<string | null>(null);
+  const [options, setOptions] = useState<TopUpOption[]>([]);
+  const [selectedChannel, setSelectedChannel] = useState<TopUpOption['id'] | null>(null);
   const [balance, setBalance] = useState<Wallet | null>(wallet);
   const [showGuide, setShowGuide] = useState(false);
   const [amount, setAmount] = useState('50000');
@@ -25,8 +24,8 @@ export function WalletSheet({ wallet, onClose, onUpdated, onNavigate }: { wallet
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
     let active = true; setLoading(true); setError('');
-    api<{ receivingMethods: ReceivingMethod[] }>('/topups/receiving-methods', undefined, false)
-      .then((data) => { if (active) setMethods(data.receivingMethods); })
+    api<{ options: TopUpOption[] }>('/topups/options', undefined, false)
+      .then((data) => { if (active) setOptions(data.options); })
       .catch((err) => { if (active) setError(errorText(err)); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
@@ -47,8 +46,9 @@ export function WalletSheet({ wallet, onClose, onUpdated, onNavigate }: { wallet
     const minor = Math.round(Number(amount) * 100);
     if (!Number.isSafeInteger(minor) || minor <= 0 || minor > 2_000_000_000) return;
     lock.current = true; setBusy(true); setError('');
-    if (!selectedType) return;
-    try { setRequest(await api<TopUp & { receivingMethods: ReceivingMethod[] }>('/topups/reserve', { amountMinor: minor, type: selectedType })); }
+    if (!selectedChannel) return;
+    const type: ReceivingMethod['type'] = selectedChannel === 'BANKOMAT' ? 'PAYNET_TERMINAL' : 'CARD_TRANSFER';
+    try { setRequest(await api<TopUp & { receivingMethods: ReceivingMethod[] }>('/topups/reserve', { amountMinor: minor, type, channel: selectedChannel })); }
     catch (err) { setError(errorText(err)); }
     finally { setBusy(false); lock.current = false; }
   }
@@ -68,10 +68,10 @@ export function WalletSheet({ wallet, onClose, onUpdated, onNavigate }: { wallet
   }
   const requestMethods = request?.receivingMethod ? [request.receivingMethod] : request?.receivingMethods || [];
   const remaining = request?.expiresAt ? Math.max(0, Math.ceil((new Date(request.expiresAt).getTime() - now) / 1000)) : 0;
-  const methodInfo: Record<ReceivingMethod['type'], { label: string; description: string; icon: typeof CreditCard }> = {
-    CARD_TRANSFER: { label: "Bank kartasi", description: "Uzcard yoki Humo orqali o'tkazma", icon: CreditCard },
-    QR_CODE: { label: "QR orqali", description: "Bank ilovasida QR kodni skanerlang", icon: QrCode },
-    PAYNET_TERMINAL: { label: "Paynet terminal", description: "Terminalda naqd pul bilan", icon: Banknote },
+  const methodInfo: Record<TopUpOption['id'], { description: string; icon: typeof CreditCard }> = {
+    HUMO: { description: "Avtomatik tasdiqlanadi", icon: CreditCard },
+    UZCARD: { description: "Avtomatik tasdiqlanadi", icon: CreditCard },
+    BANKOMAT: { description: "Admin chekni tasdiqlaydi", icon: Banknote },
   };
   return <Sheet title="Balansni to'ldirish" onClose={onClose} busy={busy} className="wallet-sheet">
     <div className="checkout-form">
@@ -85,10 +85,10 @@ export function WalletSheet({ wallet, onClose, onUpdated, onNavigate }: { wallet
         {confirmed ? <div className="notice success"><CheckCircle2 size={20}/>To'lov tekshirilmoqda. Natija balansingizda ko'rinadi.</div> : request.type === 'PAYNET_TERMINAL' ? <form className="stack compact" onSubmit={submitReference}><label>Chek raqami<input value={reference} onChange={(event) => setReference(event.target.value)} required maxLength={200} placeholder="Masalan: 12345678"/></label><button className="button primary" disabled={busy || remaining === 0 || !reference.trim()}>{busy ? <LoaderCircle className="spin" size={18}/> : <CheckCircle2 size={18}/>}Chekni yuborish</button></form> : <button className="button primary" disabled={busy || remaining === 0} onClick={confirm}>{busy ? <LoaderCircle className="spin" size={18}/> : <CheckCircle2 size={18}/>}To'lovni amalga oshirdim</button>}
         {remaining === 0 && !confirmed && <p role="status">Muddat tugadi. To'lov qilgan bo'lsangiz, yordam xizmatiga buyurtma raqamini yuboring.</p>}
         <small className="muted">So'rov: {request.id}</small>
-      </> : !selectedType ? <section className="topup-step"><div><span className="eyebrow accent-text">1-QADAM</span><h3>To'lov usulini tanlang</h3></div>{loading ? <div className="skeleton list-skeleton"/> : methods.length ? <div className="payment-method-list">{methods.map((method) => { const info = methodInfo[method.type]; const Icon = info.icon; const title = method.type === 'CARD_TRANSFER' ? method.bankName || info.label : method.cardHolderName || info.label; return <button key={method.id} onClick={() => { setSelectedMethodId(method.id); setSelectedType(method.type); }}><span><Icon size={26}/></span><div><strong>{title}</strong><small>{info.description}</small></div><ChevronRight className="method-check" size={19}/></button>; })}</div> : !error && <p>To'ldirish usullari hozircha mavjud emas.</p>}<div className="topup-minimum"><span>Minimal summa: 1 000 so'm</span><button onClick={() => setShowGuide((value) => !value)}>Qanday ishlaydi? <ChevronRight size={15}/></button></div><button className="topup-guide-link" onClick={() => setShowGuide((value) => !value)}><span><HelpCircle size={22}/></span><div><strong>Balansni qanday to'ldirish mumkin?</strong><small>Bosqichma-bosqich qo'llanma</small></div><ChevronRight size={18}/></button>{showGuide && <ol className="topup-guide"><li>To'lov usulini tanlang.</li><li>Kerakli summani kiriting.</li><li>Berilgan rekvizitga aynan shu summani o'tkazing.</li></ol>}</section> : <form className="stack" onSubmit={reserve}>
-        <button className="topup-back" type="button" onClick={() => { setSelectedType(null); setSelectedMethodId(null); }}><ArrowLeft size={17}/> To'lov usullari</button>
+      </> : !selectedChannel ? <section className="topup-step"><div><span className="eyebrow accent-text">1-QADAM</span><h3>To'lov usulini tanlang</h3></div>{loading ? <div className="skeleton list-skeleton"/> : options.length ? <div className="payment-method-list">{options.map((option) => { const info = methodInfo[option.id]; const Icon = info.icon; return <button key={option.id} disabled={!option.available} onClick={() => setSelectedChannel(option.id)}><span><Icon size={26}/></span><div><strong>{option.label}</strong><small>{option.available ? info.description : 'Hozircha sozlanmagan'}</small></div><ChevronRight className="method-check" size={19}/></button>; })}</div> : !error && <p>To'ldirish usullari hozircha mavjud emas.</p>}<div className="topup-minimum"><span>Minimal summa: 1 000 so'm</span><button onClick={() => setShowGuide((value) => !value)}>Qanday ishlaydi? <ChevronRight size={15}/></button></div><button className="topup-guide-link" onClick={() => setShowGuide((value) => !value)}><span><HelpCircle size={22}/></span><div><strong>Balansni qanday to'ldirish mumkin?</strong><small>Bosqichma-bosqich qo'llanma</small></div><ChevronRight size={18}/></button>{showGuide && <ol className="topup-guide"><li>HUMO yoki UZCARD avtomatik tekshiriladi.</li><li>Bankomat uchun chek raqamini yuboring.</li><li>Bankomat to'lovini admin tasdiqlaydi.</li></ol>}</section> : <form className="stack" onSubmit={reserve}>
+        <button className="topup-back" type="button" onClick={() => setSelectedChannel(null)}><ArrowLeft size={17}/> To'lov usullari</button>
         <div><span className="eyebrow accent-text">2-QADAM</span><h3>Summani kiriting</h3></div>
-        {selectedMethodId && <div className="selected-payment-method">{(() => { const method = methods.find((item) => item.id === selectedMethodId); if (!method) return null; const InfoIcon = methodInfo[method.type].icon; return <><InfoIcon size={21}/><span>{method.type === 'CARD_TRANSFER' ? method.bankName || methodInfo[method.type].label : method.cardHolderName}</span><CheckCircle2 size={18}/></>; })()}</div>}
+        {selectedChannel && <div className="selected-payment-method">{(() => { const option = options.find((item) => item.id === selectedChannel); if (!option) return null; const InfoIcon = methodInfo[option.id].icon; return <><InfoIcon size={21}/><span>{option.label}</span><CheckCircle2 size={18}/></>; })()}</div>}
         <label>Summa, so'm<input autoFocus type="number" min="1000" max="20000000" step="1" value={amount} onChange={(event) => setAmount(event.target.value)} required/></label>
         <div className="amount-options">{[25000, 50000, 100000, 200000].map((value) => <button className={`chip ${Number(amount) === value ? 'active' : ''}`} type="button" key={value} onClick={() => setAmount(String(value))}>{value.toLocaleString('uz-UZ')}</button>)}</div>
         <button className="button primary" type="submit" disabled={busy}>{busy ? <LoaderCircle className="spin" size={18}/> : <CreditCard size={18}/>}To'lov rekvizitlari</button>

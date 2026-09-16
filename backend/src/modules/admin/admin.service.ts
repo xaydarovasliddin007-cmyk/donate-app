@@ -895,6 +895,7 @@ export async function createReceivingMethodAdmin(
     cardNumber?: string;
     cardHolderName: string;
     bankName?: string;
+    cardNetwork?: 'HUMO' | 'UZCARD';
     qrPayload?: string;
     sortOrder?: number;
   },
@@ -918,6 +919,7 @@ export async function updateReceivingMethodAdmin(
     cardNumber?: string;
     cardHolderName?: string;
     bankName?: string;
+    cardNetwork?: 'HUMO' | 'UZCARD';
     qrPayload?: string;
     sortOrder?: number;
   },

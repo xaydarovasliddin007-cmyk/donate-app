@@ -386,9 +386,9 @@ Original setup steps, kept for reference / re-doing this for a new account:
 
 ## Card-transfer auto top-up setup
 
-This is the "enter an amount, get assigned one card, transfer that exact amount, balance
-appears automatically" flow used by Uzpin/BuyPin-style bots — no admin has to manually review
-every top-up.
+This is the "choose HUMO or UZCARD, enter an amount, get assigned one card, transfer that exact
+amount, balance appears automatically" flow. Bankomat payments deliberately remain under manual
+admin review.
 
 How it works:
 
@@ -398,22 +398,25 @@ How it works:
    exactly one request can hold a given card at a time, the *amount alone* is enough to identify
    which request a transfer belongs to — the user's stated amount is never rounded or modified.
 2. The user transfers that exact amount to that exact card, using their own banking app.
-3. A **Telegram userbot** (`scripts/humo-listener.ts` — not built with the Bot API, since a bot
+3. A trusted transaction feed sends a unique transaction ID, card hint, and amount to
+   `/api/v1/payments/webhooks/card-transaction`. The included **Telegram userbot**
+   (`scripts/humo-listener.ts` — not built with the Bot API, since a bot
    can't read another bot's DMs to a user account; uses a real personal Telegram login via
    [GramJS](https://gram.js.org/)) sits in the background watching for new messages from the
    official `@HUMOcardbot`, which already sends a notification to its owner for every incoming
    transfer on cards registered with it. It parses the card hint + amount out of each message and
-   `POST`s them to `/api/v1/payments/webhooks/humo-transaction`.
+   forwards a normalized transaction. The legacy `/webhooks/humo-transaction` route is retained
+   for existing listener deployments.
 4. `autoVerifyFromCardTransaction` in `topup.service.ts` matches that card+amount against
    still-live `PENDING` reservations. Exactly one match → wallet credited immediately, no admin
    involved. Zero or more than one match → nothing happens automatically and an admin gets a
    Telegram alert to review manually (the request just sits there until it expires or an admin
    verifies it by hand, same as a regular top-up request).
 
-**Status: fully configured and live.** `HUMO_WEBHOOK_SECRET`, `TELEGRAM_API_ID`/`TELEGRAM_API_HASH`/
-`TELEGRAM_SESSION` are all set in `backend/.env`, the 8 receiving cards are registered with
-`@HUMOcardbot`, and the parser in `src/lib/humo-message-parser.ts` is calibrated against a real
-notification (see the doc comment there) rather than a guess.
+**Deployment status is configuration-dependent.** Automatic HUMO/UZCARD options are shown only
+when a webhook secret and a real, network-classified receiving card are configured. Placeholder
+cards are never exposed as live payment rails. Bankomat remains available as a manual-review
+channel when a real receiving card exists.
 
 The listener itself runs as its own `humo-listener` service in `docker-compose.yml`
 (`restart: unless-stopped`, same as `backend`) — **not** a manually-opened terminal running
@@ -424,11 +427,12 @@ in try/catch so one malformed/unexpected message can't take the whole process do
 
 To set this up again from scratch (e.g. a new deployment, or rotating the Telegram session):
 
-1. Set `HUMO_WEBHOOK_SECRET` in `backend/.env` — without it the webhook route 404s and top-ups
+1. Set `CARD_TRANSACTION_WEBHOOK_SECRET` in `backend/.env` (`HUMO_WEBHOOK_SECRET` remains a legacy
+   fallback) — without it the webhook route 404s and automatic top-ups
    fall back to manual admin review, same "wired but inert without credentials" pattern as every
    other provider here.
-2. Add the receiving cards as `ReceivingMethod` rows via the admin panel (masked PAN + holder name
-   + bank name each), and confirm each is registered with `@HUMOcardbot` on Telegram.
+2. Add each real receiving card via the admin panel (full PAN, holder, bank, and HUMO/UZCARD
+   network). If using the included listener, register supported cards with its notification source.
 3. Get `TELEGRAM_API_ID`/`TELEGRAM_API_HASH` from [my.telegram.org](https://my.telegram.org) →
    "API development tools", logged in as the account registered with `@HUMOcardbot`.
 4. Run `npm run humo:listener` (from `backend/`) directly on the host once, interactively — first
@@ -450,7 +454,7 @@ app refuses to boot otherwise — and must all be *different* from each other). 
 `SMTP_PASSWORD` (verification emails log to console instead of sending without them),
 `DIGIFLAZZ_USERNAME`/`DIGIFLAZZ_API_KEY` and/or `APIGAMES_USERNAME`/`APIGAMES_API_KEY` (top-up
 orders have no real provider to route to without at least one — see "Digiflazz top-up setup"),
-and `HUMO_WEBHOOK_SECRET` (card-transfer top-ups fall back to manual admin review without it —
+and `CARD_TRANSACTION_WEBHOOK_SECRET` (automatic card-transfer top-ups remain unavailable without it —
 see "Card-transfer auto top-up setup").
 
 ## Telegram admin notifications

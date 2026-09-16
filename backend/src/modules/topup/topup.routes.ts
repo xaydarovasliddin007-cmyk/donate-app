@@ -24,6 +24,11 @@ export async function topupRoutes(app: FastifyInstance) {
     return { receivingMethods: methods };
   });
 
+  app.get('/topups/options', async () => {
+    const options = await topupService.listTopUpOptions(ctx);
+    return { options };
+  });
+
   app.post(
     '/topups',
     { preHandler: [authenticate, validateBody(createTopUpRequestSchema)] },
@@ -58,7 +63,13 @@ export async function topupRoutes(app: FastifyInstance) {
     },
     async (request, reply) => {
       const body = request.body as ReserveTopUpRequestInput;
-      const topUp = await topupService.reserveTopUpRequest(ctx, request.currentUser!.id, body.amountMinor, body.type);
+      const topUp = await topupService.reserveTopUpRequest(
+        ctx,
+        request.currentUser!.id,
+        body.amountMinor,
+        body.type,
+        body.channel,
+      );
       return reply.status(201).send(topUp);
     },
   );

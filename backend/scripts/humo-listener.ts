@@ -55,7 +55,7 @@ async function prompt(question: string): Promise<string> {
   }
 }
 
-async function forwardTransaction(payload: { cardHint: string; amountMinor: number; rawMessage: string }) {
+async function forwardTransaction(payload: { transactionId: string; cardHint: string; amountMinor: number; rawMessage: string }) {
   try {
     const response = await fetch(webhookUrl, {
       method: 'POST',
@@ -110,7 +110,7 @@ async function main() {
       }
 
       console.log('[humo-listener] parsed transaction', parsed);
-      await forwardTransaction({ ...parsed, rawMessage: text });
+      await forwardTransaction({ transactionId: `${botUsername}:${message.id}`, ...parsed, rawMessage: text });
     } catch (error) {
       console.error('[humo-listener] error handling message, continuing to listen', error);
     }

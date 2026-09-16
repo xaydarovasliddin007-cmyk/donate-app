@@ -114,6 +114,9 @@ const envSchema = z.object({
   // run, and top-ups fall back to manual admin review (see
   // modules/topup/topup.service.ts).
   HUMO_WEBHOOK_SECRET: z.string().trim().min(1).optional(),
+  // Generic trusted transaction feed for both HUMO and UZCARD cards.
+  // HUMO_WEBHOOK_SECRET remains a backwards-compatible fallback.
+  CARD_TRANSACTION_WEBHOOK_SECRET: z.string().trim().min(1).optional(),
 
   // Optional: outgoing email (registration verification codes) via SMTP —
   // same "wired but needs credentials" pattern as the above. Without these,

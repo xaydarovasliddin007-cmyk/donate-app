@@ -26,13 +26,21 @@ export interface Order {
 export interface ReceivingMethod {
   id: string; type: 'CARD_TRANSFER' | 'QR_CODE' | 'PAYNET_TERMINAL';
   cardNumber: string | null; cardHolderName: string; bankName: string | null;
+  cardNetwork: 'HUMO' | 'UZCARD' | null;
   qrPayload?: string | null; instructions?: string | null; qrImageUrl?: string | null;
 }
 export interface TopUp {
   id: string; amountMinor: number; currency: string; status: string;
   type?: ReceivingMethod['type']; userReference?: string | null;
+  channel?: 'HUMO' | 'UZCARD' | 'BANKOMAT' | null;
   expiresAt: string | null; receivingMethod: ReceivingMethod | null;
   createdAt: string; userConfirmedPaidAt: string | null;
+}
+export interface TopUpOption {
+  id: 'HUMO' | 'UZCARD' | 'BANKOMAT';
+  label: string;
+  mode: 'AUTO' | 'MANUAL';
+  available: boolean;
 }
 export interface AppConfig { supportUrl: string; telegramBotUrl: string; telegramPaymentsEnabled: boolean; testMode?: boolean }
 export interface CheckoutInput { gameId: string; productId: string; playerId: string; serverId?: string; zoneId?: string; idempotencyKey: string }

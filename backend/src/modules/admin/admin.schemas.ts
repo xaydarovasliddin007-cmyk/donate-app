@@ -180,12 +180,17 @@ export const adminCreateReceivingMethodSchema = z
     cardNumber: z.string().trim().min(4).max(40).optional(),
     cardHolderName: z.string().trim().min(1).max(120),
     bankName: z.string().trim().min(1).max(120).optional(),
+    cardNetwork: z.enum(['HUMO', 'UZCARD']).optional(),
     qrPayload: z.string().trim().min(10).max(600).optional(),
     sortOrder: z.number().int().optional(),
   })
   .refine((data) => data.type !== 'CARD_TRANSFER' || !!data.cardNumber, {
     message: 'cardNumber is required for CARD_TRANSFER',
     path: ['cardNumber'],
+  })
+  .refine((data) => data.type !== 'CARD_TRANSFER' || !!data.cardNetwork, {
+    message: 'cardNetwork is required for CARD_TRANSFER',
+    path: ['cardNetwork'],
   })
   .refine((data) => data.type === 'CARD_TRANSFER' || !!data.qrPayload, {
     message: 'qrPayload is required for QR_CODE and PAYNET_TERMINAL',
@@ -198,6 +203,7 @@ export const adminUpdateReceivingMethodSchema = z
     cardNumber: z.string().trim().min(4).max(40).optional(),
     cardHolderName: z.string().trim().min(1).max(120).optional(),
     bankName: z.string().trim().min(1).max(120).optional(),
+    cardNetwork: z.enum(['HUMO', 'UZCARD']).optional(),
     qrPayload: z.string().trim().min(10).max(600).optional(),
     sortOrder: z.number().int().optional(),
   })

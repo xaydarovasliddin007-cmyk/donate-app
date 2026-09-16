@@ -27,6 +27,7 @@ export function ReceivingMethodsPage() {
   const [cardNumber, setCardNumber] = useState('');
   const [cardHolderName, setCardHolderName] = useState('');
   const [bankName, setBankName] = useState('');
+  const [cardNetwork, setCardNetwork] = useState<'HUMO' | 'UZCARD'>('HUMO');
   const [qrPayload, setQrPayload] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -57,6 +58,7 @@ export function ReceivingMethodsPage() {
         cardNumber: type === 'CARD_TRANSFER' ? cardNumber.trim() : undefined,
         cardHolderName: cardHolderName.trim(),
         bankName: bankName.trim() || undefined,
+        cardNetwork: type === 'CARD_TRANSFER' ? cardNetwork : undefined,
         qrPayload: type === 'CARD_TRANSFER' ? undefined : qrPayload.trim(),
       });
       setCardNumber('');
@@ -104,6 +106,12 @@ export function ReceivingMethodsPage() {
               ))}
             </select>
             {type === 'CARD_TRANSFER' && (
+              <select value={cardNetwork} onChange={(e) => setCardNetwork(e.target.value as 'HUMO' | 'UZCARD')}>
+                <option value="HUMO">HUMO</option>
+                <option value="UZCARD">UZCARD</option>
+              </select>
+            )}
+            {type === 'CARD_TRANSFER' && (
               <input
                 placeholder={t('receivingMethods.cardNumberPlaceholder')}
                 value={cardNumber}
@@ -148,6 +156,7 @@ export function ReceivingMethodsPage() {
             <tr>
               <th>{t('receivingMethods.colType')}</th>
               <th>{t('receivingMethods.colCard')}</th>
+              <th>{t('receivingMethods.colNetwork')}</th>
               <th>{t('receivingMethods.colHolder')}</th>
               <th>{t('receivingMethods.colBank')}</th>
               <th>{t('receivingMethods.colActive')}</th>
@@ -155,7 +164,7 @@ export function ReceivingMethodsPage() {
             </tr>
           </thead>
           <tbody>
-            <SkeletonRows columns={6} />
+            <SkeletonRows columns={7} />
           </tbody>
         </table>
       )}
@@ -166,6 +175,7 @@ export function ReceivingMethodsPage() {
             <tr>
               <th>{t('receivingMethods.colType')}</th>
               <th>{t('receivingMethods.colCard')}</th>
+              <th>{t('receivingMethods.colNetwork')}</th>
               <th>{t('receivingMethods.colHolder')}</th>
               <th>{t('receivingMethods.colBank')}</th>
               <th>{t('receivingMethods.colActive')}</th>
@@ -181,6 +191,7 @@ export function ReceivingMethodsPage() {
                     ? method.cardNumber
                     : (method.qrPayload ?? '—').slice(0, 40) + ((method.qrPayload?.length ?? 0) > 40 ? '…' : '')}
                 </td>
+                <td>{method.cardNetwork ?? '—'}</td>
                 <td>{method.cardHolderName}</td>
                 <td>{method.bankName ?? '—'}</td>
                 <td>
@@ -199,7 +210,7 @@ export function ReceivingMethodsPage() {
             ))}
             {data.receivingMethods.length === 0 && (
               <tr>
-                <td colSpan={6} className="muted">
+                <td colSpan={7} className="muted">
                   {t('receivingMethods.empty')}
                 </td>
               </tr>

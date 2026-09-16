@@ -64,6 +64,7 @@ describe('topup reservation + auto-verification (live DB)', () => {
           cardNumber: '9999 0000 0000 4242',
           cardHolderName: 'Vitest Reservation Test A',
           bankName: 'Test Bank',
+          cardNetwork: 'HUMO',
           isActive: true,
           sortOrder: -2,
         },
@@ -73,6 +74,7 @@ describe('topup reservation + auto-verification (live DB)', () => {
           cardNumber: '9999 1111 1111 5353',
           cardHolderName: 'Vitest Reservation Test B',
           bankName: 'Test Bank',
+          cardNetwork: 'UZCARD',
           isActive: true,
           sortOrder: -1,
         },
@@ -135,6 +137,7 @@ describe('topup reservation + auto-verification (live DB)', () => {
     const reservation = await topupService.reserveTopUpRequest(ctx, user.id, 25000_00);
 
     const result = await topupService.autoVerifyFromCardTransaction(ctx, {
+      transactionId: 'test:auto-success',
       cardHint: '5353',
       amountMinor: reservation.amountMinor,
       rawMessage: 'test transfer',
@@ -149,11 +152,37 @@ describe('topup reservation + auto-verification (live DB)', () => {
     expect(wallet.balanceMinor).toBe(reservation.amountMinor);
   });
 
+  it('keeps HUMO and UZCARD reservations on their selected card network', async () => {
+    const humoUser = await makeUser();
+    const uzcardUser = await makeUser();
+    const humo = await topupService.reserveTopUpRequest(ctx, humoUser.id, 25100_00, 'CARD_TRANSFER', 'HUMO');
+    const uzcard = await topupService.reserveTopUpRequest(ctx, uzcardUser.id, 25200_00, 'CARD_TRANSFER', 'UZCARD');
+
+    expect(humo.channel).toBe('HUMO');
+    expect(humo.receivingMethods.map((method) => method.id)).toEqual([testCardAId]);
+    expect(uzcard.channel).toBe('UZCARD');
+    expect(uzcard.receivingMethods.map((method) => method.id)).toEqual([testCardBId]);
+  });
+
+  it('never auto-verifies a BANKOMAT request even when card and amount match', async () => {
+    const user = await makeUser();
+    const reservation = await topupService.reserveTopUpRequest(ctx, user.id, 25300_00, 'PAYNET_TERMINAL', 'BANKOMAT');
+    const result = await topupService.autoVerifyFromCardTransaction(ctx, {
+      transactionId: 'test:bankomat-no-auto',
+      cardHint: '4242',
+      amountMinor: reservation.amountMinor,
+    });
+
+    expect(result).toBeNull();
+    expect((await prisma.topUpRequest.findUniqueOrThrow({ where: { id: reservation.id } })).status).toBe('PENDING');
+  });
+
   it('does nothing for a transaction on a card that is not one of our active receiving methods, even if the amount matches', async () => {
     const user = await makeUser();
     const reservation = await topupService.reserveTopUpRequest(ctx, user.id, 25000_00);
 
     const result = await topupService.autoVerifyFromCardTransaction(ctx, {
+      transactionId: 'test:unknown-card',
       cardHint: '0000', // not testCardA's 4242 nor testCardB's 5353
       amountMinor: reservation.amountMinor,
     });
@@ -168,6 +197,7 @@ describe('topup reservation + auto-verification (live DB)', () => {
     await topupService.reserveTopUpRequest(ctx, user.id, 25000_00);
 
     const result = await topupService.autoVerifyFromCardTransaction(ctx, {
+      transactionId: 'test:unknown-amount',
       cardHint: '4242',
       amountMinor: 999999900,
     });
@@ -278,6 +308,7 @@ describe('topup reservation + auto-verification (live DB)', () => {
       // amount the terminal user picked — this must not credit them, since
       // they haven't actually paid anything at a kiosk yet.
       const result = await topupService.autoVerifyFromCardTransaction(ctx, {
+        transactionId: 'test:legacy-terminal-no-auto',
         cardHint: '5353',
         amountMinor: reservation.amountMinor,
       });
@@ -320,6 +351,7 @@ describe('topup reservation + auto-verification (live DB)', () => {
       const user = await makeUser();
       const reservation = await topupService.reserveTopUpRequest(ctx, user.id, 42000_00);
       await topupService.autoVerifyFromCardTransaction(ctx, {
+        transactionId: 'test:reference-finalized',
         cardHint: '4242',
         amountMinor: reservation.amountMinor,
       });

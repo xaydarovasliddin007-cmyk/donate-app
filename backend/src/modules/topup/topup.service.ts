@@ -1,4 +1,5 @@
-import type { PrismaClient, ReceivingMethod, ReceivingMethodType } from '@prisma/client';
+import type { CardNetwork, PrismaClient, ReceivingMethod, ReceivingMethodType, TopUpChannel } from '@prisma/client';
+import { env } from '../../config/env.js';
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../../lib/errors.js';
 import { formatMinorAmount } from '../../lib/money.js';
 import { notifyAdmins } from '../../lib/telegram.js';
@@ -31,6 +32,22 @@ export async function listActiveReceivingMethods(ctx: TopUpContext) {
     where: { isActive: true },
     orderBy: { sortOrder: 'asc' },
   });
+}
+
+function isConfiguredCard(method: ReceivingMethod) {
+  return method.type === 'CARD_TRANSFER' && !!method.cardNetwork &&
+    !/dev placeholder/i.test(method.cardHolderName) && !!method.cardNumber;
+}
+
+export async function listTopUpOptions(ctx: TopUpContext) {
+  const methods = await listActiveReceivingMethods(ctx);
+  const cards = methods.filter(isConfiguredCard);
+  const autoFeedConfigured = Boolean(env.CARD_TRANSACTION_WEBHOOK_SECRET || env.HUMO_WEBHOOK_SECRET);
+  return [
+    { id: 'HUMO' as const, label: 'HUMO', mode: 'AUTO' as const, available: autoFeedConfigured && cards.some((m) => m.cardNetwork === 'HUMO') },
+    { id: 'UZCARD' as const, label: 'UZCARD', mode: 'AUTO' as const, available: autoFeedConfigured && cards.some((m) => m.cardNetwork === 'UZCARD') },
+    { id: 'BANKOMAT' as const, label: 'Bankomat', mode: 'MANUAL' as const, available: cards.length > 0 },
+  ];
 }
 
 export async function createTopUpRequest(ctx: TopUpContext, userId: string, input: CreateTopUpRequestInput) {
@@ -120,7 +137,11 @@ async function pickUniqueAmount(ctx: { prisma: Pick<PrismaClient, 'topUpRequest'
  * reserveTopUpRequest() up front and getTopUpRequestForUser() on every poll
  * afterward, so the two never disagree about what a reservation should show.
  */
-function receivingMethodsForType(allActiveMethods: ReceivingMethod[], type?: ReceivingMethodType) {
+function receivingMethodsForType(allActiveMethods: ReceivingMethod[], type?: ReceivingMethodType, channel?: TopUpChannel) {
+  if (channel === 'HUMO' || channel === 'UZCARD') {
+    return allActiveMethods.filter((m) => isConfiguredCard(m) && m.cardNetwork === channel);
+  }
+  if (channel === 'BANKOMAT') return allActiveMethods.filter(isConfiguredCard);
   if (!type) return allActiveMethods;
   if (type === 'QR_CODE') return allActiveMethods.filter((m) => m.type === 'QR_CODE');
   return allActiveMethods.filter((m) => m.type === 'CARD_TRANSFER');
@@ -131,6 +152,7 @@ export async function reserveTopUpRequest(
   userId: string,
   amountMinor: number,
   type?: ReceivingMethodType,
+  channel?: TopUpChannel,
 ) {
   const now = new Date();
 
@@ -144,7 +166,7 @@ export async function reserveTopUpRequest(
   });
 
   const allActiveMethods = await listActiveReceivingMethods(ctx);
-  const activeMethods = receivingMethodsForType(allActiveMethods, type);
+  const activeMethods = receivingMethodsForType(allActiveMethods, type, channel);
   if (activeMethods.length === 0) {
     throw new ConflictError('No receiving methods are configured right now — please try again later');
   }
@@ -152,7 +174,11 @@ export async function reserveTopUpRequest(
   // The caller's requested type, not the returned rows' own type — those
   // two now diverge for PAYNET_TERMINAL (see above), and this is what
   // determines both the TTL and which UI the client renders.
-  const resolvedType = type ?? activeMethods[0]!.type;
+  const resolvedType = channel === 'BANKOMAT'
+    ? 'PAYNET_TERMINAL'
+    : channel === 'HUMO' || channel === 'UZCARD'
+      ? 'CARD_TRANSFER'
+      : type ?? activeMethods[0]!.type;
   const ttlMs = RESERVATION_TTL_MS[resolvedType];
   const request = await ctx.prisma.$transaction(async (tx) => {
     // Serialize amount allocation across server processes, not just this instance.
@@ -160,7 +186,7 @@ export async function reserveTopUpRequest(
     const resolvedAmountMinor = resolvedType === 'CARD_TRANSFER'
       ? await pickUniqueAmount({ prisma: tx }, amountMinor, now) : amountMinor;
     return tx.topUpRequest.create({
-      data: { userId, type: resolvedType, amountMinor: resolvedAmountMinor, expiresAt: new Date(now.getTime() + ttlMs) },
+      data: { userId, type: resolvedType, channel, amountMinor: resolvedAmountMinor, expiresAt: new Date(now.getTime() + ttlMs) },
     });
   });
 
@@ -256,9 +282,9 @@ export async function autoVerifyFromCardTransaction(ctx: TopUpContext, input: Hu
   const now = new Date();
 
   const activeMethods = await ctx.prisma.receivingMethod.findMany({
-    where: { isActive: true, type: 'CARD_TRANSFER' },
+    where: { isActive: true, type: 'CARD_TRANSFER', cardNetwork: { not: null } },
   });
-  const method = activeMethods.find((m) => trailingDigits(m.cardNumber ?? '') === hint);
+  const method = activeMethods.find((m) => isConfiguredCard(m) && trailingDigits(m.cardNumber ?? '') === hint);
   if (!method) {
     return null;
   }
@@ -269,7 +295,11 @@ export async function autoVerifyFromCardTransaction(ctx: TopUpContext, input: Hu
       // Every request predating the `type` column was card-transfer-only
       // by construction (QR/terminal didn't exist yet), so a null here is
       // as safe to match as an explicit CARD_TRANSFER.
-      OR: [{ type: 'CARD_TRANSFER' }, { type: null }],
+      OR: [
+        { channel: method.cardNetwork as CardNetwork },
+        { channel: null, type: 'CARD_TRANSFER' },
+        { channel: null, type: null },
+      ],
       amountMinor: input.amountMinor,
       expiresAt: { gt: now },
     },
@@ -385,7 +415,11 @@ export async function getTopUpRequestForUser(ctx: TopUpContext, userId: string, 
   // fixes: the client sets state from whatever this returns every 4s).
   if (request.expiresAt) {
     const allActiveMethods = await listActiveReceivingMethods(ctx);
-    const receivingMethods = receivingMethodsForType(allActiveMethods, request.type ?? undefined);
+    const receivingMethods = receivingMethodsForType(
+      allActiveMethods,
+      request.type ?? undefined,
+      request.channel ?? undefined,
+    );
     return { ...request, receivingMethods };
   }
   return request;
@@ -497,6 +531,7 @@ export async function createReceivingMethod(
     cardNumber?: string;
     cardHolderName: string;
     bankName?: string;
+    cardNetwork?: CardNetwork;
     qrPayload?: string;
     sortOrder?: number;
   },
@@ -512,6 +547,7 @@ export async function updateReceivingMethod(
     cardNumber?: string;
     cardHolderName?: string;
     bankName?: string;
+    cardNetwork?: CardNetwork;
     qrPayload?: string;
     sortOrder?: number;
   },
