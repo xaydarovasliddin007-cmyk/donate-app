@@ -2,10 +2,10 @@ import type { CardNetwork, PrismaClient, ReceivingMethod, ReceivingMethodType, T
 import { env } from '../../config/env.js';
 import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '../../lib/errors.js';
 import { formatMinorAmount } from '../../lib/money.js';
-import { notifyAdmins } from '../../lib/telegram.js';
+import { notifyAdmins, sendTopUpReceiptPhoto } from '../../lib/telegram.js';
 import { createNotification } from '../notifications/notifications.service.js';
 import * as walletService from '../wallet/wallet.service.js';
-import type { CreateTopUpRequestInput, HumoTransactionInput } from './topup.schemas.js';
+import type { CreateTopUpRequestInput, HumoTransactionInput, SubmitTopUpReceiptInput } from './topup.schemas.js';
 
 interface TopUpContext {
   prisma: PrismaClient;
@@ -45,7 +45,7 @@ export async function listTopUpOptions(ctx: TopUpContext) {
   const autoFeedConfigured = Boolean(env.CARD_TRANSACTION_WEBHOOK_SECRET || env.HUMO_WEBHOOK_SECRET);
   return [
     { id: 'HUMO' as const, label: 'HUMO', mode: 'AUTO' as const, available: autoFeedConfigured && cards.some((m) => m.cardNetwork === 'HUMO') },
-    { id: 'UZCARD' as const, label: 'UZCARD', mode: 'AUTO' as const, available: autoFeedConfigured && cards.some((m) => m.cardNetwork === 'UZCARD') },
+    { id: 'UZCARD' as const, label: 'UZCARD', mode: 'AUTO' as const, available: autoFeedConfigured && cards.length > 0 },
     { id: 'BANKOMAT' as const, label: 'Bankomat', mode: 'MANUAL' as const, available: cards.length > 0 },
   ];
 }
@@ -139,7 +139,10 @@ async function pickUniqueAmount(ctx: { prisma: Pick<PrismaClient, 'topUpRequest'
  */
 function receivingMethodsForType(allActiveMethods: ReceivingMethod[], type?: ReceivingMethodType, channel?: TopUpChannel) {
   if (channel === 'HUMO' || channel === 'UZCARD') {
-    return allActiveMethods.filter((m) => isConfiguredCard(m) && m.cardNetwork === channel);
+    const networkCards = allActiveMethods.filter((m) => isConfiguredCard(m) && m.cardNetwork === channel);
+    if (networkCards.length > 0) return networkCards;
+    if (channel === 'UZCARD') return allActiveMethods.filter((m) => isConfiguredCard(m) && m.cardNetwork === 'HUMO');
+    return networkCards;
   }
   if (channel === 'BANKOMAT') return allActiveMethods.filter(isConfiguredCard);
   if (!type) return allActiveMethods;
@@ -297,6 +300,7 @@ export async function autoVerifyFromCardTransaction(ctx: TopUpContext, input: Hu
       // as safe to match as an explicit CARD_TRANSFER.
       OR: [
         { channel: method.cardNetwork as CardNetwork },
+        ...(method.cardNetwork === 'HUMO' ? [{ channel: 'UZCARD' as const }] : []),
         { channel: null, type: 'CARD_TRANSFER' },
         { channel: null, type: null },
       ],
@@ -361,6 +365,54 @@ export async function submitTopUpReference(
   );
 
   return updated;
+}
+
+function decodeReceiptImage(input: SubmitTopUpReceiptInput) {
+  const image = Buffer.from(input.dataBase64, 'base64');
+  if (image.length === 0 || image.length > 5 * 1024 * 1024) {
+    throw new ValidationError('Receipt image must be 5 MB or smaller');
+  }
+  const valid = input.mimeType === 'image/jpeg'
+    ? image[0] === 0xff && image[1] === 0xd8 && image[2] === 0xff
+    : input.mimeType === 'image/png'
+      ? image.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))
+      : image.subarray(0, 4).toString('ascii') === 'RIFF' && image.subarray(8, 12).toString('ascii') === 'WEBP';
+  if (!valid) throw new ValidationError('Receipt file is not a valid image');
+  return image;
+}
+
+export async function submitTopUpReceipt(
+  ctx: TopUpContext,
+  userId: string,
+  topUpRequestId: string,
+  input: SubmitTopUpReceiptInput,
+) {
+  const request = await ctx.prisma.topUpRequest.findUnique({
+    where: { id: topUpRequestId },
+    include: { user: { select: { publicId: true, displayName: true } } },
+  });
+  if (!request) throw new NotFoundError('Top-up request not found');
+  if (request.userId !== userId) throw new ForbiddenError('This top-up request does not belong to you');
+  if (request.status !== 'PENDING') {
+    throw new ConflictError(`Only PENDING top-up requests can be updated (this one is ${request.status})`);
+  }
+  if (request.channel !== 'BANKOMAT' && request.type !== 'PAYNET_TERMINAL') {
+    throw new ValidationError('Receipt screenshots are accepted only for Bankomat payments');
+  }
+  const image = decodeReceiptImage(input);
+  const messageId = await sendTopUpReceiptPhoto({
+    image,
+    mimeType: input.mimeType,
+    fileName: input.fileName,
+    requestId: request.id,
+    userLabel: request.user.displayName || request.user.publicId,
+    amount: formatMinorAmount(request.amountMinor, request.currency),
+  });
+  return ctx.prisma.topUpRequest.update({
+    where: { id: request.id },
+    data: { userReference: `Telegram chek #${messageId}`, userConfirmedPaidAt: new Date() },
+    include: { receivingMethod: true },
+  });
 }
 
 /**

@@ -3,6 +3,7 @@ import {
   createTopUpRequestSchema,
   humoTransactionSchema,
   reserveTopUpRequestSchema,
+  submitTopUpReceiptSchema,
   submitTopUpReferenceSchema,
 } from '../src/modules/topup/topup.schemas.js';
 
@@ -99,6 +100,14 @@ describe('TopUp Schemas Validation', () => {
     it('rejects empty or whitespace-only references', () => {
       expect(submitTopUpReferenceSchema.safeParse({ userReference: '' }).success).toBe(false);
       expect(submitTopUpReferenceSchema.safeParse({ userReference: '   ' }).success).toBe(false);
+    });
+  });
+
+  describe('submitTopUpReceiptSchema', () => {
+    it('accepts supported receipt images and rejects other file types', () => {
+      const dataBase64 = Buffer.from('valid image bytes').toString('base64');
+      expect(submitTopUpReceiptSchema.safeParse({ fileName: 'chek.png', mimeType: 'image/png', dataBase64 }).success).toBe(true);
+      expect(submitTopUpReceiptSchema.safeParse({ fileName: 'chek.pdf', mimeType: 'application/pdf', dataBase64 }).success).toBe(false);
     });
   });
 

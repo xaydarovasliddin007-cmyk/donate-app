@@ -50,6 +50,8 @@ const envSchema = z.object({
   // rather than failing the request that triggered it.
   TELEGRAM_BOT_TOKEN: z.string().trim().min(1).optional(),
   TELEGRAM_ADMIN_CHAT_ID: z.string().trim().min(1).optional(),
+  TOPUP_REVIEW_BOT_TOKEN: z.string().trim().min(1).optional(),
+  TOPUP_REVIEW_CHAT_ID: z.string().trim().min(1).optional(),
   TELEGRAM_WEBHOOK_SECRET: z.string().regex(/^[A-Za-z0-9_-]{32,256}$/).optional(),
   PUBLIC_APP_URL: z.string().url().optional(),
   SUPPORT_TELEGRAM_URL: z.string().url().default('https://t.me/The_Anonimous_uzb'),

@@ -5,6 +5,7 @@ import {
   createTopUpRequestSchema,
   listTopUpRequestsQuerySchema,
   reserveTopUpRequestSchema,
+  submitTopUpReceiptSchema,
   submitTopUpReferenceSchema,
 } from './topup.schemas.js';
 import * as topupService from './topup.service.js';
@@ -12,6 +13,7 @@ import type {
   CreateTopUpRequestInput,
   ListTopUpRequestsQuery,
   ReserveTopUpRequestInput,
+  SubmitTopUpReceiptInput,
   SubmitTopUpReferenceInput,
 } from './topup.schemas.js';
 
@@ -86,6 +88,19 @@ export async function topupRoutes(app: FastifyInstance) {
     async (request) => {
       const body = request.body as SubmitTopUpReferenceInput;
       return topupService.submitTopUpReference(ctx, request.currentUser!.id, request.params.id, body.userReference);
+    },
+  );
+
+  app.post<{ Params: { id: string } }>(
+    '/topups/:id/receipt',
+    {
+      bodyLimit: 7_500_000,
+      config: { rateLimit: { max: 5, timeWindow: 10 * 60_000 } },
+      preHandler: [authenticate, validateBody(submitTopUpReceiptSchema)],
+    },
+    async (request) => {
+      const body = request.body as SubmitTopUpReceiptInput;
+      return topupService.submitTopUpReceipt(ctx, request.currentUser!.id, request.params.id, body);
     },
   );
 

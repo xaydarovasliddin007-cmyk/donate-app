@@ -20,6 +20,12 @@ export const submitTopUpReferenceSchema = z.object({
   userReference: z.string().trim().min(1).max(200),
 });
 
+export const submitTopUpReceiptSchema = z.object({
+  fileName: z.string().trim().min(1).max(120),
+  mimeType: z.enum(['image/jpeg', 'image/png', 'image/webp']),
+  dataBase64: z.string().min(16).max(7_000_000),
+});
+
 export const listTopUpRequestsQuerySchema = z.object({
   limit: z.coerce.number().int().positive().max(100).default(30),
 });
@@ -40,3 +46,4 @@ export type ReserveTopUpRequestInput = z.infer<typeof reserveTopUpRequestSchema>
 export type ListTopUpRequestsQuery = z.infer<typeof listTopUpRequestsQuerySchema>;
 export type HumoTransactionInput = z.infer<typeof humoTransactionSchema>;
 export type SubmitTopUpReferenceInput = z.infer<typeof submitTopUpReferenceSchema>;
+export type SubmitTopUpReceiptInput = z.infer<typeof submitTopUpReceiptSchema>;

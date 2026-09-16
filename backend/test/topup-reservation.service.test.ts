@@ -164,6 +164,30 @@ describe('topup reservation + auto-verification (live DB)', () => {
     expect(uzcard.receivingMethods.map((method) => method.id)).toEqual([testCardBId]);
   });
 
+  it('uses HUMO cards and HUMO auto-verification as the UZCARD fallback', async () => {
+    await prisma.receivingMethod.update({ where: { id: testCardBId }, data: { isActive: false } });
+
+    try {
+      const user = await makeUser();
+      const reservation = await topupService.reserveTopUpRequest(ctx, user.id, 25400_00, 'CARD_TRANSFER', 'UZCARD');
+
+      expect(reservation.channel).toBe('UZCARD');
+      expect(reservation.receivingMethods.map((method) => method.id)).toEqual([testCardAId]);
+
+      const result = await topupService.autoVerifyFromCardTransaction(ctx, {
+        transactionId: 'test:uzcard-humo-fallback',
+        cardHint: '4242',
+        amountMinor: reservation.amountMinor,
+      });
+
+      expect(result?.id).toBe(reservation.id);
+      expect(result?.status).toBe('VERIFIED');
+      expect(result?.autoVerified).toBe(true);
+    } finally {
+      await prisma.receivingMethod.update({ where: { id: testCardBId }, data: { isActive: true } });
+    }
+  });
+
   it('never auto-verifies a BANKOMAT request even when card and amount match', async () => {
     const user = await makeUser();
     const reservation = await topupService.reserveTopUpRequest(ctx, user.id, 25300_00, 'PAYNET_TERMINAL', 'BANKOMAT');

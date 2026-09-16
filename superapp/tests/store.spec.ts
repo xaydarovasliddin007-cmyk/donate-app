@@ -35,6 +35,7 @@ async function mockStore(page: Page, tg = false) {
     ] };
     else if (path === '/topups/reserve') data = { id: 'topup-1', amountMinor: body.amountMinor, currency: 'UZS', type: body.type, channel: body.channel, status: 'PENDING', expiresAt: new Date(Date.now() + 420000).toISOString(), receivingMethods: [{ id: 'method-1', type: 'CARD_TRANSFER', cardNumber: '9860 1234 5678 9012', cardHolderName: 'UZDONATE', bankName: 'Test Bank', cardNetwork: body.channel === 'UZCARD' ? 'UZCARD' : 'HUMO' }] };
     else if (path === '/topups/topup-1/confirm-paid') data = { id: 'topup-1', status: 'PENDING' };
+    else if (path === '/topups/topup-1/receipt') data = { id: 'topup-1', status: 'PENDING', userReference: 'Telegram chek #1' };
     else if (path === '/topups') data = { topUps: [] };
     else if (path === '/orders' && !body) data = { orders };
     else if (path === '/orders' || path === '/telegram/invoices') {
@@ -102,10 +103,14 @@ test('bankomat top-up sends a receipt for admin review', async ({ page }) => {
   await page.getByRole('button', { name: "Balans to'ldirish", exact: true }).click();
   await page.getByRole('button', { name: /^Bankomat/ }).click();
   await page.getByRole('button', { name: "To'lov rekvizitlari" }).click();
-  await page.getByLabel('Chek raqami').fill('ATM-778899');
+  await page.getByLabel('Chek screenshotini yuklang').setInputFiles({
+    name: 'chek.png', mimeType: 'image/png',
+    buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64'),
+  });
   await page.getByRole('button', { name: 'Chekni yuborish' }).click();
+  await expect(page.getByText('Chek adminga yuborildi. Tasdiqlangach balans yangilanadi.')).toBeVisible();
   expect(sent.find((item) => item.path === '/topups/reserve')?.body).toMatchObject({ type: 'PAYNET_TERMINAL', channel: 'BANKOMAT' });
-  expect(sent.find((item) => item.path === '/topups/topup-1/reference')?.body).toEqual({ userReference: 'ATM-778899' });
+  expect(sent.find((item) => item.path === '/topups/topup-1/receipt')?.body).toMatchObject({ fileName: 'chek.png', mimeType: 'image/png' });
 });
 test('checkout validates player and zone, pays and shows server order', async ({ page }, info) => {
   const sent = await mockStore(page); await page.goto('/');
