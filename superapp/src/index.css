@@ -307,9 +307,10 @@ input[type='checkbox'] { accent-color: var(--accent); width: 15px; height: 15px;
   .profile-wallet>.button { align-self: stretch; } .profile-wallet>strong { font-size: 28px; }
   .profile-links .muted { font-size: 11px; }
   .sheet { width: 100%; max-width: none; max-height: 94dvh; border-radius: 8px 8px 0 0; margin: auto 0 0; border-bottom: 0; padding-bottom: env(safe-area-inset-bottom,0px); }
-  .wallet-sheet { height: 100dvh; max-height: none; margin: 0; border: 0; border-radius: 0; padding-bottom: calc(82px + env(safe-area-inset-bottom,0px)); }
+  .wallet-sheet { height: 100dvh; max-height: none; margin: 0; border: 0; border-radius: 0; padding-bottom: 0; overflow: hidden; display: grid; grid-template-rows: auto minmax(0,1fr) auto; }
   .wallet-sheet .sheet-header { min-height: 66px; padding: 14px 20px; }
-  .wallet-sheet>.checkout-form { max-width: 620px; margin: 0 auto; padding: 22px 20px; }
+  .wallet-sheet>.checkout-form { width: 100%; min-height: 0; max-width: 620px; margin: 0 auto; padding: 22px 20px; overflow-y: auto; overscroll-behavior: contain; }
+  .wallet-sheet .wallet-bottom-nav { position: static; z-index: 4; grid-row: 3; width: 100%; border-right: 0; border-left: 0; flex-shrink: 0; }
   .wallet-sheet .payment-method-list { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .wallet-sheet .payment-method-list>button { min-height: 105px; align-items: flex-start; flex-wrap: wrap; padding: 14px; }
   .wallet-sheet .payment-method-list>button>span { width: 46px; height: 46px; }
