@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
-import { ArrowRight, ArrowUpRight, CheckCircle2, ChevronRight, Clock3, Copy, Gamepad2, Headphones, LoaderCircle, Moon, Package, Plus, RefreshCw, Search, ShieldCheck, Star, Sun, UserRound, Wallet as WalletIcon, X } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, BadgePercent, CheckCircle2, ChevronRight, Clock3, Copy, Gamepad2, Headphones, Home, LoaderCircle, Moon, Package, Plus, RefreshCw, Search, ShieldCheck, Sparkles, Star, Sun, UserRound, Wallet as WalletIcon, X } from 'lucide-react';
 import type { AppConfig, Game, Order, Session, TopUp, User, Wallet } from './types';
 import { api, errorText, login, signIn } from './services/api';
 import { haptic, inTelegram, openTelegram, telegram } from './services/telegram';
@@ -31,6 +31,7 @@ export default function App() {
   const [order, setOrder] = useState<Order | null>(null);
   const [showWallet, setShowWallet] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
+  const [showPromo, setShowPromo] = useState(false);
   const [theme, setTheme] = useState(() => {
     try { return localStorage.getItem('uzdonate_theme') || 'dark'; } catch { return 'dark'; }
   });
@@ -69,8 +70,8 @@ export default function App() {
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
     try { localStorage.setItem('uzdonate_theme', theme); } catch { /* Optional preference. */ }
-    telegram()?.setHeaderColor(theme === 'dark' ? '#101214' : '#f5f6f8');
-    telegram()?.setBackgroundColor(theme === 'dark' ? '#101214' : '#f5f6f8');
+    telegram()?.setHeaderColor(theme === 'dark' ? '#070912' : '#f3f5fa');
+    telegram()?.setBackgroundColor(theme === 'dark' ? '#070912' : '#f3f5fa');
   }, [theme]);
   useEffect(() => {
     if (!user) return;
@@ -81,12 +82,14 @@ export default function App() {
   }, [user, refreshAccount]);
 
   function navigate(next: Tab) { setTab(next); haptic(); window.scrollTo({ top: 0, behavior: 'instant' }); }
+  function showCatalog() { navigate('shop'); window.setTimeout(() => document.querySelector('#catalog')?.scrollIntoView({ behavior: 'smooth' }), 50); }
   const categories = [...new Set(games.map((item) => item.category).filter(Boolean))] as string[];
   const filtered = games.filter((item) => (!onlyAvailable || item.isPurchasable) &&
     (category === 'all' || item.category === category) && `${item.name} ${item.slug}`.toLowerCase().includes(query.trim().toLowerCase()));
   const activeOrders = orders.filter((item) => ['PENDING', 'PAID', 'PROCESSING'].includes(item.status));
   const filteredOrders = orderFilter === 'all' ? orders : orderFilter === 'active' ? activeOrders : orders.filter((item) => !['PENDING', 'PAID', 'PROCESSING'].includes(item.status));
-  const navigation = [{ id: 'shop' as const, icon: Gamepad2, label: "Do'kon" }, { id: 'orders' as const, icon: Package, label: 'Buyurtmalar' }, { id: 'profile' as const, icon: UserRound, label: 'Profil' }];
+  const navigation = [{ id: 'shop' as const, icon: Home, label: 'Asosiy' }, { id: 'orders' as const, icon: Package, label: 'Buyurtmalar' }, { id: 'profile' as const, icon: UserRound, label: 'Profil' }];
+  const featuredGame = filtered.find((item) => item.isPurchasable) || games.find((item) => item.isPurchasable);
 
   return <div className="app-shell">
     <header className="app-header"><div className="header-inner">
@@ -99,13 +102,25 @@ export default function App() {
     <main className="main-content">
       {config.testMode && <p className="eyebrow accent-text" role="status">Sinov muhiti</p>}
       {tab === 'shop' && <>
-        <section className="store-heading"><div><span className="eyebrow accent-text">PLAY MORE</span><h1>O'yiningiz davom etsin.</h1><p>UC, olmoslar, o'yin valyutalari va obunalar.</p></div>
-          {tg ? <div className="payment-indicator"><Star size={23}/><div><strong>Telegram Stars</strong><span>Telegram ichida xarid</span></div></div> : <button className="wallet-summary" onClick={() => setShowWallet(true)}><WalletIcon size={23}/><div><span>Mening balansim</span><strong>{wallet ? money(wallet.balanceMinor, wallet.currency) : '...'}</strong></div><Plus size={20}/></button>}
+        <section className="store-heading">
+          <div className="welcome-row">
+            <button className="welcome-avatar" onClick={() => navigate('profile')} aria-label="Profilni ochish">{user?.avatarUrl ? <img src={user.avatarUrl} alt=""/> : user?.displayName?.slice(0, 1).toUpperCase() || <UserRound size={24}/>}</button>
+            <div><span className="eyebrow">Xush kelibsiz</span><h1>{user?.displayName || 'UZDONATE foydalanuvchisi'}</h1></div>
+          </div>
+          {tg ? <div className="payment-indicator"><Star size={25}/><div><span>TO'LOV USULI</span><strong>Telegram Stars</strong></div><button className="wallet-action" onClick={showCatalog}>O'yin tanlash <ArrowRight size={17}/></button></div> : <div className="wallet-summary"><WalletIcon size={25}/><div><span>BALANS</span><strong>{wallet ? money(wallet.balanceMinor, wallet.currency) : '...'}</strong></div><button className="wallet-action" onClick={() => setShowWallet(true)}><Plus size={17}/> To'ldirish</button></div>}
         </section>
         {accountError && <ErrorBox message={accountError} retry={() => void authenticate()}/>}
         {activeOrders.length > 0 && <button className="activity-strip" onClick={() => navigate('orders')}><Clock3 size={18}/><span>{activeOrders.length} ta buyurtmangiz jarayonda</span><ArrowRight size={18}/></button>}
-        <section aria-label="Katalog">
-          <div className="catalog-toolbar"><h2>O'yinlar va xizmatlar <span className="count">{games.length}</span></h2><label className="search-field"><Search size={20}/><input aria-label="O'yin qidirish" placeholder="O'yin qidirish" value={query} onChange={(event) => setQuery(event.target.value)}/>{query && <button className="icon-button small" title="Qidiruvni tozalash" aria-label="Qidiruvni tozalash" onClick={() => setQuery('')}><X size={16}/></button>}</label></div>
+        <section className="quick-actions" aria-label="Tezkor amallar">
+          <button onClick={() => setShowPromo(true)}><span><BadgePercent size={21}/></span><strong>Promokod</strong><ChevronRight size={17}/></button>
+          <button onClick={() => openTelegram(config.supportUrl)}><span><Headphones size={21}/></span><strong>Yordam</strong><ChevronRight size={17}/></button>
+        </section>
+        {featuredGame && <button className="featured-banner" onClick={() => { haptic(); setGame(featuredGame); }}>
+          <div className="featured-copy"><span><Sparkles size={14}/> TEZKOR TOP-UP</span><h2>Eng yaxshi narxlar shu yerda</h2><p>{featuredGame.name} va boshqa mashhur o'yinlar uchun xavfsiz xarid.</p><strong>Xaridni boshlash <ArrowRight size={17}/></strong></div>
+          {featuredGame.logoUrl && <img src={featuredGame.logoUrl} alt=""/>}
+        </button>}
+        <section id="catalog" aria-label="Katalog">
+          <div className="catalog-toolbar"><div><span className="eyebrow accent-text">KATALOG</span><h2>Mashhur o'yinlar <span className="count">{games.length}</span></h2></div><label className="search-field"><Search size={19}/><input aria-label="O'yin qidirish" placeholder="O'yin qidirish" value={query} onChange={(event) => setQuery(event.target.value)}/>{query && <button className="icon-button small" title="Qidiruvni tozalash" aria-label="Qidiruvni tozalash" onClick={() => setQuery('')}><X size={16}/></button>}</label></div>
           <div className="catalog-filters"><div className="category-strip" aria-label="Kategoriyalar"><button className={`chip ${category === 'all' ? 'active' : ''}`} aria-pressed={category === 'all'} onClick={() => setCategory('all')}>Barchasi</button>{categories.map((item) => <button key={item} className={`chip ${category === item ? 'active' : ''}`} aria-pressed={category === item} onClick={() => setCategory(item)}>{item}</button>)}</div></div>
           <div className="catalog-meta"><span>{loading ? 'Katalog yuklanmoqda' : `${filtered.length} ta natija`}</span><label className="toggle-label"><input type="checkbox" checked={onlyAvailable} onChange={(event) => setOnlyAvailable(event.target.checked)}/>Faqat mavjudlar</label></div>
           {catalogError ? <ErrorBox message={catalogError} retry={() => void loadCatalog()}/> : loading ? <div className="games-grid" aria-label="Katalog yuklanmoqda" aria-busy="true">{Array.from({ length: 8 }, (_, i) => <div key={i} className="game-skeleton skeleton"/>)}</div> : filtered.length ? <div className="games-grid">{filtered.map((item) => <GameCard key={item.id} game={item} onSelect={(selected) => { haptic(); setGame(selected); }}/>)}</div> : <div className="empty-state"><Search size={35}/><h3>O'yin topilmadi</h3><p>Boshqa nom yoki kategoriyani tanlang.</p><button className="button secondary" onClick={() => { setQuery(''); setCategory('all'); setOnlyAvailable(false); }}>Filtrlarni tozalash</button></div>}
@@ -137,12 +152,30 @@ export default function App() {
       </>}
       <footer className="app-footer"><span>UZDONATE</span><span>O'yiningiz bilan birga.</span><a href="privacy.html" target="_blank" rel="noreferrer">Maxfiylik</a></footer>
     </main>
-    <nav className="bottom-nav" aria-label="Asosiy bo'limlar">{navigation.map(({ id, icon: Icon, label }) => <button key={id} aria-current={tab === id ? 'page' : undefined} className={tab === id ? 'active' : ''} onClick={() => navigate(id)}><span><Icon size={22}/>{id === 'orders' && activeOrders.length > 0 && <i/>}</span>{label}</button>)}</nav>
+    <nav className="bottom-nav" aria-label="Asosiy bo'limlar">
+      <button aria-current={tab === 'shop' ? 'page' : undefined} className={tab === 'shop' ? 'active' : ''} onClick={() => navigate('shop')}><span><Home size={21}/></span>Asosiy</button>
+      <button onClick={showCatalog}><span><Gamepad2 size={21}/></span>O'yinlar</button>
+      <button className="nav-wallet" onClick={() => tg ? showCatalog() : setShowWallet(true)}><span><WalletIcon size={22}/></span>{tg ? "To'lov" : "To'ldirish"}</button>
+      <button aria-current={tab === 'orders' ? 'page' : undefined} className={tab === 'orders' ? 'active' : ''} onClick={() => navigate('orders')}><span><Package size={21}/>{activeOrders.length > 0 && <i/>}</span>Buyurtmalar</button>
+      <button aria-current={tab === 'profile' ? 'page' : undefined} className={tab === 'profile' ? 'active' : ''} onClick={() => navigate('profile')}><span><UserRound size={21}/></span>Profil</button>
+    </nav>
     {game && <Checkout key={game.id} game={game} authenticated={Boolean(user)} wallet={wallet} onClose={() => setGame(null)} onUpdated={refreshAccount}/>}
     {showWallet && !tg && <WalletSheet onClose={() => setShowWallet(false)} onUpdated={refreshAccount}/>}
     {showLogin && <LoginSheet onClose={() => setShowLogin(false)} onLogin={(session) => { setUser(session.user); setShowLogin(false); void refreshAccount(); }}/>} 
+    {showPromo && <PromoSheet onClose={() => setShowPromo(false)} onApplied={refreshAccount}/>}
     {order && <OrderSheet order={orders.find((item) => item.id === order.id) || order} onClose={() => setOrder(null)} onUpdated={refreshAccount} supportUrl={config.supportUrl}/>}
   </div>;
+}
+
+function PromoSheet({ onClose, onApplied }: { onClose: () => void; onApplied: () => void }) {
+  const [code, setCode] = useState(''); const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(''); const [success, setSuccess] = useState(false);
+  async function submit(event: FormEvent) {
+    event.preventDefault(); if (busy || !code.trim()) return; setBusy(true); setError('');
+    try { await api('/promo-codes/redeem', { code: code.trim() }); setSuccess(true); onApplied(); }
+    catch (err) { setError(errorText(err)); } finally { setBusy(false); }
+  }
+  return <Sheet title="Promokod" onClose={onClose} busy={busy}>{success ? <div className="checkout-result"><CheckCircle2 size={48}/><h3>Promokod faollashtirildi</h3><p>Bonus balansingizga qo'shildi.</p><button className="button primary" onClick={onClose}>Tayyor</button></div> : <form className="checkout-form" onSubmit={submit}><p className="muted">Promokodni kiriting va bonusni balansingizga oling.</p><label>Promokod<input autoFocus value={code} onChange={(event) => setCode(event.target.value.toUpperCase())} placeholder="UZDONATE" maxLength={32}/></label>{error && <ErrorBox message={error}/>}<button className="button primary" disabled={busy || !code.trim()}>{busy ? <LoaderCircle size={18} className="spin"/> : <BadgePercent size={18}/>}Faollashtirish</button></form>}</Sheet>;
 }
 
 function LoginSheet({ onClose, onLogin }: { onClose: () => void; onLogin: (session: Session) => void }) {
