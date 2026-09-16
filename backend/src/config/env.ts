@@ -117,6 +117,10 @@ const envSchema = z.object({
   // Generic trusted transaction feed for both HUMO and UZCARD cards.
   // HUMO_WEBHOOK_SECRET remains a backwards-compatible fallback.
   CARD_TRANSACTION_WEBHOOK_SECRET: z.string().trim().min(1).optional(),
+  TELEGRAM_API_ID: z.coerce.number().int().positive().optional(),
+  TELEGRAM_API_HASH: z.string().trim().min(1).optional(),
+  TELEGRAM_SESSION: z.string().trim().min(1).optional(),
+  HUMO_BOT_USERNAME: z.string().trim().min(1).default('HUMOcardbot'),
 
   // Optional: outgoing email (registration verification codes) via SMTP —
   // same "wired but needs credentials" pattern as the above. Without these,
