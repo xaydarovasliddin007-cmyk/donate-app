@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { ArrowRight, Check, CheckCircle2, LoaderCircle, ShieldCheck, Star } from 'lucide-react';
+import { ArrowRight, Check, CheckCircle2, LoaderCircle, ShieldCheck } from 'lucide-react';
 import type { CheckoutInput, Game, GameServer, Order, Product, Wallet } from '../types';
 import { api, errorText } from '../services/api';
-import { haptic, inTelegram, telegram } from '../services/telegram';
+import { haptic } from '../services/telegram';
 import { Sheet } from './Sheet';
 import { ErrorBox, GameImage, money } from './ui';
 
@@ -24,7 +24,6 @@ export function Checkout({ game, onClose, onUpdated, wallet, authenticated }: {
   const [result, setResult] = useState<Order | null>(null);
   const attempt = useRef<{ signature: string; key: string }>();
   const locked = useRef(false);
-  const isTelegram = inTelegram();
   const needsZone = game.slug === 'mobile-legends';
   const usesTag = ['clash-of-clans', 'clash-royale', 'brawl-stars'].includes(game.slug);
   const usesName = ['roblox', 'telegram-premium', 'steam-wallet'].includes(game.slug);
@@ -61,41 +60,31 @@ export function Checkout({ game, onClose, onUpdated, wallet, authenticated }: {
     if (attempt.current?.signature !== signature) attempt.current = { signature, key: crypto.randomUUID() };
     const input: CheckoutInput = { ...details, idempotencyKey: attempt.current.key };
     try {
-      if (isTelegram) {
-        const invoice = await api<{ invoiceUrl: string; orderId: string }>('/telegram/invoices', input);
-        const invoiceStatus = await new Promise<string>((resolve) => telegram()!.openInvoice(invoice.invoiceUrl, resolve));
-        onUpdated();
-        if (invoiceStatus === 'cancelled') { setError("To'lov bekor qilindi. Qayta davom ettirishingiz mumkin."); return; }
-        if (invoiceStatus === 'failed') { setError("To'lov amalga oshmadi. Qayta urinib ko'ring."); return; }
-        const order = await api<Order>(`/orders/${invoice.orderId}`);
-        setResult(order);
-      } else {
-        const order = await api<Order>('/orders', input);
-        await api('/payments/wallet', { orderId: order.id, idempotencyKey: `wallet:${order.id}` });
-        setResult(await api<Order>(`/orders/${order.id}`));
-      }
+      const order = await api<Order>('/orders', input);
+      await api('/payments/wallet', { orderId: order.id, idempotencyKey: `wallet:${order.id}` });
+      setResult(await api<Order>(`/orders/${order.id}`));
       setStep('done'); onUpdated();
     } catch (err) { setError(errorText(err)); }
     finally { setBusy(false); locked.current = false; }
   }
-  const price = product ? (isTelegram ? `${product.starsPrice ?? 0} Stars` : money(product.amountMinor, product.currency)) : '';
+  const price = product ? money(product.amountMinor, product.currency) : '';
   return <Sheet title={game.name} onClose={onClose} busy={busy}>
     {step === 'done' ? <div className="checkout-result">
       <CheckCircle2 size={48}/><h3>{result?.status === 'COMPLETED' ? 'Xarid bajarildi' : 'Buyurtma qabul qilindi'}</h3>
       <p>#{result?.orderNumber}</p><p>Holatini Buyurtmalar bo'limida kuzatishingiz mumkin.</p>
       <button className="button primary" onClick={onClose}>Tayyor <Check size={18}/></button>
     </div> : <>
-      <div className="checkout-game"><GameImage game={game}/><div><span className="eyebrow">{game.category}</span><h3>{game.name}</h3><span className="muted">{isTelegram ? 'Telegram Stars' : 'UZDONATE balans'} orqali to'lov</span></div></div>
+      <div className="checkout-game"><GameImage game={game}/><div><span className="eyebrow">{game.category}</span><h3>{game.name}</h3><span className="muted">UZDONATE balans orqali to'lov</span></div></div>
       {!game.isPurchasable ? <div className="empty-state"><h3>Tez kunda</h3><p>Bu o'yin uchun paketlar hali mavjud emas.</p></div> : step === 'product' ? <form onSubmit={review} className="checkout-form">
         {servers.length > 0 && <label>Hudud<select value={server} onChange={(event) => setServer(event.target.value)}>{servers.map((item) => <option key={item.id} value={item.code}>{item.name}</option>)}</select></label>}
         <div className="section-heading"><h3>Paketni tanlang</h3><span className="muted">{products.length} ta paket</span></div>
         {error && <ErrorBox message={error} retry={() => setRevision((r) => r + 1)}/>}
         {loading ? <div className="product-grid">{[0, 1, 2, 3].map((i) => <div key={i} className="skeleton product-skeleton"/>)}</div> : <div className="product-grid" role="radiogroup" aria-label="Paketlar">
           {products.map((item) => <button key={item.id} type="button" role="radio" aria-checked={product?.id === item.id}
-            className={`product-option ${product?.id === item.id ? 'selected' : ''}`} disabled={isTelegram && !item.starsPrice}
+            className={`product-option ${product?.id === item.id ? 'selected' : ''}`}
             onClick={() => { setProduct(item); haptic(); }}>
             <span className="product-icon"><img src="assets-store/diamond.png" alt=""/>{product?.id === item.id && <Check size={15}/>}</span>
-            <strong>{item.name}</strong><span>{isTelegram ? (item.starsPrice ? `${item.starsPrice} Stars` : 'Hozircha mavjud emas') : money(item.amountMinor, item.currency)}</span>
+            <strong>{item.name}</strong><span>{money(item.amountMinor, item.currency)}</span>
           </button>)}
         </div>}
         {!loading && !error && products.length === 0 && <div className="empty-state"><p>Bu hudud uchun paketlar hozircha yo'q.</p></div>}
@@ -112,10 +101,10 @@ export function Checkout({ game, onClose, onUpdated, wallet, authenticated }: {
       </form> : <div className="checkout-form">
         <h3>Buyurtmani tasdiqlang</h3><dl className="receipt"><div><dt>Paket</dt><dd>{product?.name}</dd></div><div><dt>Player ID</dt><dd>{playerId}</dd></div>{needsZone && <div><dt>Zone ID</dt><dd>{zoneId}</dd></div>}{server && <div><dt>Hudud</dt><dd>{servers.find((s) => s.code === server)?.name}</dd></div>}<div className="receipt-total"><dt>Jami</dt><dd>{price}</dd></div></dl>
         <p className="notice"><ShieldCheck size={19}/>O'yin ID va hududni tekshiring. Paket shu hisobga yuboriladi.</p>
-        {!isTelegram && wallet && wallet.balanceMinor < (product?.amountMinor ?? 0) && <ErrorBox message="Balans yetarli emas. Profil bo'limida hisobingizni to'ldiring."/>}
+        {wallet && wallet.balanceMinor < (product?.amountMinor ?? 0) && <ErrorBox message="Balans yetarli emas. Profil bo'limida hisobingizni to'ldiring."/>}
         {error && <ErrorBox message={error}/>}
-        <button className="button primary full-width" disabled={busy || (!isTelegram && (!wallet || wallet.balanceMinor < (product?.amountMinor ?? 0)))} onClick={pay}>
-          {busy ? <LoaderCircle className="spin" size={18}/> : isTelegram ? <Star size={18}/> : <ShieldCheck size={18}/>}{busy ? 'Kutilmoqda...' : `${price} to'lash`}
+        <button className="button primary full-width" disabled={busy || !wallet || wallet.balanceMinor < (product?.amountMinor ?? 0)} onClick={pay}>
+          {busy ? <LoaderCircle className="spin" size={18}/> : <ShieldCheck size={18}/>}{busy ? 'Kutilmoqda...' : `${price} to'lash`}
         </button><button className="button subtle full-width" disabled={busy} onClick={() => setStep('product')}>Ma'lumotlarni o'zgartirish</button>
       </div>}
     </>}

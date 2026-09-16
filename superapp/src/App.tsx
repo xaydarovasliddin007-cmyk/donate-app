@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
-import { ArrowRight, ArrowUpRight, CheckCircle2, ChevronRight, Clock3, Copy, Gamepad2, Headphones, Home, LoaderCircle, Moon, Package, Plus, RefreshCw, Search, ShieldCheck, Sparkles, Star, Sun, UserRound, Wallet as WalletIcon, X } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, CheckCircle2, ChevronRight, Clock3, Copy, Gamepad2, Headphones, Home, LoaderCircle, Moon, Package, Plus, RefreshCw, Search, ShieldCheck, Sparkles, Sun, UserRound, Wallet as WalletIcon, X } from 'lucide-react';
 import type { AppConfig, Game, Order, Session, TopUp, User, Wallet } from './types';
 import { api, errorText, login, signIn } from './services/api';
 import { haptic, inTelegram, openTelegram, telegram } from './services/telegram';
@@ -48,8 +48,8 @@ export default function App() {
     try {
       const result = await Promise.all([
         api<{ orders: Order[] }>('/orders?limit=50'),
-        inTelegram() ? Promise.resolve(null) : api<Wallet>('/wallet'),
-        inTelegram() ? Promise.resolve({ topUps: [] as TopUp[] }) : api<{ topUps: TopUp[] }>('/topups?limit=20'),
+        api<Wallet>('/wallet'),
+        api<{ topUps: TopUp[] }>('/topups?limit=20'),
       ]);
       setOrders(result[0].orders); setWallet(result[1]); setTopups(result[2].topUps); setAccountError('');
     } catch (err) { setAccountError(errorText(err)); }
@@ -126,7 +126,7 @@ export default function App() {
             <button className="welcome-avatar" onClick={() => navigate('profile')} aria-label="Profilni ochish">{user?.avatarUrl ? <img src={user.avatarUrl} alt=""/> : user?.displayName?.slice(0, 1).toUpperCase() || <UserRound size={24}/>}</button>
             <div><span className="eyebrow">Xush kelibsiz</span><h1>{user?.displayName || 'UZDONATE foydalanuvchisi'}</h1></div>
           </div>
-          {tg ? <div className="payment-indicator"><Star size={25}/><div><span>TO'LOV USULI</span><strong>Telegram Stars</strong></div><button className="wallet-action" onClick={showCatalog}>O'yin tanlash <ArrowRight size={17}/></button></div> : <div className="wallet-summary"><WalletIcon size={25}/><div><span>BALANS</span><strong>{wallet ? money(wallet.balanceMinor, wallet.currency) : '...'}</strong></div><button className="wallet-action" onClick={() => setShowWallet(true)}><Plus size={17}/> To'ldirish</button></div>}
+          <div className="wallet-summary"><WalletIcon size={25}/><div><span>BALANS</span><strong>{wallet ? money(wallet.balanceMinor, wallet.currency) : '...'}</strong></div><button className="wallet-action" onClick={() => setShowWallet(true)}><Plus size={17}/> To'ldirish</button></div>
         </section>
         {accountError && <ErrorBox message={accountError} retry={() => void authenticate()}/>}
         {activeOrders.length > 0 && <button className="activity-strip" onClick={() => navigate('orders')}><Clock3 size={18}/><span>{activeOrders.length} ta buyurtmangiz jarayonda</span><ArrowRight size={18}/></button>}
@@ -141,7 +141,7 @@ export default function App() {
         </button>}
         <section id="catalog" className="home-catalog" aria-label="Mashhur o'yinlar">
           <div className="catalog-toolbar"><div><span className="eyebrow accent-text">KATALOG</span><h2>Mashhur o'yinlar</h2></div><button className="catalog-all" onClick={showCatalog}>Barchasi <ArrowRight size={17}/></button></div>
-          {catalogError ? <ErrorBox message={catalogError} retry={() => void loadCatalog()}/> : loading ? <div className="games-grid" aria-label="Katalog yuklanmoqda" aria-busy="true">{Array.from({ length: 6 }, (_, i) => <div key={i} className="game-skeleton skeleton"/>)}</div> : <div className="games-grid">{games.filter((item) => item.isPurchasable).slice(0, 6).map((item) => <GameCard key={item.id} game={item} onSelect={(selected) => { haptic(); setGame(selected); }}/>)}</div>}
+          {catalogError ? <ErrorBox message={catalogError} retry={() => void loadCatalog()}/> : loading ? <div className="games-grid" aria-label="Katalog yuklanmoqda" aria-busy="true">{Array.from({ length: 8 }, (_, i) => <div key={i} className="game-skeleton skeleton"/>)}</div> : <div className="games-grid">{games.filter((item) => item.isPurchasable).slice(0, 8).map((item) => <GameCard key={item.id} game={item} onSelect={(selected) => { haptic(); setGame(selected); }}/>)}</div>}
         </section>
         <section className="support-band"><div><Headphones size={25}/><div><h3>Yordam kerakmi?</h3><p>Buyurtma yoki to'lov bo'yicha bizga yozing.</p></div></div><button className="button secondary" onClick={() => openTelegram(config.supportUrl)}>Bog'lanish <ArrowUpRight size={17}/></button></section>
       </>}
@@ -167,7 +167,7 @@ export default function App() {
         <div className="page-heading"><div><span className="eyebrow accent-text">SHAXSIY KABINET</span><h1>Mening profilim</h1></div></div>
         <section className="profile-identity"><div className="profile-avatar">{user?.displayName?.slice(0, 1).toUpperCase() || <UserRound size={35}/>}</div><div><h2>{user?.displayName || 'Mehmon'}</h2><span className="muted">{user?.publicId || 'Hisobga ulanmoqda...'}</span></div>{user && <button className="icon-button" title="ID nusxalash" aria-label="ID nusxalash" onClick={() => navigator.clipboard.writeText(user.publicId).catch(() => {})}><Copy size={18}/></button>}</section>
         {accountError && <ErrorBox message={accountError} retry={() => void authenticate()}/>}
-        {!tg && <section className="profile-wallet"><div><WalletIcon size={23}/><span>Mening balansim</span></div><strong>{wallet ? money(wallet.balanceMinor, wallet.currency) : '...'}</strong><button className="button primary" disabled={!user} onClick={() => setShowWallet(true)}><Plus size={18}/>Balansni to'ldirish</button></section>}
+        <section className="profile-wallet"><div><WalletIcon size={23}/><span>Mening balansim</span></div><strong>{wallet ? money(wallet.balanceMinor, wallet.currency) : '...'}</strong><button className="button primary" disabled={!user} onClick={() => setShowWallet(true)}><Plus size={18}/>Balansni to'ldirish</button></section>
         <div className="profile-links">
           <button onClick={() => navigate('orders')}><Package size={21}/><span>Buyurtmalarim</span><span className="muted">{orders.length}</span><ChevronRight size={18}/></button>
           {!tg && <button onClick={() => setShowLogin(true)}><UserRound size={21}/><span>{user?.isGuest ? 'Mavjud hisobga kirish' : 'Boshqa hisobga kirish'}</span><ChevronRight size={18}/></button>}
@@ -176,7 +176,7 @@ export default function App() {
           <a href="terms.html" target="_blank" rel="noreferrer"><ShieldCheck size={21}/><span>Foydalanish shartlari</span><ArrowUpRight size={18}/></a>
           <a href="privacy.html" target="_blank" rel="noreferrer"><ShieldCheck size={21}/><span>Maxfiylik siyosati</span><ArrowUpRight size={18}/></a>
         </div>
-        {!tg && topups.length > 0 && <section className="topup-history"><h2>Balans to'ldirish tarixi</h2>{topups.map((item) => <div key={item.id} className="history-row"><div><strong>{money(item.amountMinor)}</strong><small>{date(item.createdAt)}</small></div><span className={`status ${item.status === 'VERIFIED' ? 'status-completed' : ''}`}>{{ VERIFIED: 'Tasdiqlandi', PENDING: 'Tekshirilmoqda', REJECTED: 'Rad etildi', EXPIRED: 'Muddat tugadi' }[item.status] || item.status}</span></div>)}</section>}
+        {topups.length > 0 && <section className="topup-history"><h2>Balans to'ldirish tarixi</h2>{topups.map((item) => <div key={item.id} className="history-row"><div><strong>{money(item.amountMinor)}</strong><small>{date(item.createdAt)}</small></div><span className={`status ${item.status === 'VERIFIED' ? 'status-completed' : ''}`}>{{ VERIFIED: 'Tasdiqlandi', PENDING: 'Tekshirilmoqda', REJECTED: 'Rad etildi', EXPIRED: 'Muddat tugadi' }[item.status] || item.status}</span></div>)}</section>}
       </>}
       </div>
       <footer className="app-footer"><span>UZDONATE</span><span>O'yiningiz bilan birga.</span><a href="privacy.html" target="_blank" rel="noreferrer">Maxfiylik</a></footer>

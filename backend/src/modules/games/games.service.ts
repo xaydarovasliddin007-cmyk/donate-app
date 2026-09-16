@@ -11,6 +11,7 @@ function toPublicGame(game: {
   logoEmoji: string | null;
   logoUrl: string | null;
   availability: string;
+  _count: { products: number };
 }) {
   return {
     id: game.id,
@@ -20,7 +21,7 @@ function toPublicGame(game: {
     logoEmoji: game.logoEmoji,
     logoUrl: game.logoUrl,
     availability: game.availability,
-    isPurchasable: game.availability === 'ACTIVE',
+    isPurchasable: game.availability === 'ACTIVE' && game._count.products > 0,
   };
 }
 
@@ -61,6 +62,11 @@ export async function listGames(prisma: PrismaClient) {
   const games = await prisma.game.findMany({
     where: { availability: { not: 'DISABLED' } },
     orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+    include: {
+      _count: {
+        select: { products: { where: { isActive: true, ...(isProduction ? { isTest: false } : {}) } } },
+      },
+    },
   });
   return games.map(toPublicGame);
 }
@@ -68,6 +74,11 @@ export async function listGames(prisma: PrismaClient) {
 export async function getGameById(prisma: PrismaClient, gameId: string) {
   const game = await prisma.game.findFirst({
     where: { id: gameId, availability: { not: 'DISABLED' } },
+    include: {
+      _count: {
+        select: { products: { where: { isActive: true, ...(isProduction ? { isTest: false } : {}) } } },
+      },
+    },
   });
   if (!game) {
     throw new NotFoundError('Game not found');

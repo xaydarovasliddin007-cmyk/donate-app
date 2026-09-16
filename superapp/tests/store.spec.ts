@@ -59,6 +59,7 @@ test('catalog filters, light mode and responsive layout', async ({ page }, info)
   const errors: string[] = []; page.on('pageerror', (error) => errors.push(error.message));
   await mockStore(page); await page.goto('/');
   await expect(page.locator('.game-card')).toHaveCount(3);
+  await page.waitForTimeout(1500);
   if (info.project.name !== 'desktop') {
     const mobileNav = page.getByRole('navigation', { name: "Asosiy bo'limlar" }).filter({ visible: true });
     const dockBottom = await mobileNav.evaluate((element) => Math.round(element.getBoundingClientRect().bottom));
@@ -149,20 +150,20 @@ test('checkout validates player and zone, pays and shows server order', async ({
   await page.getByRole('button', { name: 'Buyurtmalar', exact: true }).filter({ visible: true }).click();
   await expect(page.locator('.order-row')).toHaveCount(1); await noOverflow(page);
 });
-test('Telegram checkout uses signed login and Stars, without a fabricated wallet', async ({ page }) => {
+test('Telegram uses signed login with the same wallet experience', async ({ page }) => {
   const sent = await mockStore(page, true); await page.goto('/');
-  await expect(page.locator('.payment-indicator')).toContainText('Telegram Stars');
-  await expect(page.locator('.wallet-summary')).toHaveCount(0);
+  await expect(page.locator('.payment-indicator')).toHaveCount(0);
+  await expect(page.locator('.wallet-summary')).toContainText("50 000 so'm");
   await page.locator('.game-card').first().click();
   await page.getByRole('radio').first().click();
   await page.getByLabel('Player ID', { exact: true }).fill('123456789');
   await page.getByLabel('Zone ID', { exact: true }).fill('1234');
   await page.getByRole('button', { name: 'Davom etish' }).click();
-  await page.getByRole('button', { name: "65 Stars to'lash" }).click();
+  await page.getByRole('button', { name: /15 500 so'm to'lash/ }).click();
   await expect(page.getByRole('heading', { name: 'Xarid bajarildi' })).toBeVisible();
   expect(sent.some((item) => item.path === '/auth/telegram')).toBe(true);
-  expect(sent.some((item) => item.path === '/telegram/invoices')).toBe(true);
-  expect(sent.some((item) => item.path === '/payments/wallet')).toBe(false);
+  expect(sent.some((item) => item.path === '/telegram/invoices')).toBe(false);
+  expect(sent.some((item) => item.path === '/payments/wallet')).toBe(true);
 });
 test('failed catalog request has a working retry', async ({ page }) => {
   await mockStore(page); let failures = 1;
