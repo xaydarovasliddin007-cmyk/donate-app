@@ -31,4 +31,7 @@ COPY --from=build /app/backend/dist ./dist
 COPY --from=build /app/backend/public ./public
 
 EXPOSE 10000
-CMD ["sh", "-c", "npm run prisma:deploy && npm run start"]
+# Neon pooled connections can retain PostgreSQL session advisory locks between
+# deploys. Render serializes this service's deploys, so disable only Prisma's
+# migration lock while preserving the normal pooled runtime connection.
+CMD ["sh", "-c", "PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK=1 npm run prisma:deploy && npm run start"]
