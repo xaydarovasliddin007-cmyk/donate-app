@@ -64,11 +64,12 @@ test('catalog filters, light mode and responsive layout', async ({ page }, info)
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   await noOverflow(page); expect(errors).toEqual([]);
 });
-test('wallet top-up chooses the payment method before amount', async ({ page }) => {
+test('wallet top-up chooses the payment method before amount', async ({ page }, info) => {
   const sent = await mockStore(page); await page.goto('/');
   await page.getByRole('button', { name: "Balans to'ldirish", exact: true }).click();
   await expect(page.getByRole('heading', { name: "To'lov usulini tanlang" })).toBeVisible();
-  await page.getByRole('button', { name: /Bank kartasi/ }).click();
+  await page.screenshot({ path: `../artifacts/wallet-${info.project.name}.png`, fullPage: true });
+  await page.getByRole('button', { name: /Humo/ }).click();
   await expect(page.getByRole('heading', { name: 'Summani kiriting' })).toBeVisible();
   await page.getByLabel("Summa, so'm").fill('75000');
   await page.getByRole('button', { name: "To'lov rekvizitlari" }).click();

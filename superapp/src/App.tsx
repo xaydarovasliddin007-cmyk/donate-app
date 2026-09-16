@@ -32,6 +32,7 @@ export default function App() {
   const [showWallet, setShowWallet] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [bannerIndex, setBannerIndex] = useState(0);
+  const [showIntro, setShowIntro] = useState(true);
   const [theme, setTheme] = useState(() => {
     try { return localStorage.getItem('uzdonate_theme') || 'dark'; } catch { return 'dark'; }
   });
@@ -71,6 +72,10 @@ export default function App() {
     api<AppConfig>('/app/config', undefined, false).then(setConfig).catch(() => {});
   }, [loadCatalog, authenticate]);
   useEffect(() => {
+    const timer = window.setTimeout(() => setShowIntro(false), 1400);
+    return () => window.clearTimeout(timer);
+  }, []);
+  useEffect(() => {
     document.documentElement.dataset.theme = theme;
     try { localStorage.setItem('uzdonate_theme', theme); } catch { /* Optional preference. */ }
     telegram()?.setHeaderColor(theme === 'dark' ? '#070912' : '#f3f5fa');
@@ -104,7 +109,7 @@ export default function App() {
     'free-fire': 'Diamond paketlari bir necha bosishda.',
   };
 
-  return <div className="app-shell">
+  return <><div className={`app-shell ${showIntro ? 'app-preparing' : 'app-ready'}`}>
     <header className="app-header"><div className="header-inner">
       <button className="brand" onClick={() => navigate('shop')} aria-label="UZDONATE bosh sahifa"><img src="assets-store/brand.png" alt=""/><span>UZDONATE<span className="brand-dot">.</span></span></button>
       <nav className="desktop-nav" aria-label="Asosiy bo'limlar">{navigation.map(({ id, icon: Icon, label }) => <button key={id} aria-current={tab === id ? 'page' : undefined} className={tab === id ? 'active' : ''} onClick={() => navigate(id)}><Icon size={18}/>{label}</button>)}</nav>
@@ -182,10 +187,10 @@ export default function App() {
       <button aria-current={tab === 'profile' ? 'page' : undefined} className={tab === 'profile' ? 'active' : ''} onClick={() => navigate('profile')}><span><UserRound size={21}/></span>Profil</button>
     </nav>
     {game && <Checkout key={game.id} game={game} authenticated={Boolean(user)} wallet={wallet} onClose={() => setGame(null)} onUpdated={refreshAccount}/>}
-    {showWallet && <WalletSheet onClose={() => setShowWallet(false)} onUpdated={refreshAccount}/>}
+    {showWallet && <WalletSheet wallet={wallet} onClose={() => setShowWallet(false)} onUpdated={refreshAccount}/>}
     {showLogin && <LoginSheet onClose={() => setShowLogin(false)} onLogin={(session) => { setUser(session.user); setShowLogin(false); void refreshAccount(); }}/>} 
     {order && <OrderSheet order={orders.find((item) => item.id === order.id) || order} onClose={() => setOrder(null)} onUpdated={refreshAccount} supportUrl={config.supportUrl}/>}
-  </div>;
+  </div>{showIntro && <div className="launch-screen" aria-hidden="true"><div className="launch-mark"><img src="assets-store/brand.png" alt=""/><i/></div><strong>UZDONATE<span>.</span></strong><small>PLAY. TOP UP. WIN.</small></div>}</>;
 }
 
 function LoginSheet({ onClose, onLogin }: { onClose: () => void; onLogin: (session: Session) => void }) {

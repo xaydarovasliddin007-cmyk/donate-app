@@ -2,7 +2,7 @@ import { useEffect, useRef, type ReactNode } from 'react';
 import { X } from 'lucide-react';
 import { telegram } from '../services/telegram';
 
-export function Sheet({ title, onClose, children, busy = false }: { title: string; onClose: () => void; children: ReactNode; busy?: boolean }) {
+export function Sheet({ title, onClose, children, busy = false, className = '' }: { title: string; onClose: () => void; children: ReactNode; busy?: boolean; className?: string }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const close = useRef(onClose);
   close.current = onClose;
@@ -20,7 +20,7 @@ export function Sheet({ title, onClose, children, busy = false }: { title: strin
     button?.show(); button?.onClick(back);
     return () => { button?.offClick(back); button?.hide(); };
   }, [busy]);
-  return <dialog ref={dialog} className="sheet" aria-label={title}
+  return <dialog ref={dialog} className={`sheet ${className}`} aria-label={title}
     onCancel={(event) => { event.preventDefault(); if (!busy) onClose(); }}
     onClick={(event) => { if (event.target === event.currentTarget && !busy) {
       const rect = event.currentTarget.getBoundingClientRect();
