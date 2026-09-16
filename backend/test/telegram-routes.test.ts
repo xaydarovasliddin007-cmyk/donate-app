@@ -21,4 +21,10 @@ describe('Telegram endpoint boundaries', () => {
     const response = await app.inject('/webapp/assets/missing.js');
     expect(response.statusCode).toBe(404);
   });
+  it('prevents Telegram from retaining a stale webapp shell', async () => {
+    const response = await app.inject('/webapp/?v=current');
+    expect(response.statusCode).toBe(200);
+    expect(response.headers['cache-control']).toBe('no-store, no-cache, must-revalidate, proxy-revalidate');
+    expect(response.headers.pragma).toBe('no-cache');
+  });
 });

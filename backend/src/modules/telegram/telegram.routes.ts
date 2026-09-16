@@ -14,6 +14,14 @@ import { checkStarsCheckout, createStarsInvoice, settleStarsPayment } from './te
 const authSchema = z.object({ initData: z.string().min(1).max(16384) });
 const telegramUser = z.object({ id: z.number().int().positive().max(Number.MAX_SAFE_INTEGER) });
 const paymentSchema = z.object({ currency: z.string(), total_amount: z.number().int().positive(), invoice_payload: z.string().uuid() });
+const webAppRelease = process.env.RENDER_GIT_COMMIT?.slice(0, 12) || 'current';
+
+function storefrontUrl(baseUrl: string) {
+  const url = new URL('/webapp/', baseUrl);
+  url.searchParams.set('v', webAppRelease);
+  return url.href;
+}
+
 const updateSchema = z.object({
   update_id: z.number().int(),
   pre_checkout_query: paymentSchema.extend({ id: z.string(), from: telegramUser }).optional(),
@@ -94,7 +102,7 @@ export async function telegramRoutes(app: FastifyInstance) {
           ? "To'lov yoki buyurtma bo'yicha yordam: buyurtma raqamingiz bilan operatorga murojaat qiling."
           : "UZDONATE\n\nO'yinlar, paketlar va amaldagi narxlar do'konda. Buyurtmalaringizni shu yerdan kuzatishingiz mumkin.";
         const rows: Record<string, unknown>[][] = [];
-        if (env.PUBLIC_APP_URL) rows.push([{ text: "Do'konni ochish", web_app: { url: new URL('/webapp/', env.PUBLIC_APP_URL).href } }]);
+        if (env.PUBLIC_APP_URL) rows.push([{ text: "Do'konni ochish", web_app: { url: storefrontUrl(env.PUBLIC_APP_URL) } }]);
         if (command === '/terms' && env.PUBLIC_APP_URL) rows.push([{ text: 'Xizmat shartlari', url: new URL('/webapp/terms.html', env.PUBLIC_APP_URL).href }]);
         rows.push([{ text: 'Yordam', url: env.SUPPORT_TELEGRAM_URL }]);
         await telegramApi('sendMessage', { chat_id: message.chat.id, text, reply_markup: { inline_keyboard: rows } });

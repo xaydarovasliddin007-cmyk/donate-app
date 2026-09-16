@@ -93,6 +93,12 @@ export async function buildApp() {
     if (request.url.startsWith('/webapp/')) {
       reply.removeHeader('x-frame-options');
       reply.header('Content-Security-Policy', "frame-ancestors 'self' https://web.telegram.org https://*.telegram.org https://telegram.org");
+      const pathname = request.url.split('?')[0] ?? '';
+      if (pathname === '/webapp/' || !path.extname(pathname)) {
+        reply.header('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        reply.header('Pragma', 'no-cache');
+        reply.header('Expires', '0');
+      }
     }
   });
   if (fs.existsSync(adminPublicPath)) {
