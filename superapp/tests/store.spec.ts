@@ -25,7 +25,12 @@ async function mockStore(page: Page, tg = false, busyTopup = false) {
     if (path.startsWith('/auth/')) data = { accessToken: 'test-token', refreshToken: 'test-refresh', user: { id: 'user-1', publicId: 'UZD-TEST1234', displayName: 'Asliddin', isGuest: !tg, hasTelegramAccount: tg } };
     else if (path === '/games') data = { games };
     else if (path.endsWith('/servers')) data = { servers: [{ id: 'server-1', code: 'GLOBAL', name: 'Global' }] };
-    else if (path.endsWith('/products')) data = { products: [{ id: 'product-1', name: '86 Diamonds', amountMinor: 1550000, currency: 'UZS', starsPrice: 65 }] };
+    else if (path.endsWith('/products')) data = { products: [
+      { id: 'product-1', name: '86 Diamonds', amountMinor: 1550000, currency: 'UZS', starsPrice: 65 },
+      { id: 'product-2', name: '165 Diamonds x2', amountMinor: 2900000, currency: 'UZS' },
+      { id: 'product-3', name: 'Weekly Pass', amountMinor: 1860000, currency: 'UZS' },
+      { id: 'product-4', name: 'Twilight Pass', amountMinor: 10500000, currency: 'UZS' },
+    ] };
     else if (path === '/wallet') data = { balanceMinor: 5000000, currency: 'UZS' };
     else if (path === '/app/config') data = { supportUrl: 'https://t.me/uzdonate_support', telegramBotUrl: 'https://t.me/uzdonate1bot', telegramPaymentsEnabled: true };
     else if (path === '/topups/options') data = { options: [
@@ -136,6 +141,10 @@ test('checkout validates player and zone, pays and shows server order', async ({
   const sent = await mockStore(page); await page.goto('/');
   await page.locator('.game-card').first().click();
   await expect(page.getByRole('dialog')).toBeVisible();
+  await expect(page.locator('.product-icon img').first()).toHaveAttribute('src', /diamond\.png/);
+  await expect(page.locator('.product-icon img').nth(1)).toHaveAttribute('src', /diamondpile\.png/);
+  await expect(page.locator('.product-icon img').nth(2)).toHaveAttribute('src', /pass\.png/);
+  await expect(page.locator('.product-icon img').nth(3)).toHaveAttribute('src', /fire\.png/);
   await page.getByRole('radio').first().click();
   await page.getByLabel('Player ID', { exact: true }).fill('123456789');
   await page.getByLabel('Zone ID', { exact: true }).fill('1234');

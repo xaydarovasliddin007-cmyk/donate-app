@@ -6,6 +6,43 @@ import { haptic } from '../services/telegram';
 import { Sheet } from './Sheet';
 import { ErrorBox, GameImage, money } from './ui';
 
+type ProductVisual = { icon: string; badge?: string; tone: string };
+
+function productVisual(name: string, amountMinor: number): ProductVisual {
+  const lower = name.toLowerCase();
+  const words = name.toUpperCase().split(/[^A-Z]+/).filter(Boolean);
+  if (lower.includes('x2')) return { icon: 'diamondpile.png', badge: 'x2', tone: 'bonus' };
+  if (lower.includes('twilight')) return { icon: 'fire.png', badge: 'HIT', tone: 'hot' };
+  if (lower.includes('elite')) return { icon: 'moneybag.png', badge: 'VIP', tone: 'elite' };
+  if (lower.includes('weekly') || lower.includes('monthly') || lower.includes('membership') || lower.includes('pass')) {
+    return { icon: 'pass.png', badge: lower.includes('monthly') ? '30D' : '7D', tone: 'pass' };
+  }
+  if (words.includes('UC')) return { icon: amountMinor >= 15_000_000 ? 'uc_stack.png' : 'uc_coin.png', tone: 'gold' };
+  if (words.includes('ROBUX')) return { icon: 'gem_silver.png', tone: 'silver' };
+  if (words.includes('GEMS')) return { icon: 'gem_purple.png', tone: 'purple' };
+  if (words.includes('CP')) return { icon: 'gem_green.png', tone: 'green' };
+  if (words.includes('CASH')) return { icon: 'coin_cash.png', tone: 'green' };
+  if (words.includes('FC')) return { icon: 'coin_fc.png', tone: 'blue' };
+  if (words.includes('TOKENS')) return { icon: 'coin_token.png', tone: 'warm' };
+  if (lower.includes('genesis crystal')) return { icon: 'crystal_cyan.png', tone: 'cyan' };
+  if (lower.includes('diamond')) {
+    if (amountMinor >= 80_000_000) return { icon: 'truck.png', tone: 'cyan' };
+    if (amountMinor >= 15_000_000) return { icon: 'safe.png', tone: 'cyan' };
+    if (amountMinor >= 3_000_000) return { icon: 'diamondpile.png', tone: 'cyan' };
+    return { icon: 'diamond.png', tone: 'cyan' };
+  }
+  return { icon: 'coin.png', tone: 'gold' };
+}
+
+function ProductIcon({ item, selected }: { item: Product; selected: boolean }) {
+  const visual = productVisual(item.name, item.amountMinor);
+  return <span className={`product-icon tone-${visual.tone}`}>
+    <img src={`assets-store/${visual.icon}`} alt=""/>
+    {visual.badge && <i className="product-badge">{visual.badge}</i>}
+    {selected && <Check className="product-check" size={15}/>}
+  </span>;
+}
+
 export function Checkout({ game, onClose, onUpdated, wallet, authenticated }: {
   game: Game; onClose: () => void; onUpdated: () => void; wallet: Wallet | null; authenticated: boolean;
 }) {
@@ -83,7 +120,7 @@ export function Checkout({ game, onClose, onUpdated, wallet, authenticated }: {
           {products.map((item) => <button key={item.id} type="button" role="radio" aria-checked={product?.id === item.id}
             className={`product-option ${product?.id === item.id ? 'selected' : ''}`}
             onClick={() => { setProduct(item); haptic(); }}>
-            <span className="product-icon"><img src="assets-store/diamond.png" alt=""/>{product?.id === item.id && <Check size={15}/>}</span>
+            <ProductIcon item={item} selected={product?.id === item.id}/>
             <strong>{item.name}</strong><span>{money(item.amountMinor, item.currency)}</span>
           </button>)}
         </div>}

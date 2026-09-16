@@ -183,13 +183,18 @@ input[type='checkbox'] { accent-color: var(--accent); width: 15px; height: 15px;
 .section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .section-heading .muted { font-size: 11px; }
 .product-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 10px; }
-.product-option { background: var(--surface); border: 1px solid var(--border); padding: 13px 10px; border-radius: 8px; display: flex; align-items: center; flex-direction: column; gap: 9px; min-width: 0; min-height: 140px; }
-.product-option.selected { border-color: var(--accent); background: var(--raised); }
+.product-option { background: var(--surface); border: 1px solid var(--border); padding: 13px 10px; border-radius: 8px; display: flex; align-items: center; flex-direction: column; gap: 9px; min-width: 0; min-height: 132px; transition: transform .18s ease,border-color .18s ease,background-color .18s ease,box-shadow .18s ease; }
+.product-option:active { transform: scale(.98); }
+.product-option.selected { border-color: var(--accent); background: var(--raised); box-shadow: 0 8px 24px color-mix(in srgb,var(--accent) 16%,transparent); }
 .product-option strong { font-size: 12px; line-height: 1.5; overflow-wrap: anywhere; }
 .product-option>span:last-child { font-size: 11px; color: var(--muted); }
-.product-icon { width: 48px; height: 44px; display: flex; align-items: center; justify-content: center; position: relative; }
-.product-icon img { width: 42px; height: 42px; object-fit: contain; }
-.product-icon svg { position: absolute; right: -7px; top: -2px; color: var(--accent); }
+.product-icon { width: 52px; height: 48px; display: flex; align-items: center; justify-content: center; position: relative; border: 1px solid color-mix(in srgb,var(--icon-tone,var(--accent)) 30%,var(--border)); border-radius: 8px; background: color-mix(in srgb,var(--icon-tone,var(--accent)) 11%,var(--raised)); }
+.product-icon img { width: 44px; height: 44px; object-fit: contain; filter: drop-shadow(0 5px 8px #0005); }
+.product-icon .product-check { position: absolute; right: -7px; bottom: -5px; top: auto; padding: 2px; color: #fff; background: var(--accent); border: 2px solid var(--surface); border-radius: 50%; box-sizing: content-box; }
+.product-badge { position: absolute; right: -7px; top: -7px; min-width: 22px; padding: 3px 5px; color: #fff; background: var(--icon-tone,var(--accent)); border: 2px solid var(--surface); border-radius: 10px; font-size: 8px; font-style: normal; font-weight: 900; line-height: 1; box-shadow: 0 3px 8px #0006; }
+.tone-cyan { --icon-tone: #39c6ed; } .tone-gold { --icon-tone: #f0b83d; } .tone-silver { --icon-tone: #aab8d1; }
+.tone-purple,.tone-elite { --icon-tone: #a66cff; } .tone-green { --icon-tone: #40c98a; } .tone-blue { --icon-tone: #4b91ff; }
+.tone-warm,.tone-hot,.tone-bonus { --icon-tone: #ff735c; } .tone-pass { --icon-tone: #2ca8ff; }
 .field-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(150px,1fr)); gap: 12px; }
 .checkout-footer { display: flex; align-items: center; justify-content: space-between; gap: 14px; border-top: 1px solid var(--border); padding-top: 20px; }
 .checkout-footer>div { display: grid; gap: 5px; }
@@ -348,7 +353,7 @@ input[type='checkbox'] { accent-color: var(--accent); width: 15px; height: 15px;
   .wallet-sheet .method-check { margin-left: auto; }
   .sheet-header { padding: 12px 16px; } .sheet-header h2 { font-size: 15px; }
   .checkout-game,.checkout-form { padding: 20px; } .checkout-game h3 { font-size: 14px; }
-  .product-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } .product-option { min-height: 139px; }
+  .product-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } .product-option { min-height: 132px; }
   .checkout-footer { flex-wrap: wrap; } .checkout-footer>.button { flex: 1; }
 }
 @media (max-width: 360px) { .main-content { padding-left: 10px; padding-right: 10px; } .header-inner { padding: 0 10px; } h1 { font-size: 26px; } .featured-copy h2 { font-size: 18px; } .featured-copy p { display: none; } .game-card-caption { padding: 9px; } .game-card-caption>svg { display: none; } .bank-details { gap: 9px; padding: 12px; } .bottom-nav button { font-size: 7px; } }
