@@ -334,7 +334,7 @@ async function main() {
         realTier('MLBB_565_x2', '565 (500+65) Diamonds x2', 105_000, 'mobile_legends_global:500_65_diamonds_first_top_up_bonus'),
         realTier('MLBB_WEEKLY_ELITE', 'Weekly Elite Pack', 11_000, 'mobile_legends_global:weekly_elite_pack'),
         realTier('MLBB_MONTHLY_ELITE', 'Monthly Elite Pack', 53_000, 'mobile_legends_global:monthly_elite_pack'),
-        realTier('MLBB_WEEKLY_PASS', 'Weekly Pass', 17_900, 'mobile_legends_global:weekly_pass', undefined, 'mobilelegends:13'),
+        realTier('MLBB_WEEKLY_PASS', 'Weekly Pass', 19_500, 'mobile_legends_global:weekly_pass', undefined, 'mobilelegends:13'),
         realTier('MLBB_TWILIGHT_PASS', 'Twilight Pass', 105_000, 'mobile_legends_global:twilight_pass'),
         realTier('MLBB_86', '86 (78+8) Diamonds', 15_000, 'mobile_legends_global:78_8_diamonds', undefined, 'mobilelegends:14'),
         realTier('MLBB_172', '172 (156+16) Diamonds', 29_000, 'mobile_legends_global:156_16_diamonds', undefined, 'mobilelegends:15'),
