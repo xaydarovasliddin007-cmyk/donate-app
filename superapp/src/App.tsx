@@ -42,6 +42,7 @@ export default function App() {
   const [showLogin, setShowLogin] = useState(false);
   const [bannerIndex, setBannerIndex] = useState(0);
   const [showIntro, setShowIntro] = useState(true);
+  const [avatarFailed, setAvatarFailed] = useState(false);
   const [theme, setTheme] = useState(() => {
     try { return localStorage.getItem('uzdonate_theme') || 'dark'; } catch { return 'dark'; }
   });
@@ -102,6 +103,7 @@ export default function App() {
     document.addEventListener('visibilitychange', refresh);
     return () => { clearInterval(interval); document.removeEventListener('visibilitychange', refresh); };
   }, [user, refreshAccount]);
+  useEffect(() => setAvatarFailed(false), [user?.avatarUrl]);
   useEffect(() => {
     if (carouselGames.length < 2) return;
     const timer = window.setInterval(() => setBannerIndex((index) => (index + 1) % carouselGames.length), 4500);
@@ -128,7 +130,7 @@ export default function App() {
       <button className="brand" onClick={() => navigate('shop')} aria-label="UZDONATE bosh sahifa"><img src="assets-store/brand.png" alt=""/><span>UZDONATE<span className="brand-dot">.</span></span></button>
       <nav className="desktop-nav" aria-label={t('Asosiy bo\'limlar')}>{navigation.map(({ id, icon: Icon, label }) => <button key={id} aria-current={tab === id ? 'page' : undefined} className={tab === id ? 'active' : ''} onClick={() => navigate(id)}><Icon size={18}/>{label}</button>)}</nav>
       <div className="header-actions"><button className="locale-toggle" aria-label={locale === 'uz' ? 'Русский язык' : "O'zbek tili"} onClick={() => setLocale(locale === 'uz' ? 'ru' : 'uz')}>{locale === 'uz' ? 'RU' : 'UZ'}</button><button className="icon-button" title={t(theme === 'dark' ? "Yorug' mavzu" : "Qorong'i mavzu")} aria-label={t('Mavzuni almashtirish')} onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>{theme === 'dark' ? <Sun size={20}/> : <Moon size={20}/>}</button>
-      <button className="avatar" title={t('Profil')} aria-label={t('Profil')} onClick={() => navigate('profile')}>{user?.displayName?.slice(0, 1).toUpperCase() || <UserRound size={19}/>}</button></div>
+      <button className="avatar" title={t('Profil')} aria-label={t('Profil')} onClick={() => navigate('profile')}>{user?.avatarUrl && !avatarFailed ? <img src={user.avatarUrl} alt="" onError={() => setAvatarFailed(true)}/> : user?.displayName?.slice(0, 1).toUpperCase() || <UserRound size={19}/>}</button></div>
     </div></header>
 
     <main className="main-content">
@@ -137,7 +139,7 @@ export default function App() {
       {tab === 'shop' && <>
         <section className="store-heading">
           <div className="welcome-row">
-            <button className="welcome-avatar" onClick={() => navigate('profile')} aria-label="Profilni ochish">{user?.avatarUrl ? <img src={user.avatarUrl} alt=""/> : user?.displayName?.slice(0, 1).toUpperCase() || <UserRound size={24}/>}</button>
+            <button className="welcome-avatar" onClick={() => navigate('profile')} aria-label="Profilni ochish">{user?.avatarUrl && !avatarFailed ? <img src={user.avatarUrl} alt="" onError={() => setAvatarFailed(true)}/> : user?.displayName?.slice(0, 1).toUpperCase() || <UserRound size={24}/>}</button>
             <div><span className="eyebrow">{t('Xush kelibsiz')}</span><h1>{user?.displayName || t('UZDONATE foydalanuvchisi')}</h1></div>
           </div>
           <div className="wallet-summary"><WalletIcon size={25}/><div><span>{locale === 'ru' ? 'БАЛАНС' : 'BALANS'}</span><strong>{wallet ? money(wallet.balanceMinor, wallet.currency, locale) : '...'}</strong></div><button className="wallet-action" onClick={() => setShowWallet(true)}><Plus size={17}/> {t("To'ldirish")}</button></div>
@@ -179,7 +181,7 @@ export default function App() {
 
       {tab === 'profile' && <>
         <div className="page-heading"><div><span className="eyebrow accent-text">{t('SHAXSIY KABINET')}</span><h1>{t('Mening profilim')}</h1></div></div>
-        <section className="profile-identity"><div className="profile-avatar">{user?.displayName?.slice(0, 1).toUpperCase() || <UserRound size={35}/>}</div><div><h2>{user?.displayName || t('Mehmon')}</h2><span className="muted">{user?.publicId || t('Hisobga ulanmoqda...')}</span></div>{user && <button className="icon-button" title={t('ID nusxalash')} aria-label={t('ID nusxalash')} onClick={() => navigator.clipboard.writeText(user.publicId).catch(() => {})}><Copy size={18}/></button>}</section>
+        <section className="profile-identity"><div className="profile-avatar">{user?.avatarUrl && !avatarFailed ? <img src={user.avatarUrl} alt="" onError={() => setAvatarFailed(true)}/> : user?.displayName?.slice(0, 1).toUpperCase() || <UserRound size={35}/>}</div><div><h2>{user?.displayName || t('Mehmon')}</h2><span className="muted">{user?.publicId || t('Hisobga ulanmoqda...')}</span></div>{user && <button className="icon-button" title={t('ID nusxalash')} aria-label={t('ID nusxalash')} onClick={() => navigator.clipboard.writeText(user.publicId).catch(() => {})}><Copy size={18}/></button>}</section>
         {accountError && <ErrorBox message={accountError} retry={() => void authenticate()}/>}
         <section className="profile-wallet"><div><WalletIcon size={23}/><span>{t('Mening balansim')}</span></div><strong>{wallet ? money(wallet.balanceMinor, wallet.currency) : '...'}</strong><button className="button primary" disabled={!user} onClick={() => setShowWallet(true)}><Plus size={18}/>{t("Balansni to'ldirish")}</button></section>
         <div className="profile-links">

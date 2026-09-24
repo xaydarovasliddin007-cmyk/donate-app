@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import QRCode from 'qrcode';
-import { AlertCircle, ArrowLeft, CheckCircle2, ChevronRight, Copy, CreditCard, Gamepad2, HelpCircle, Home, ImageUp, Landmark, LoaderCircle, Package, UserRound, WalletCards } from 'lucide-react';
+import { AlertCircle, ArrowLeft, Check, CheckCircle2, ChevronRight, Copy, CreditCard, Gamepad2, HelpCircle, Home, ImageUp, LoaderCircle, Package, UserRound, WalletCards } from 'lucide-react';
 import type { ReceivingMethod, TopUp, TopUpOption, Wallet } from '../types';
 import { api, ApiError, errorText } from '../services/api';
 import { Sheet } from './Sheet';
@@ -22,7 +22,7 @@ export function WalletSheet({ wallet, onClose, onUpdated, onNavigate, locale }: 
   const [busy, setBusy] = useState(false);
   const [request, setRequest] = useState<(TopUp & { receivingMethods?: ReceivingMethod[] }) | null>(null);
   const [confirmed, setConfirmed] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<'card' | 'amount' | null>(null);
   const lock = useRef(false);
   const amountConflictRef = useRef<HTMLDivElement>(null);
   const [revision, setRevision] = useState(0);
@@ -98,19 +98,26 @@ export function WalletSheet({ wallet, onClose, onUpdated, onNavigate, locale }: 
     finally { setBusy(false); lock.current = false; }
   }
   const requestMethods = request?.receivingMethod ? [request.receivingMethod] : request?.receivingMethods || [];
+  async function copyValue(value: string, kind: 'card' | 'amount') {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopied(kind);
+      window.setTimeout(() => setCopied((current) => current === kind ? null : current), 1800);
+    } catch { setError(locale === 'ru' ? 'Не удалось скопировать. Выделите текст и скопируйте вручную.' : "Nusxalab bo'lmadi. Matnni belgilab, qo'lda nusxalang."); }
+  }
   const remaining = request?.expiresAt ? Math.max(0, Math.ceil((new Date(request.expiresAt).getTime() - now) / 1000)) : 0;
   const methodInfo: Record<TopUpOption['id'], { description: string; icon?: typeof CreditCard; asset?: string }> = {
     HUMO: { description: "Avtomatik tasdiqlanadi", asset: "payment/humo.png" },
     UZCARD: { description: "Avtomatik tasdiqlanadi", asset: "payment/uzcard.png" },
-    BANKOMAT: { description: "Screenshot orqali tasdiqlanadi", icon: Landmark },
+    BANKOMAT: { description: "Screenshot orqali tasdiqlanadi", asset: "payment/atm.png" },
   };
   return <Sheet title={t("Balansni to'ldirish")} onClose={onClose} busy={busy} className="wallet-sheet">
     <div className="checkout-form">
       <section className="wallet-balance-card"><span>{locale === 'ru' ? 'БАЛАНС' : 'BALANS'}</span><strong>{balance ? money(balance.balanceMinor, balance.currency, locale) : '...'}</strong><WalletCards size={38}/></section>
       {error && <ErrorBox message={error} retry={() => setRevision((r) => r + 1)} locale={locale}/>}
       {request?.status === 'VERIFIED' ? <div className="checkout-result"><CheckCircle2 size={44}/><h3>{t("Balans to'ldirildi")}</h3><p>{money(request.amountMinor, 'UZS', locale)}</p><button className="button primary" onClick={onClose}>{t('Tayyor')}</button></div> : request ? <>
-        <div className="topup-total"><span className="eyebrow">{t("TO'LOV SUMMASI")}</span><h3 className="amount-display">{money(request.amountMinor, 'UZS', locale)}</h3></div>
-        {request.type === 'QR_CODE' ? <div className="qr-methods">{requestMethods.map((method) => method.qrPayload && <div className="qr-method" key={method.id}><GeneratedQr payload={method.qrPayload}/><strong>{method.cardHolderName}</strong><span>{method.bankName || 'QR orqali to‘lov'}</span></div>)}</div> : <div className="bank-methods">{requestMethods.map((method) => <div className="bank-details" key={method.id}>{request.channel === 'BANKOMAT' ? <Landmark size={25}/> : <img className="bank-card-logo" src={request.channel === 'UZCARD' ? 'payment/uzcard.png' : 'payment/humo.png'} alt={request.channel === 'UZCARD' ? 'UZCARD' : 'HUMO'}/>}<div><span>{method.bankName || (request.type === 'PAYNET_TERMINAL' ? 'Bankomat uchun karta' : 'Qabul qiluvchi karta')}</span><strong>{method.cardNumber}</strong><span>{method.cardHolderName}</span></div>{method.cardNumber && <button className="icon-button" aria-label="Karta raqamini nusxalash" title={copied ? 'Nusxalandi' : 'Nusxalash'} onClick={async () => { try { await navigator.clipboard.writeText(method.cardNumber!); setCopied(true); } catch { setError('Karta raqamini belgilab nusxalang.'); } }}><Copy size={18}/></button>}</div>)}</div>}
+        <div className="topup-total"><span className="eyebrow">{t("TO'LOV SUMMASI")}</span><div className="copyable-amount"><h3 className="amount-display">{money(request.amountMinor, 'UZS', locale)}</h3><button className={`copy-button ${copied === 'amount' ? 'copied' : ''}`} aria-label={locale === 'ru' ? 'Скопировать сумму' : 'Summani nusxalash'} title={copied === 'amount' ? t('Nusxalandi') : t('Nusxalash')} onClick={() => void copyValue(String(request.amountMinor / 100), 'amount')}>{copied === 'amount' ? <Check size={18}/> : <Copy size={18}/>}<span>{copied === 'amount' ? t('Nusxalandi') : t('Nusxalash')}</span></button></div></div>
+        {request.type === 'QR_CODE' ? <div className="qr-methods">{requestMethods.map((method) => method.qrPayload && <div className="qr-method" key={method.id}><GeneratedQr payload={method.qrPayload}/><strong>{method.cardHolderName}</strong><span>{method.bankName || 'QR orqali to‘lov'}</span></div>)}</div> : <div className="bank-methods">{requestMethods.map((method) => <div className="bank-details" key={method.id}>{request.channel === 'BANKOMAT' ? <img className="bank-card-logo bank-atm-logo" src="payment/atm.png" alt="BANKOMAT"/> : <img className="bank-card-logo" src={request.channel === 'UZCARD' ? 'payment/uzcard.png' : 'payment/humo.png'} alt={request.channel === 'UZCARD' ? 'UZCARD' : 'HUMO'}/>}<div><span>{method.bankName || (request.type === 'PAYNET_TERMINAL' ? 'Bankomat uchun karta' : 'Qabul qiluvchi karta')}</span><strong>{method.cardNumber}</strong><span>{method.cardHolderName}</span></div>{method.cardNumber && <button className={`icon-button copy-control ${copied === 'card' ? 'copied' : ''}`} aria-label={locale === 'ru' ? 'Скопировать номер карты' : 'Karta raqamini nusxalash'} title={copied === 'card' ? t('Nusxalandi') : t('Nusxalash')} onClick={() => void copyValue(method.cardNumber!, 'card')}>{copied === 'card' ? <Check size={18}/> : <Copy size={18}/>}<span>{copied === 'card' ? t('Nusxalandi') : t('Nusxalash')}</span></button>}</div>)}</div>}
         <p className="notice">{request.type === 'PAYNET_TERMINAL' ? (locale === 'ru' ? 'Переведите точную сумму через банкомат и загрузите фото чека.' : "Bankomatda aynan ko'rsatilgan summani o'tkazing va chekni rasmga olib yuklang.") : (locale === 'ru' ? 'Переведите точную сумму. Баланс обновится автоматически после уведомления банка.' : "Aynan ko'rsatilgan summani o'tkazing. Bank xabari kelishi bilan balans avtomatik yangilanadi.")}</p>
         {request.expiresAt && <p className="muted">{t('Qolgan vaqt:')} {Math.floor(remaining / 60)}:{String(remaining % 60).padStart(2, '0')}</p>}
         {request.type === 'PAYNET_TERMINAL' ? confirmed ? <div className="notice success"><CheckCircle2 size={20}/>{t('Chek adminga yuborildi. Tasdiqlangach balans yangilanadi.')}</div> : <form className="stack compact" onSubmit={submitReceipt}><label className="receipt-upload"><input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => chooseReceipt(event.target.files?.[0] || null)}/>{receiptPreview ? <img src={receiptPreview} alt={t('Yuklangan chek')}/> : <span><ImageUp size={28}/><strong>{t('Chek screenshotini yuklang')}</strong><small>{t('JPG, PNG yoki WEBP · 5 MB gacha')}</small></span>}</label><button className="button primary" disabled={busy || remaining === 0 || !receiptFile}>{busy ? <LoaderCircle className="spin" size={18}/> : <ImageUp size={18}/>} {t('Chekni yuborish')}</button></form> : <div className="notice success"><LoaderCircle className="spin" size={20}/><div><strong>{t('Avtomatik tekshirilmoqda')}</strong><br/><span>{t("Ilovani yopmang. To'lov aniqlanganda balans o'zi yangilanadi.")}</span></div></div>}
