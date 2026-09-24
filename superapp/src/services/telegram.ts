@@ -1,5 +1,6 @@
 interface TelegramWebApp {
   initData: string;
+  initDataUnsafe?: { user?: { language_code?: string } };
   ready(): void; expand(): void;
   setHeaderColor(color: string): void; setBackgroundColor(color: string): void;
   openTelegramLink(url: string): void;

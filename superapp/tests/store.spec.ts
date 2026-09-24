@@ -267,6 +267,17 @@ test('wallet top-up chooses the payment method before amount', async ({ page }, 
   });
 });
 
+test('Russian language can be selected and remains selected after reload', async ({ page }) => {
+  await mockStore(page);
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Русский язык' }).click();
+  await expect(page.getByRole('navigation', { name: 'Основные разделы' })).toBeVisible();
+  await page.getByRole('button', { name: 'Игры', exact: true }).filter({ visible: true }).click();
+  await expect(page.getByRole('heading', { name: 'Выберите игру' })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole('navigation', { name: 'Основные разделы' })).toBeVisible();
+});
+
 test('busy top-up amount stays exact and offers free alternatives', async ({ page }) => {
   const sent = await mockStore(page, false, true);
   await page.goto('/');
@@ -305,10 +316,11 @@ test('checkout validates player and zone, pays and shows server order', async ({
   await page.goto('/');
   await page.locator('.game-card').first().click();
   await expect(page.getByRole('dialog')).toBeVisible();
-  await expect(page.locator('.product-icon img').first()).toHaveAttribute('src', /diamond\.png/);
-  await expect(page.locator('.product-icon img').nth(1)).toHaveAttribute('src', /diamondpile\.png/);
-  await expect(page.locator('.product-icon img').nth(2)).toHaveAttribute('src', /pass\.png/);
-  await expect(page.locator('.product-icon img').nth(3)).toHaveAttribute('src', /fire\.png/);
+  await expect(page.locator('.product-icon').nth(0)).toHaveAttribute('data-visual', 'diamond');
+  await expect(page.locator('.product-icon').nth(1)).toHaveAttribute('data-visual', 'bonus');
+  await expect(page.locator('.product-icon').nth(2)).toHaveAttribute('data-visual', 'pass');
+  await expect(page.locator('.product-icon').nth(3)).toHaveAttribute('data-visual', 'twilight');
+  await expect(page.locator('.product-icon svg')).toHaveCount(5);
   await expect(page.getByLabel('Player ID', { exact: true })).toHaveCount(0);
   await page.getByRole('radio').first().click();
   await expect(page.getByRole('heading', { name: "O'yin hisobingizni kiriting" })).toBeVisible();

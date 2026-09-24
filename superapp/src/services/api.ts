@@ -39,7 +39,7 @@ async function raw<T>(path: string, body?: unknown, token?: string): Promise<T> 
   if (!response.ok) throw new ApiError(response.status, data?.error?.code || 'HTTP_ERROR', data?.error?.message || 'So\'rov bajarilmadi', data?.error?.details);
   return data as T;
 }
-export async function signIn(): Promise<Session> {
+export async function signIn(locale: 'uz' | 'ru' = 'uz'): Promise<Session> {
   if (!authPromise) authPromise = (async () => {
     // Telegram's signed identity is always verified afresh on launch.
     if (inTelegram()) return save(await raw<Session>('/auth/telegram', { initData: telegram()!.initData }));
@@ -52,7 +52,7 @@ export async function signIn(): Promise<Session> {
       deviceId = localStorage.getItem('uzdonate_device_v2') || crypto.randomUUID();
       localStorage.setItem('uzdonate_device_v2', deviceId);
     } catch { deviceId = crypto.randomUUID(); }
-    return save(await raw<Session>('/auth/guest', { deviceId, locale: 'uz' }));
+    return save(await raw<Session>('/auth/guest', { deviceId, locale }));
   })().finally(() => { authPromise = null; });
   return authPromise;
 }

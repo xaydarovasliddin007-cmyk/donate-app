@@ -5,6 +5,7 @@ import { api, errorText } from '../services/api';
 import { haptic } from '../services/telegram';
 import { Sheet } from './Sheet';
 import { ErrorBox, GameImage, money } from './ui';
+import { tr, type Locale } from '../i18n';
 
 type ProductVisual = { icon: string; badge?: string; tone: string };
 
@@ -56,7 +57,8 @@ function ProductIcon({ item, selected }: { item: Product; selected: boolean }) {
   );
 }
 
-export function Checkout({ game, onClose, onUpdated, wallet, authenticated }: { game: Game; onClose: () => void; onUpdated: () => void; wallet: Wallet | null; authenticated: boolean }) {
+export function Checkout({ game, onClose, onUpdated, wallet, authenticated, locale }: { game: Game; onClose: () => void; onUpdated: () => void; wallet: Wallet | null; authenticated: boolean; locale: Locale }) {
+  const t = (text: string) => tr(locale, text);
   const [servers, setServers] = useState<GameServer[]>([]);
   const [server, setServer] = useState('');
   const [serversReady, setServersReady] = useState(false);
@@ -75,7 +77,7 @@ export function Checkout({ game, onClose, onUpdated, wallet, authenticated }: { 
   const needsZone = game.slug === 'mobile-legends';
   const usesTag = ['clash-of-clans', 'clash-royale', 'brawl-stars'].includes(game.slug);
   const usesName = ['roblox', 'telegram-premium', 'steam-wallet'].includes(game.slug);
-  const accountLabel = usesName ? 'Foydalanuvchi nomi' : usesTag ? "O'yinchi tegi" : 'Player ID';
+  const accountLabel = usesName ? t('Foydalanuvchi nomi') : usesTag ? t("O'yinchi tegi") : 'Player ID';
 
   useEffect(() => {
     let active = true;
@@ -175,7 +177,7 @@ export function Checkout({ game, onClose, onUpdated, wallet, authenticated }: { 
       locked.current = false;
     }
   }
-  const price = product ? money(product.amountMinor, product.currency) : '';
+  const price = product ? money(product.amountMinor, product.currency, locale) : '';
   const currentStep = step === 'product' ? 1 : step === 'details' ? 2 : 3;
   return (
     <Sheet title={game.name} onClose={onClose} onBack={goBack} busy={busy} className="checkout-sheet">
@@ -184,12 +186,12 @@ export function Checkout({ game, onClose, onUpdated, wallet, authenticated }: { 
           <span className="result-mark">
             <CheckCircle2 size={48} />
           </span>
-          <span className="eyebrow accent-text">MUVAFFAQIYATLI</span>
-          <h3>{result?.status === 'COMPLETED' ? 'Xarid bajarildi' : 'Buyurtma qabul qilindi'}</h3>
+          <span className="eyebrow accent-text">{t('MUVAFFAQIYATLI')}</span>
+          <h3>{t(result?.status === 'COMPLETED' ? 'Xarid bajarildi' : 'Buyurtma qabul qilindi')}</h3>
           <p>#{result?.orderNumber}</p>
-          <p>Holatini Buyurtmalar bo'limida kuzatishingiz mumkin.</p>
+          <p>{t("Holatini Buyurtmalar bo'limida kuzatishingiz mumkin.")}</p>
           <button className="button primary" onClick={onClose}>
-            Tayyor <Check size={18} />
+            {t('Tayyor')} <Check size={18} />
           </button>
         </div>
       ) : (
@@ -199,7 +201,7 @@ export function Checkout({ game, onClose, onUpdated, wallet, authenticated }: { 
             <div>
               <span className="eyebrow">{game.category}</span>
               <h3>{game.name}</h3>
-              <span className="muted">UZDONATE balans orqali to'lov</span>
+              <span className="muted">{t("UZDONATE balans orqali to'lov")}</span>
             </div>
           </div>
           {game.isPurchasable && (
@@ -240,15 +242,15 @@ export function Checkout({ game, onClose, onUpdated, wallet, authenticated }: { 
                   <Sparkles size={20} />
                 </span>
                 <div>
-                  <h3>Paketni tanlang</h3>
-                  <p>Kerakli paket ustiga bosing. Keyingi qadamda o'yin hisobingizni kiritasiz.</p>
+                  <h3>{t('Paketni tanlang')}</h3>
+                  <p>{t("Kerakli paket ustiga bosing. Keyingi qadamda o'yin hisobingizni kiritasiz.")}</p>
                 </div>
               </div>
               <div className="section-heading">
-                <span className="muted">Mavjud paketlar</span>
-                <span className="muted">{products.length} ta</span>
+                <span className="muted">{t('Mavjud paketlar')}</span>
+                <span className="muted">{products.length} {t('ta')}</span>
               </div>
-              {error && <ErrorBox message={error} retry={() => setRevision((r) => r + 1)} />}
+              {error && <ErrorBox message={error} retry={() => setRevision((r) => r + 1)} locale={locale} />}
               {loading ? (
                 <div className="product-grid">
                   {[0, 1, 2, 3].map((i) => (
@@ -261,7 +263,7 @@ export function Checkout({ game, onClose, onUpdated, wallet, authenticated }: { 
                     <button key={item.id} type="button" role="radio" aria-checked={product?.id === item.id} className={`product-option ${product?.id === item.id ? 'selected' : ''}`} onClick={() => selectProduct(item)}>
                       <ProductIcon item={item} selected={product?.id === item.id} />
                       <strong>{item.name}</strong>
-                      <span>{money(item.amountMinor, item.currency)}</span>
+                      <span>{money(item.amountMinor, item.currency, locale)}</span>
                       <i className="product-next">
                         <ArrowRight size={13} />
                       </i>
@@ -280,18 +282,18 @@ export function Checkout({ game, onClose, onUpdated, wallet, authenticated }: { 
             <form onSubmit={review} className="checkout-form checkout-view view-forward account-step">
               <button type="button" className="checkout-back" onClick={() => setStep('product')}>
                 <ArrowLeft size={17} />
-                Paketlarga qaytish
+                {t('Paketlarga qaytish')}
               </button>
               {product && (
                 <div className="selected-product">
                   <ProductIcon item={product} selected={false} />
                   <div>
-                    <span className="eyebrow">TANLANGAN PAKET</span>
+                    <span className="eyebrow">{t('TANLANGAN PAKET')}</span>
                     <strong>{product.name}</strong>
                     <small>{price}</small>
                   </div>
                   <button type="button" onClick={() => setStep('product')}>
-                    Almashtirish
+                  {t('Almashtirish')}
                   </button>
                 </div>
               )}
@@ -301,8 +303,8 @@ export function Checkout({ game, onClose, onUpdated, wallet, authenticated }: { 
                 </span>
                 <div>
                   <span className="eyebrow accent-text">2-QADAM</span>
-                  <h3>O'yin hisobingizni kiriting</h3>
-                  <p>Diamonds yoki valyuta aynan shu hisobga yuboriladi.</p>
+                  <h3>{t("O'yin hisobingizni kiriting")}</h3>
+                  <p>{t('Diamonds yoki valyuta aynan shu hisobga yuboriladi.')}</p>
                 </div>
               </div>
               <div className="field-grid account-fields">
@@ -319,16 +321,16 @@ export function Checkout({ game, onClose, onUpdated, wallet, authenticated }: { 
               </div>
               <p className="account-hint">
                 <ShieldCheck size={17} />
-                ID ma'lumotlari faqat buyurtmani o'yin hisobiga yetkazish uchun ishlatiladi.
+                {t("ID ma'lumotlari faqat buyurtmani o'yin hisobiga yetkazish uchun ishlatiladi.")}
               </p>
               {!authenticated && <p className="muted">Xarid uchun hisobga kirish kerak. Ilovani qayta oching.</p>}
               <footer className="checkout-footer">
                 <div>
-                  <span className="muted">Jami</span>
+                  <span className="muted">{t('Jami')}</span>
                   <strong>{price || 'Paket tanlanmagan'}</strong>
                 </div>
                 <button className="button primary" type="submit" disabled={!product || !authenticated || !playerId.trim() || (needsZone && !zoneId.trim())}>
-                  Davom etish <ArrowRight size={18} />
+                  {t('Davom etish')} <ArrowRight size={18} />
                 </button>
               </footer>
             </form>
@@ -336,16 +338,16 @@ export function Checkout({ game, onClose, onUpdated, wallet, authenticated }: { 
             <div className="checkout-form checkout-view view-forward review-step">
               <button type="button" className="checkout-back" onClick={() => setStep('details')}>
                 <ArrowLeft size={17} />
-                Hisob ma'lumotlariga qaytish
+                {t("Hisob ma'lumotlariga qaytish")}
               </button>
               <div className="review-heading">
                 <span className="eyebrow accent-text">3-QADAM</span>
-                <h3>Buyurtmani tasdiqlang</h3>
-                <p>To'lashdan oldin ma'lumotlarni yana bir marta tekshiring.</p>
+                <h3>{t('Buyurtmani tasdiqlang')}</h3>
+                <p>{t("To'lashdan oldin ma'lumotlarni yana bir marta tekshiring.")}</p>
               </div>
               <dl className="receipt">
                 <div>
-                  <dt>Paket</dt>
+                  <dt>{t('Paket')}</dt>
                   <dd>{product?.name}</dd>
                 </div>
                 <div>
@@ -360,27 +362,27 @@ export function Checkout({ game, onClose, onUpdated, wallet, authenticated }: { 
                 )}
                 {server && (
                   <div>
-                    <dt>Hudud</dt>
+                    <dt>{t('Hudud')}</dt>
                     <dd>{servers.find((s) => s.code === server)?.name}</dd>
                   </div>
                 )}
                 <div className="receipt-total">
-                  <dt>Jami</dt>
+                  <dt>{t('Jami')}</dt>
                   <dd>{price}</dd>
                 </div>
               </dl>
               <p className="notice">
                 <ShieldCheck size={19} />
-                O'yin ID va hududni tekshiring. Paket shu hisobga yuboriladi.
+                {t("O'yin ID va hududni tekshiring. Paket shu hisobga yuboriladi.")}
               </p>
-              {wallet && wallet.balanceMinor < (product?.amountMinor ?? 0) && <ErrorBox message="Balans yetarli emas. Profil bo'limida hisobingizni to'ldiring." />}
-              {error && <ErrorBox message={error} />}
+              {wallet && wallet.balanceMinor < (product?.amountMinor ?? 0) && <ErrorBox message={t("Balans yetarli emas. Profil bo'limida hisobingizni to'ldiring.")} locale={locale} />}
+              {error && <ErrorBox message={error} locale={locale} />}
               <button className="button primary full-width" disabled={busy || !wallet || wallet.balanceMinor < (product?.amountMinor ?? 0)} onClick={pay}>
                 {busy ? <LoaderCircle className="spin" size={18} /> : <ShieldCheck size={18} />}
-                {busy ? 'Kutilmoqda...' : `${price} to'lash`}
+                {busy ? t('Kutilmoqda...') : locale === 'ru' ? `Оплатить ${price}` : `${price} to'lash`}
               </button>
               <button className="button subtle full-width" disabled={busy} onClick={() => setStep('details')}>
-                Ma'lumotlarni o'zgartirish
+                {t("Ma'lumotlarni o'zgartirish")}
               </button>
             </div>
           )}
