@@ -123,6 +123,7 @@ export function ProductProviderMappingsPage() {
       </p>
       <h1>{t('providerMappings.title', { product: product?.name ?? '…' })}</h1>
       <p className="muted">{t('providerMappings.blurb')}</p>
+      <p className="provider-health-note">{t('providerMappings.marginDisclaimer')}</p>
 
       <div className="panel">
         <h3>{t('providerMappings.addMapping')}</h3>
@@ -174,13 +175,14 @@ export function ProductProviderMappingsPage() {
               <th>{t('providerMappings.colProvider')}</th>
               <th>{t('providerMappings.colCode')}</th>
               <th>{t('providerMappings.colCost')}</th>
+              <th>{t('providerMappings.colMargin')}</th>
               <th>{t('providerMappings.colPriority')}</th>
               <th>{t('providerMappings.colActive')}</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
-            <SkeletonRows columns={6} />
+            <SkeletonRows columns={7} />
           </tbody>
         </table>
       )}
@@ -192,6 +194,7 @@ export function ProductProviderMappingsPage() {
               <th>{t('providerMappings.colProvider')}</th>
               <th>{t('providerMappings.colCode')}</th>
               <th>{t('providerMappings.colCost')}</th>
+              <th>{t('providerMappings.colMargin')}</th>
               <th>{t('providerMappings.colPriority')}</th>
               <th>{t('providerMappings.colActive')}</th>
               <th></th>
@@ -231,6 +234,16 @@ export function ProductProviderMappingsPage() {
                     <div className="muted">{formatMinor(mapping.costMinor, product?.currency ?? 'UZS')}</div>
                   )}
                 </td>
+                <td>
+                  {mapping.costMinor == null || !product ? (
+                    <span className="badge badge-warning">{t('providerMappings.marginUnknown')}</span>
+                  ) : (() => {
+                    const gross = product.amountMinor - mapping.costMinor;
+                    const percent = product.amountMinor > 0 ? (gross / product.amountMinor) * 100 : 0;
+                    const stale = mapping.priceUpdatedAt && Date.now() - new Date(mapping.priceUpdatedAt).getTime() > 7 * 86400000;
+                    return <><span className={`badge ${stale || gross <= 0 ? 'badge-warning' : 'badge-success'}`}>{formatMinor(gross, product.currency)} ({percent.toFixed(1)}%)</span>{stale && <div className="muted">{t('providerMappings.priceStale')}</div>}<div className="muted">{t('providerMappings.marginBeforeFees')}</div></>;
+                  })()}
+                </td>
                 <td>{mapping.priority}</td>
                 <td>
                   <ActiveBadge active={mapping.isActive} />
@@ -257,7 +270,7 @@ export function ProductProviderMappingsPage() {
             ))}
             {data.mappings.length === 0 && (
               <tr>
-                <td colSpan={6} className="muted">
+                <td colSpan={7} className="muted">
                   {t('providerMappings.empty')}
                 </td>
               </tr>

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
-import { ArrowRight, ArrowUpRight, CheckCircle2, ChevronRight, Clock3, Copy, Gamepad2, Headphones, Home, LoaderCircle, Moon, Package, Plus, RefreshCw, Search, ShieldCheck, Sparkles, Sun, UserRound, Wallet as WalletIcon, X } from 'lucide-react';
-import type { AppConfig, Game, Order, SavedGame, Session, TopUp, User, Wallet } from './types';
+import { ArrowRight, ArrowUpRight, Bell, CheckCircle2, ChevronRight, Clock3, Copy, Gamepad2, Headphones, Home, LoaderCircle, Moon, Package, Plus, RefreshCw, Search, ShieldCheck, Sparkles, Sun, UserRound, Wallet as WalletIcon, X } from 'lucide-react';
+import type { AppConfig, AppNotification, Game, Order, SavedGame, Session, TopUp, User, Wallet } from './types';
 import { api, errorText, login, signIn } from './services/api';
 import { haptic, inTelegram, openTelegram, telegram } from './services/telegram';
 import { Checkout } from './components/Checkout';
@@ -31,6 +31,9 @@ export default function App() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [topups, setTopups] = useState<TopUp[]>([]);
   const [savedGames, setSavedGames] = useState<SavedGame[]>([]);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [showNotifications, setShowNotifications] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [config, setConfig] = useState(defaultConfig);
   const [query, setQuery] = useState('');
@@ -63,8 +66,9 @@ export default function App() {
         api<Wallet>('/wallet'),
         api<{ topUps: TopUp[] }>('/topups?limit=20'),
         api<{ savedGames: SavedGame[] }>('/saved-games').catch(() => ({ savedGames: [] })),
+        api<{ notifications: AppNotification[]; unreadCount: number }>('/notifications?limit=30').catch(() => ({ notifications: [], unreadCount: 0 })),
       ]);
-      setOrders(result[0].orders); setWallet(result[1]); setTopups(result[2].topUps); setSavedGames(result[3].savedGames); setAccountError('');
+      setOrders(result[0].orders); setWallet(result[1]); setTopups(result[2].topUps); setSavedGames(result[3].savedGames); setNotifications(result[4].notifications); setUnreadNotifications(result[4].unreadCount); setAccountError('');
     } catch (err) { setAccountError(errorText(err)); }
     finally { accountLoading.current = false; setRefreshing(false); }
   }, []);
@@ -115,6 +119,24 @@ export default function App() {
 
   function navigate(next: Tab) { setTab(next); haptic(); window.scrollTo({ top: 0, behavior: 'instant' }); }
   function openGame(selected: Game, profile: SavedGame | null = null) { setQuickProfile(profile); setGame(selected); haptic(); }
+  async function markNotificationRead(item: AppNotification) {
+    if (item.readAt) return;
+    await api(`/notifications/${item.id}/read`, {});
+    setUnreadNotifications((count) => Math.max(0, count - 1));
+    setNotifications((items) => items.map((entry) => entry.id === item.id ? { ...entry, readAt: new Date().toISOString() } : entry));
+  }
+  async function markAllNotificationsRead() {
+    await api('/notifications/read-all', {});
+    setNotifications((items) => items.map((item) => ({ ...item, readAt: item.readAt || new Date().toISOString() })));
+    setUnreadNotifications(0);
+  }
+  function openNotification(item: AppNotification) {
+    const prefix = '/orders/';
+    if (!item.deepLink?.startsWith(prefix)) return;
+    const linkedOrder = orders.find((entry) => entry.id === item.deepLink!.slice(prefix.length));
+    if (linkedOrder) { setOrder(linkedOrder); setShowNotifications(false); }
+    else { setShowNotifications(false); navigate('orders'); }
+  }
   function showCatalog() { navigate('games'); }
   const categories = [...new Set(games.map((item) => item.category).filter(Boolean))] as string[];
   const filtered = games.filter((item) => (!onlyAvailable || item.isPurchasable) &&
@@ -134,6 +156,7 @@ export default function App() {
       <button className="brand" onClick={() => navigate('shop')} aria-label="UZDONATE bosh sahifa"><img src="assets-store/brand.png" alt=""/><span>UZDONATE<span className="brand-dot">.</span></span></button>
       <nav className="desktop-nav" aria-label={t('Asosiy bo\'limlar')}>{navigation.map(({ id, icon: Icon, label }) => <button key={id} aria-current={tab === id ? 'page' : undefined} className={tab === id ? 'active' : ''} onClick={() => navigate(id)}><Icon size={18}/>{label}</button>)}</nav>
       <div className="header-actions"><button className="locale-toggle" aria-label={locale === 'uz' ? 'Русский язык' : "O'zbek tili"} onClick={() => setLocale(locale === 'uz' ? 'ru' : 'uz')}>{locale === 'uz' ? 'RU' : 'UZ'}</button><button className="icon-button" title={t(theme === 'dark' ? "Yorug' mavzu" : "Qorong'i mavzu")} aria-label={t('Mavzuni almashtirish')} onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>{theme === 'dark' ? <Sun size={20}/> : <Moon size={20}/>}</button>
+      {user && <button className="icon-button notification-trigger" title={t('Bildirishnomalar')} aria-label={`${t('Bildirishnomalar')}${unreadNotifications ? `, ${unreadNotifications}` : ''}`} onClick={() => setShowNotifications(true)}><Bell size={20}/>{unreadNotifications > 0 && <i>{unreadNotifications > 9 ? '9+' : unreadNotifications}</i>}</button>}
       <button className="avatar" title={t('Profil')} aria-label={t('Profil')} onClick={() => navigate('profile')}>{user?.avatarUrl && !avatarFailed ? <img src={user.avatarUrl} alt="" onError={() => setAvatarFailed(true)}/> : user?.displayName?.slice(0, 1).toUpperCase() || <UserRound size={19}/>}</button></div>
     </div></header>
 
@@ -253,8 +276,22 @@ export default function App() {
         }}
       />
     )}
+    {showNotifications && <Sheet title={t('Bildirishnomalar')} onClose={() => setShowNotifications(false)} className="notifications-sheet"><div className="notification-toolbar">{unreadNotifications > 0 && <button className="button secondary" onClick={markAllNotificationsRead}><CheckCircle2 size={17}/>{t("Hammasini o'qildi qilish")}</button>}</div>{notifications.length === 0 ? <div className="notification-empty"><Bell size={25}/><p>{t("Hozircha bildirishnomalar yo'q")}</p></div> : <div className="notification-list">{notifications.map((item) => <button key={item.id} className={`notification-row ${item.readAt ? '' : 'unread'}`} onClick={async () => { await markNotificationRead(item); openNotification(item); }}><span className="notification-symbol"><Bell size={17}/></span><span className="notification-copy"><strong>{notificationTitle(item.type, item.title, locale)}</strong><span>{notificationBody(item.type, item.body, locale)}</span><small>{date(item.createdAt, locale)}</small></span>{!item.readAt && <i aria-label={t('Yangi')}/>}</button>)}</div>}</Sheet>}
     {order && <OrderSheet order={orders.find((item) => item.id === order.id) || order} onClose={() => setOrder(null)} onUpdated={refreshAccount} supportUrl={config.supportUrl} locale={locale}/>}
   </div>{showIntro && <div className="launch-screen" aria-hidden="true"><div className="launch-mark"><img src="assets-store/brand.png" alt=""/><i/></div><strong>UZDONATE<span>.</span></strong><small>PLAY. TOP UP. WIN.</small></div>}</>;
+}
+
+function notificationTitle(type: string, fallback: string, locale: Locale) {
+  const uz: Record<string, string> = { ORDER_SUCCESS: 'Buyurtma bajarildi', ORDER_FAILED: 'Buyurtmani bajarib bo‘lmadi', PAYMENT_SUCCESS: 'To‘lov qabul qilindi', TOPUP_SUCCESS: 'Balans to‘ldirildi', REFUND: 'Mablag‘ qaytarildi', SECURITY: 'Xavfsizlik xabari', PROMOTION: 'Yangilik' };
+  const ru: Record<string, string> = { ORDER_SUCCESS: 'Заказ выполнен', ORDER_FAILED: 'Не удалось выполнить заказ', PAYMENT_SUCCESS: 'Платёж принят', TOPUP_SUCCESS: 'Баланс пополнен', REFUND: 'Средства возвращены', SECURITY: 'Уведомление безопасности', PROMOTION: 'Новости' };
+  return (locale === 'ru' ? ru : uz)[type] || fallback;
+}
+function notificationBody(type: string, fallback: string, locale: Locale) {
+  if (type === 'ORDER_SUCCESS') return locale === 'ru' ? 'Покупка успешно доставлена в игровой аккаунт.' : 'Xarid o‘yin hisobingizga muvaffaqiyatli yetkazildi.';
+  if (type === 'ORDER_FAILED') return locale === 'ru' ? 'Откройте заказ и свяжитесь с поддержкой.' : 'Buyurtmani ochib, yordam xizmatiga murojaat qiling.';
+  if (type === 'TOPUP_SUCCESS') return locale === 'ru' ? 'Средства уже доступны на вашем балансе.' : 'Mablag‘ balansingizda foydalanishga tayyor.';
+  if (type === 'REFUND') return locale === 'ru' ? 'Проверьте историю операций в профиле.' : 'Amaliyotlar tarixini profilingizdan tekshiring.';
+  return fallback;
 }
 
 function LoginSheet({ onClose, onLogin, locale }: { onClose: () => void; onLogin: (session: Session) => void; locale: Locale }) {

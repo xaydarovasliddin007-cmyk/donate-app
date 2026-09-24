@@ -697,6 +697,13 @@ export async function getStatsAdmin(ctx: AdminContext, range: { from: Date; to: 
     profitByGameId.set(item.order.gameId, (profitByGameId.get(item.order.gameId) ?? 0) + itemProfitMinor);
   }
 
+  const [paidFailedOrders, staleProcessingOrders, manualTopUps, activeMappingsWithoutCost] = await Promise.all([
+    ctx.prisma.order.count({ where: { status: 'FAILED', paidAt: { not: null } } }),
+    ctx.prisma.order.count({ where: { status: 'PROCESSING', updatedAt: { lt: new Date(Date.now() - 10 * 60_000) } } }),
+    ctx.prisma.topUpRequest.count({ where: { status: 'PENDING', channel: 'BANKOMAT' } }),
+    ctx.prisma.providerProduct.count({ where: { isActive: true, provider: { isActive: true, type: 'TOPUP' }, product: { isActive: true }, costMinor: null } }),
+  ]);
+
   // groupBy can't join — a second lookup + in-memory merge keeps the two
   // display fields (name, publicId/slug) without denormalizing the group.
   const [clientUsers, games] = await Promise.all([
@@ -749,6 +756,7 @@ export async function getStatsAdmin(ctx: AdminContext, range: { from: Date; to: 
     // because their product had no cost entered at purchase time — the
     // dashboard uses this to flag the total as incomplete rather than final.
     profitCostUnknownItemCount: unknownCostItemCount,
+    operationalAlerts: { paidFailedOrders, staleProcessingOrders, manualTopUps, activeMappingsWithoutCost },
   };
 }
 

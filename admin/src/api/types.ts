@@ -44,6 +44,12 @@ export interface Stats {
   // because their product had no cost entered at purchase time — show this
   // next to the profit figure so it never reads as more final than it is.
   profitCostUnknownItemCount: number;
+  operationalAlerts: {
+    paidFailedOrders: number;
+    staleProcessingOrders: number;
+    manualTopUps: number;
+    activeMappingsWithoutCost: number;
+  };
 }
 
 export type OrderStatus = 'PENDING' | 'PAID' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELLED' | 'REFUNDED';

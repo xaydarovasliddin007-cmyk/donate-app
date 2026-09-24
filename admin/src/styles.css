@@ -782,6 +782,11 @@ table {
   font-size: 0.875rem;
   line-height: 1.55;
 }
+.operational-alerts { margin: 16px 0; }
+.operational-alerts h3 { margin-bottom: 8px; }
+.operational-alerts a { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 42px; padding: 7px 0; border-top: 1px solid var(--border); color: var(--text); text-decoration: none; }
+.operational-alerts a:hover { color: var(--accent); }
+.operational-alerts a strong { min-width: 28px; padding: 3px 8px; border-radius: 999px; background: var(--warning-soft); color: var(--warning); text-align: center; }
 
 /* ---------- Modal ---------- */
 

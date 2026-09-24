@@ -40,6 +40,10 @@ export interface TopUp {
   expiresAt: string | null; receivingMethod: ReceivingMethod | null;
   createdAt: string; userConfirmedPaidAt: string | null;
 }
+export interface AppNotification {
+  id: string; type: string; title: string; body: string;
+  deepLink: string | null; readAt: string | null; createdAt: string;
+}
 export interface TopUpOption {
   id: 'HUMO' | 'UZCARD' | 'BANKOMAT';
   label: string;

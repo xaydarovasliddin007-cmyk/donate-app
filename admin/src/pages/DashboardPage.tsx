@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../api/client';
 import type { Stats, StatsRangePreset } from '../api/types';
 import { useAsync } from '../lib/useAsync';
@@ -91,6 +92,12 @@ export function DashboardPage() {
           {data.profitCostUnknownItemCount > 0 && (
             <p className="muted">{t('dashboard.profitIncomplete', { count: data.profitCostUnknownItemCount })}</p>
           )}
+          {Object.values(data.operationalAlerts).some((count) => count > 0) && <section className="panel operational-alerts"><h3>{t('dashboard.operationalAlerts')}</h3>{([
+            ['paidFailedOrders', '/orders', 'dashboard.alertPaidFailed'],
+            ['staleProcessingOrders', '/orders', 'dashboard.alertStaleProcessing'],
+            ['manualTopUps', '/topups', 'dashboard.alertManualTopups'],
+            ['activeMappingsWithoutCost', '/providers', 'dashboard.alertUnknownCost'],
+          ] as const).filter(([key]) => data.operationalAlerts[key] > 0).map(([key, href, label]) => <Link key={key} to={href}><span>{t(label)}</span><strong>{data.operationalAlerts[key]}</strong></Link>)}</section>}
           <div className="panel-grid">
             <BreakdownChart
               title={t('dashboard.usersByStatus')}

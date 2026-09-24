@@ -63,6 +63,8 @@ to { opacity: 1; }
 .icon-button { min-width: 40px; width: 40px; height: 40px; background: none; display: inline-flex; align-items: center; justify-content: center; color: var(--muted); border-radius: 6px; }
 .icon-button:hover { color: var(--text); background: var(--raised); }
 .icon-button.small { width: 32px; min-width: 32px; height: 32px; }
+.notification-trigger { position: relative; }
+.notification-trigger > i { position: absolute; top: 1px; right: 1px; min-width: 16px; height: 16px; padding: 0 4px; display: grid; place-items: center; border-radius: 99px; background: var(--coral); color: white; font-size: 9px; font-style: normal; font-weight: 800; }
 .avatar,.profile-avatar { display: flex; align-items: center; justify-content: center; background: #8b5cf6; color: #fff; font-weight: 800; }
 .avatar { position: relative; display: grid; place-items: center; flex: 0 0 38px; width: 38px; height: 38px; padding: 0; overflow: hidden; border: 1px solid color-mix(in srgb,var(--accent) 60%,var(--border)); border-radius: 50%; background: var(--raised); }
 .avatar img { position: absolute; inset: 0; display: block; width: 100%; height: 100%; max-width: none; border-radius: inherit; object-fit: cover; object-position: center; }
@@ -205,6 +207,19 @@ input[type='checkbox'] { accent-color: var(--accent); width: 15px; height: 15px;
 .sheet::backdrop { background: #000a; animation: backdrop-arrive 0.24s ease both; }
 .sheet-header { display: flex; align-items: center; justify-content: space-between; gap: 14px; position: sticky; top: 0; z-index: 3; background: var(--bg); padding: 14px 22px; border-bottom: 1px solid var(--border); }
 .sheet-header h2 { font-size: 17px; overflow-wrap: anywhere; }
+.notifications-sheet[open] { animation: sheet-arrive 0.28s cubic-bezier(0.2,0.8,0.2,1) both; }
+.notification-toolbar { display: flex; justify-content: flex-end; padding: 12px 20px 0; }
+.notification-toolbar .button { min-height: 38px; font-size: 11px; }
+.notification-list { padding: 8px 20px 20px; }
+.notification-row { width: 100%; min-height: 76px; display: flex; align-items: flex-start; gap: 12px; padding: 14px 4px; border-bottom: 1px solid var(--border); background: transparent; color: var(--text); text-align: left; }
+.notification-row.unread { background: color-mix(in srgb,var(--accent) 6%,transparent); }
+.notification-symbol { width: 36px; height: 36px; flex: 0 0 36px; display: grid; place-items: center; border: 1px solid var(--border); border-radius: 8px; color: var(--accent-2); background: var(--surface); }
+.notification-copy { flex: 1; min-width: 0; display: grid; gap: 4px; }
+.notification-copy strong { font-size: 12px; }
+.notification-copy > span { color: var(--muted); font-size: 11px; line-height: 1.5; }
+.notification-copy small { color: var(--muted); font-size: 10px; }
+.notification-row > i { width: 7px; height: 7px; flex: 0 0 7px; margin: 5px 4px 0 0; border-radius: 50%; background: var(--accent); }
+.notification-empty { min-height: 180px; display: grid; align-content: center; justify-items: center; gap: 10px; color: var(--muted); font-size: 12px; }
 .checkout-sheet { overflow-x: hidden; }
 .checkout-game { display: flex; align-items: center; gap: 17px; padding: 24px; border-bottom: 1px solid var(--border); }
 .checkout-game > img,.checkout-game > .image-fallback { width: 62px; height: 62px; min-height: 62px; object-fit: cover; border-radius: 8px; flex-shrink: 0; }
