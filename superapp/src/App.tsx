@@ -72,7 +72,7 @@ export default function App() {
     api<AppConfig>('/app/config', undefined, false).then(setConfig).catch(() => {});
   }, [loadCatalog, authenticate]);
   useEffect(() => {
-    const timer = window.setTimeout(() => setShowIntro(false), 1400);
+    const timer = window.setTimeout(() => setShowIntro(false), 2200);
     return () => window.clearTimeout(timer);
   }, []);
   useEffect(() => {
