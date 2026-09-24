@@ -229,6 +229,8 @@ input[type='checkbox'] { accent-color: var(--accent); width: 15px; height: 15px;
 .checkout-form { padding: 24px; display: flex; flex-direction: column; gap: 20px; }
 .checkout-view { animation: checkout-forward 0.34s cubic-bezier(0.2,0.8,0.2,1) both; }
 .checkout-form .error-box { margin: 0; }
+.checkout-insufficient { display: grid; gap: 10px; }
+.checkout-insufficient .button { min-height: 48px; }
 .checkout-form label,.stack label { display: flex; flex-direction: column; gap: 9px; font-size: 12px; font-weight: 700; }
 .checkout-form input,.checkout-form select { width: 100%; min-width: 0; height: 46px; padding: 10px 12px; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 6px; font-size: 16px; }
 .section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }

@@ -245,6 +245,7 @@ export default function App() {
           setQuickProfile(null);
         }}
         onUpdated={refreshAccount}
+        onTopUp={() => setShowWallet(true)}
         onOrders={async () => {
           await refreshAccount();
           setGame(null);

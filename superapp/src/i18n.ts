@@ -43,6 +43,7 @@ const ru: Record<string, string> = {
   'To\'lashdan oldin ma\'lumotlarni yana bir marta tekshiring.': 'Проверьте данные перед оплатой.', 'Zone ID': 'ID зоны',
   'O\'yin ID va hududni tekshiring. Paket shu hisobga yuboriladi.': 'Проверьте игровой ID и регион. Пакет будет отправлен на этот аккаунт.',
   'Balans yetarli emas. Profil bo\'limida hisobingizni to\'ldiring.': 'Недостаточно средств. Пополните баланс в профиле.',
+  "Balans yetarli emas. Shu yerdan balansingizni to'ldiring.": 'Недостаточно средств. Пополните баланс прямо здесь.',
   'Ma\'lumotlarni o\'zgartirish': 'Изменить данные', 'Kutilmoqda...': 'Ожидание...', 'Paket tanlanmagan': 'Пакет не выбран',
   'To\'lov usulini tanlang': 'Выберите способ оплаты', 'Avtomatik tasdiqlanadi': 'Подтверждается автоматически',
   'Screenshot orqali tasdiqlanadi': 'Подтверждение по скриншоту', 'Hozircha sozlanmagan': 'Пока не настроено',

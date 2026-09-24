@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { ArrowLeft, ArrowRight, Check, CheckCircle2, CircleUserRound, LoaderCircle, ShieldCheck, Sparkles } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, CheckCircle2, CircleUserRound, LoaderCircle, Plus, ShieldCheck, Sparkles, Wallet as WalletIcon } from 'lucide-react';
 import type { CheckoutInput, Game, GameServer, Order, Product, SavedGame, Wallet } from '../types';
 import { api, errorText } from '../services/api';
 import { haptic } from '../services/telegram';
@@ -57,7 +57,7 @@ function ProductIcon({ item, selected }: { item: Product; selected: boolean }) {
   );
 }
 
-export function Checkout({ game, savedProfile, onClose, onUpdated, onOrders, wallet, authenticated, locale }: { game: Game; savedProfile: SavedGame | null; onClose: () => void; onUpdated: () => void; onOrders: () => void | Promise<void>; wallet: Wallet | null; authenticated: boolean; locale: Locale }) {
+export function Checkout({ game, savedProfile, onClose, onUpdated, onOrders, onTopUp, wallet, authenticated, locale }: { game: Game; savedProfile: SavedGame | null; onClose: () => void; onUpdated: () => void; onOrders: () => void | Promise<void>; onTopUp: () => void; wallet: Wallet | null; authenticated: boolean; locale: Locale }) {
   const t = (text: string) => tr(locale, text);
   const [servers, setServers] = useState<GameServer[]>([]);
   const [server, setServer] = useState(savedProfile?.serverId || '');
@@ -377,7 +377,7 @@ export function Checkout({ game, savedProfile, onClose, onUpdated, onOrders, wal
                 <ShieldCheck size={19} />
                 {t("O'yin ID va hududni tekshiring. Paket shu hisobga yuboriladi.")}
               </p>
-              {wallet && wallet.balanceMinor < (product?.amountMinor ?? 0) && <ErrorBox message={t("Balans yetarli emas. Profil bo'limida hisobingizni to'ldiring.")} locale={locale} />}
+              {wallet && wallet.balanceMinor < (product?.amountMinor ?? 0) && <div className="checkout-insufficient"><ErrorBox message={t("Balans yetarli emas. Shu yerdan balansingizni to'ldiring.")} locale={locale}/><button className="button primary full-width" disabled={busy} onClick={onTopUp}><Plus size={18}/><WalletIcon size={18}/>{t("Balansni to'ldirish")}</button></div>}
               {error && <ErrorBox message={error} locale={locale} />}
               <button className="button primary full-width" disabled={busy || !wallet || wallet.balanceMinor < (product?.amountMinor ?? 0)} onClick={pay}>
                 {busy ? <LoaderCircle className="spin" size={18} /> : <ShieldCheck size={18} />}

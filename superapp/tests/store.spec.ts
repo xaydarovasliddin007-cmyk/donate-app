@@ -38,7 +38,7 @@ const games = [
     isPurchasable: false,
   },
 ];
-async function mockStore(page: Page, tg = false, busyTopup = false) {
+async function mockStore(page: Page, tg = false, busyTopup = false, insufficientBalance = false) {
   let orders: object[] = [];
   const sent: { path: string; body: Record<string, unknown> }[] = [];
   await page.route('https://telegram.org/**', (route) => route.fulfill({ contentType: 'text/javascript', body: '' }));
@@ -107,7 +107,7 @@ async function mockStore(page: Page, tg = false, busyTopup = false) {
           },
         ],
       };
-    else if (path === '/wallet') data = { balanceMinor: 5000000, currency: 'UZS' };
+    else if (path === '/wallet') data = { balanceMinor: insufficientBalance ? 0 : 5000000, currency: 'UZS' };
     else if (path === '/saved-games') data = { savedGames: [{ id: 'profile-1', playerId: '123456789', serverId: 'GLOBAL', zoneId: '1234', updatedAt: '2026-09-24T10:00:00Z', game: games[0] }] };
     else if (path === '/app/config')
       data = {
@@ -375,6 +375,22 @@ test('checkout validates player and zone, pays and shows server order', async ({
   await page.getByRole('button', { name: 'Buyurtmalar', exact: true }).filter({ visible: true }).click();
   await expect(page.locator('.order-row')).toHaveCount(1);
   await noOverflow(page);
+});
+
+test('checkout offers in-place wallet top-up when balance is insufficient', async ({ page }) => {
+  await mockStore(page, false, false, true);
+  await page.goto('/');
+  await page.locator('.game-card').first().click();
+  await page.getByRole('radio').first().click();
+  await page.getByLabel('Player ID', { exact: true }).fill('123456789');
+  await page.getByLabel('Zone ID', { exact: true }).fill('1234');
+  await page.getByRole('button', { name: 'Davom etish' }).click();
+  await expect(page.getByRole('button', { name: /Balansni to'ldirish/ })).toBeVisible();
+  await page.getByRole('button', { name: /Balansni to'ldirish/ }).click();
+  await expect(page.getByRole('heading', { name: "Balansni to'ldirish" })).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByText('Buyurtmani tasdiqlang')).toBeVisible();
+  await expect(page.locator('.receipt')).toContainText('123456789');
 });
 
 test('saved game quick buy pre-fills player, server and zone for final review', async ({ page }) => {
