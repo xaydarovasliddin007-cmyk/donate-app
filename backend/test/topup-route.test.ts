@@ -1,4 +1,5 @@
 import { describe, expect, it, afterAll } from 'vitest';
+import { randomUUID } from 'node:crypto';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '../src/app.js';
 
@@ -32,6 +33,24 @@ describe('topup route protection', () => {
   it('GET /api/v1/topups without a token returns 401', async () => {
     const response = await app.inject({ method: 'GET', url: '/api/v1/topups' });
     expect(response.statusCode).toBe(401);
+  });
+
+  it('limits receipt retries per customer instead of sharing one IP quota', async () => {
+    const requestId = randomUUID();
+    const payload = { fileName: 'receipt.jpg', mimeType: 'image/jpeg', dataBase64: 'dGVzdC1yZWNlaXB0LWltYWdl' };
+    const sendReceipt = (userId: string) => app.inject({
+      method: 'POST',
+      url: `/api/v1/topups/${requestId}/receipt`,
+      headers: { authorization: `Bearer ${app.jwt.sign({ sub: userId, role: 'USER' })}` },
+      payload,
+    });
+    const firstUser = randomUUID();
+
+    for (let attempt = 0; attempt < 10; attempt += 1) {
+      expect((await sendReceipt(firstUser)).statusCode).toBe(404);
+    }
+    expect((await sendReceipt(firstUser)).statusCode).toBe(429);
+    expect((await sendReceipt(randomUUID())).statusCode).toBe(404);
   });
 
   it('GET /api/v1/admin/topups without an admin token returns 401', async () => {

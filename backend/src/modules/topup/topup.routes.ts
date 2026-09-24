@@ -1,4 +1,4 @@
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { authenticate } from '../../middleware/authenticate.js';
 import { validateBody, validateQuery } from '../../lib/validate.js';
 import {
@@ -16,6 +16,10 @@ import type {
   SubmitTopUpReceiptInput,
   SubmitTopUpReferenceInput,
 } from './topup.schemas.js';
+
+function customerRateLimitKey(request: FastifyRequest) {
+  return request.currentUser?.id ? `user:${request.currentUser.id}` : `ip:${request.ip}`;
+}
 
 /** Customer-facing UZDONATE card-transfer top-up: submit + track requests. Verification is admin-only (see modules/admin). */
 export async function topupRoutes(app: FastifyInstance) {
@@ -60,7 +64,12 @@ export async function topupRoutes(app: FastifyInstance) {
       // Each reservation scans for a free unique amount and writes a row —
       // cap it so spamming this endpoint can't exhaust available amounts or
       // load the DB.
-      config: { rateLimit: { max: 15, timeWindow: 60_000 } },
+      config: { rateLimit: {
+        max: 15,
+        timeWindow: 60_000,
+        hook: 'preHandler',
+        keyGenerator: customerRateLimitKey,
+      } },
       preHandler: [authenticate, validateBody(reserveTopUpRequestSchema)],
     },
     async (request, reply) => {
@@ -95,7 +104,12 @@ export async function topupRoutes(app: FastifyInstance) {
     '/topups/:id/receipt',
     {
       bodyLimit: 7_500_000,
-      config: { rateLimit: { max: 5, timeWindow: 10 * 60_000 } },
+      config: { rateLimit: {
+        max: 10,
+        timeWindow: 10 * 60_000,
+        hook: 'preHandler',
+        keyGenerator: customerRateLimitKey,
+      } },
       preHandler: [authenticate, validateBody(submitTopUpReceiptSchema)],
     },
     async (request) => {
