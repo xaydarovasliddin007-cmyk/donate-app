@@ -15,7 +15,7 @@ function productVisual(name: string, amountMinor: number): ProductVisual {
     .split(/[^A-Z]+/)
     .filter(Boolean);
   if (lower.includes('x2')) return { icon: 'diamondpile.png', badge: 'x2', tone: 'bonus' };
-  if (lower.includes('twilight')) return { icon: 'pass.png', badge: 'PASS', tone: 'pass' };
+  if (lower.includes('twilight')) return { icon: 'twilight-pass.png', badge: 'PASS', tone: 'pass' };
   if (lower.includes('elite')) return { icon: 'moneybag.png', badge: 'VIP', tone: 'elite' };
   if (lower.includes('weekly') || lower.includes('monthly') || lower.includes('membership') || lower.includes('pass')) {
     return {
