@@ -1,12 +1,28 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { ArrowLeft, ArrowRight, Check, CheckCircle2, CircleUserRound, LoaderCircle, ShieldCheck, Sparkles } from 'lucide-react';
+import {
+  ArrowLeft,
+  ArrowRight,
+  BadgeCheck,
+  CalendarDays,
+  Check,
+  CheckCircle2,
+  CircleUserRound,
+  Coins,
+  Crown,
+  Gem,
+  Layers3,
+  LoaderCircle,
+  ShieldCheck,
+  Sparkles,
+  type LucideIcon,
+} from 'lucide-react';
 import type { CheckoutInput, Game, GameServer, Order, Product, Wallet } from '../types';
 import { api, errorText } from '../services/api';
 import { haptic } from '../services/telegram';
 import { Sheet } from './Sheet';
 import { ErrorBox, GameImage, money } from './ui';
 
-type ProductVisual = { icon: string; badge?: string; tone: string };
+type ProductVisual = { icon: LucideIcon; badge?: string; tone: string; kind: string };
 
 function productVisual(name: string, amountMinor: number): ProductVisual {
   const lower = name.toLowerCase();
@@ -14,42 +30,44 @@ function productVisual(name: string, amountMinor: number): ProductVisual {
     .toUpperCase()
     .split(/[^A-Z]+/)
     .filter(Boolean);
-  if (lower.includes('x2')) return { icon: 'diamondpile.png', badge: 'x2', tone: 'bonus' };
-  if (lower.includes('twilight')) return { icon: 'fire.png', badge: 'HIT', tone: 'hot' };
-  if (lower.includes('elite')) return { icon: 'moneybag.png', badge: 'VIP', tone: 'elite' };
+  if (lower.includes('x2')) return { icon: Gem, badge: 'x2', tone: 'bonus', kind: 'bonus' };
+  if (lower.includes('twilight')) return { icon: Crown, badge: 'PASS', tone: 'elite', kind: 'twilight' };
+  if (lower.includes('elite')) return { icon: Crown, badge: 'ELITE', tone: 'elite', kind: 'elite' };
   if (lower.includes('weekly') || lower.includes('monthly') || lower.includes('membership') || lower.includes('pass')) {
     return {
-      icon: 'pass.png',
+      icon: CalendarDays,
       badge: lower.includes('monthly') ? '30D' : '7D',
       tone: 'pass',
+      kind: 'pass',
     };
   }
   if (words.includes('UC'))
     return {
-      icon: amountMinor >= 15_000_000 ? 'uc_stack.png' : 'uc_coin.png',
+      icon: amountMinor >= 15_000_000 ? Layers3 : Coins,
       tone: 'gold',
+      kind: 'currency',
     };
-  if (words.includes('ROBUX')) return { icon: 'gem_silver.png', tone: 'silver' };
-  if (words.includes('GEMS')) return { icon: 'gem_purple.png', tone: 'purple' };
-  if (words.includes('CP')) return { icon: 'gem_green.png', tone: 'green' };
-  if (words.includes('CASH')) return { icon: 'coin_cash.png', tone: 'green' };
-  if (words.includes('FC')) return { icon: 'coin_fc.png', tone: 'blue' };
-  if (words.includes('TOKENS')) return { icon: 'coin_token.png', tone: 'warm' };
-  if (lower.includes('genesis crystal')) return { icon: 'crystal_cyan.png', tone: 'cyan' };
+  if (words.includes('ROBUX')) return { icon: Gem, tone: 'silver', kind: 'currency' };
+  if (words.includes('GEMS')) return { icon: Gem, tone: 'purple', kind: 'currency' };
+  if (words.includes('CP')) return { icon: Coins, tone: 'green', kind: 'currency' };
+  if (words.includes('CASH')) return { icon: Coins, tone: 'green', kind: 'currency' };
+  if (words.includes('FC')) return { icon: Coins, tone: 'blue', kind: 'currency' };
+  if (words.includes('TOKENS')) return { icon: Coins, tone: 'warm', kind: 'currency' };
+  if (lower.includes('genesis crystal')) return { icon: Sparkles, tone: 'cyan', kind: 'crystal' };
   if (lower.includes('diamond')) {
-    if (amountMinor >= 80_000_000) return { icon: 'truck.png', tone: 'cyan' };
-    if (amountMinor >= 15_000_000) return { icon: 'safe.png', tone: 'cyan' };
-    if (amountMinor >= 3_000_000) return { icon: 'diamondpile.png', tone: 'cyan' };
-    return { icon: 'diamond.png', tone: 'cyan' };
+    if (amountMinor >= 15_000_000) return { icon: Layers3, tone: 'cyan', kind: 'stack' };
+    return { icon: Gem, tone: 'cyan', kind: 'diamond' };
   }
-  return { icon: 'coin.png', tone: 'gold' };
+  return { icon: BadgeCheck, tone: 'gold', kind: 'item' };
 }
 
 function ProductIcon({ item, selected }: { item: Product; selected: boolean }) {
   const visual = productVisual(item.name, item.amountMinor);
+  const Icon = visual.icon;
   return (
-    <span className={`product-icon tone-${visual.tone}`}>
-      <img src={`assets-store/${visual.icon}`} alt="" />
+    <span className={`product-icon tone-${visual.tone}`} data-visual={visual.kind}>
+      <Icon size={27} strokeWidth={1.8} aria-hidden="true" />
+      {visual.kind === 'bonus' && <Sparkles className="product-sparkle" size={13} aria-hidden="true" />}
       {visual.badge && <i className="product-badge">{visual.badge}</i>}
       {selected && <Check className="product-check" size={15} />}
     </span>
