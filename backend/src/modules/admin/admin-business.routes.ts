@@ -423,4 +423,9 @@ export async function adminBusinessRoutes(app: FastifyInstance) {
       return adminService.syncCatalogAdmin(ctx, request.currentAdmin!.id);
     },
   );
+  app.post(
+    '/system/sync-resellcodes-prices',
+    { preHandler: requireAdminRole('SUPER_ADMIN', 'ADMIN') },
+    async (request) => adminService.syncReSellCodesPricesAdmin(ctx, request.currentAdmin!.id),
+  );
 }

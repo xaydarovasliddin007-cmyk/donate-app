@@ -203,7 +203,7 @@ export async function createOrder(ctx: OrderContext, userId: string, input: Crea
   });
 
   // Convenience for next time — never allowed to fail order creation itself.
-  await recordPlayerProfileFromOrder(ctx, userId, game.id, input.playerId, input.serverId ?? null);
+  await recordPlayerProfileFromOrder(ctx, userId, game.id, input.playerId, input.serverId ?? null, input.zoneId ?? null);
 
   notifyAdmins(
     `🆕 <b>New order</b> #${order.orderNumber}\n${game.name} — ${formatMinorAmount(order.amountMinor, order.currency)}`,

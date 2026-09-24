@@ -60,6 +60,11 @@ async function main() {
     update: {},
     create: { code: 'APIGAMES', name: 'Apigames.id', type: 'TOPUP', isActive: false, healthStatus: 'UNKNOWN' },
   });
+  await prisma.provider.upsert({
+    where: { code: 'RESELLCODES' },
+    update: {},
+    create: { code: 'RESELLCODES', name: 'ReSellCodes', type: 'TOPUP', isActive: false, healthStatus: 'UNKNOWN' },
+  });
   const fazercardsProvider = await prisma.provider.upsert({
     where: { code: 'FAZERCARDS' },
     update: { isActive: true, healthStatus: 'HEALTHY', lastCheckedAt: new Date() },
@@ -163,9 +168,8 @@ async function main() {
   // price itself. sellUzs is a real UZS retail price (already *100 into
   // minor units/tiyin) chosen to
   // sit close to a known competitor's price for the same package where one
-  // was checked (BekPinBot, MLBB), or a comparable ~10% margin over the
-  // live FazerCards USD cost otherwise (snapshot rate ~11,950 UZS/USD,
-  // 2026-08-28 — re-check periodically, this isn't pegged to a live rate).
+  // was checked (BekPinBot, MLBB). Verify live provider cost, FX and payment
+  // fees before promotions; the retail price alone does not guarantee margin.
   const realTier = (
     code: string,
     name: string,
@@ -326,24 +330,25 @@ async function main() {
       ],
       // Global (UZ) — the default/fallback ladder. Each denomination maps
       // to a confirmed FazerCards mobile_legends_global offer. Prices keep
-      // a practical margin for supplier fees and exchange-rate movement.
+      // values aligned to BekPinBot's Global MLBB price list checked on
+      // 2026-09-24; operators should re-check provider costs before promotions.
       products: [
-        realTier('MLBB_55_x2', '55 (50+5) Diamonds x2', 10_000, 'mobile_legends_global:50_5_diamonds_first_top_up_bonus'),
-        realTier('MLBB_165_x2', '165 (150+15) Diamonds x2', 30_000, 'mobile_legends_global:150_15_diamonds_first_top_up_bonus'),
-        realTier('MLBB_275_x2', '275 (250+25) Diamonds x2', 50_000, 'mobile_legends_global:250_25_diamonds_first_top_up_bonus'),
-        realTier('MLBB_565_x2', '565 (500+65) Diamonds x2', 105_000, 'mobile_legends_global:500_65_diamonds_first_top_up_bonus'),
+        realTier('MLBB_55_x2', '55 (50+5) Diamonds x2', 9_800, 'mobile_legends_global:50_5_diamonds_first_top_up_bonus'),
+        realTier('MLBB_165_x2', '165 (150+15) Diamonds x2', 29_000, 'mobile_legends_global:150_15_diamonds_first_top_up_bonus'),
+        realTier('MLBB_275_x2', '275 (250+25) Diamonds x2', 46_000, 'mobile_legends_global:250_25_diamonds_first_top_up_bonus'),
+        realTier('MLBB_565_x2', '565 (500+65) Diamonds x2', 96_000, 'mobile_legends_global:500_65_diamonds_first_top_up_bonus'),
         realTier('MLBB_WEEKLY_ELITE', 'Weekly Elite Pack', 11_000, 'mobile_legends_global:weekly_elite_pack'),
-        realTier('MLBB_MONTHLY_ELITE', 'Monthly Elite Pack', 53_000, 'mobile_legends_global:monthly_elite_pack'),
-        realTier('MLBB_WEEKLY_PASS', 'Weekly Pass', 19_500, 'mobile_legends_global:weekly_pass', undefined, 'mobilelegends:13'),
+        realTier('MLBB_MONTHLY_ELITE', 'Monthly Elite Pack', 51_000, 'mobile_legends_global:monthly_elite_pack'),
+        realTier('MLBB_WEEKLY_PASS', 'Weekly Pass', 18_600, 'mobile_legends_global:weekly_pass', undefined, 'mobilelegends:13'),
         realTier('MLBB_TWILIGHT_PASS', 'Twilight Pass', 105_000, 'mobile_legends_global:twilight_pass'),
-        realTier('MLBB_86', '86 (78+8) Diamonds', 15_000, 'mobile_legends_global:78_8_diamonds', undefined, 'mobilelegends:14'),
-        realTier('MLBB_172', '172 (156+16) Diamonds', 29_000, 'mobile_legends_global:156_16_diamonds', undefined, 'mobilelegends:15'),
+        realTier('MLBB_86', '86 (78+8) Diamonds', 15_500, 'mobile_legends_global:78_8_diamonds', undefined, 'mobilelegends:14'),
+        realTier('MLBB_172', '172 (156+16) Diamonds', 29_800, 'mobile_legends_global:156_16_diamonds', undefined, 'mobilelegends:15'),
         realTier('MLBB_257', '257 (234+23) Diamonds', 44_000, 'mobile_legends_global:234_23_diamonds', undefined, 'mobilelegends:16'),
-        realTier('MLBB_706', '706 (625+81) Diamonds', 115_000, 'mobile_legends_global:625_81_diamonds', undefined, 'mobilelegends:17'),
-        realTier('MLBB_2195', '2195 (1860+335) Diamonds', 350_000, 'mobile_legends_global:1860_335_diamonds', undefined, 'mobilelegends:18'),
-        realTier('MLBB_3688', '3688 (3099+589) Diamonds', 590_000, 'mobile_legends_global:3099_589_diamonds'),
-        realTier('MLBB_5532', '5532 (4649+883) Diamonds', 885_000, 'mobile_legends_global:4649_883_diamonds'),
-        realTier('MLBB_9288', '9288 (7740+1548) Diamonds', 1_480_000, 'mobile_legends_global:7740_1548_diamonds'),
+        realTier('MLBB_706', '706 (625+81) Diamonds', 122_000, 'mobile_legends_global:625_81_diamonds', undefined, 'mobilelegends:17'),
+        realTier('MLBB_2195', '2195 (1860+335) Diamonds', 364_000, 'mobile_legends_global:1860_335_diamonds', undefined, 'mobilelegends:18'),
+        realTier('MLBB_3688', '3688 (3099+589) Diamonds', 605_000, 'mobile_legends_global:3099_589_diamonds'),
+        realTier('MLBB_5532', '5532 (4649+883) Diamonds', 915_000, 'mobile_legends_global:4649_883_diamonds'),
+        realTier('MLBB_9288', '9288 (7740+1548) Diamonds', 1_520_000, 'mobile_legends_global:7740_1548_diamonds'),
       ],
     },
     {

@@ -108,6 +108,7 @@ async function mockStore(page: Page, tg = false, busyTopup = false) {
         ],
       };
     else if (path === '/wallet') data = { balanceMinor: 5000000, currency: 'UZS' };
+    else if (path === '/saved-games') data = { savedGames: [{ id: 'profile-1', playerId: '123456789', serverId: 'GLOBAL', zoneId: '1234', updatedAt: '2026-09-24T10:00:00Z', game: games[0] }] };
     else if (path === '/app/config')
       data = {
         supportUrl: 'https://t.me/uzdonate_support',
@@ -158,6 +159,14 @@ async function mockStore(page: Page, tg = false, busyTopup = false) {
             cardHolderName: 'UZDONATE',
             bankName: 'Test Bank',
             cardNetwork: body.channel === 'UZCARD' ? 'UZCARD' : 'HUMO',
+          },
+          {
+            id: 'method-2',
+            type: 'CARD_TRANSFER',
+            cardNumber: '8600 9876 5432 1098',
+            cardHolderName: 'UZDONATE 2',
+            bankName: 'Second Test Bank',
+            cardNetwork: 'HUMO',
           },
         ],
       };
@@ -295,6 +304,27 @@ test('busy top-up amount stays exact and offers free alternatives', async ({ pag
   expect(reserves.map((item) => item.body.amountMinor)).toEqual([5000000, 5010000]);
 });
 
+test('copy feedback is shown only for the card that was copied', async ({ page }) => {
+  await mockStore(page);
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText: async () => {} },
+    });
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: "Balans to'ldirish", exact: true }).click();
+  await page.getByRole('button', { name: /^HUMO/ }).click();
+  await page.getByRole('button', { name: "To'lov rekvizitlari" }).click();
+  const cardCopyButtons = page.getByRole('button', { name: 'Karta raqamini nusxalash' });
+  await expect(cardCopyButtons).toHaveCount(2);
+  await cardCopyButtons.nth(0).click();
+  await expect(cardCopyButtons.nth(0)).toHaveClass(/copied/);
+  await expect(cardCopyButtons.nth(0)).toHaveAttribute('title', 'Nusxalandi');
+  await expect(cardCopyButtons.nth(1)).toHaveAttribute('title', 'Nusxalash');
+  await expect(cardCopyButtons.nth(1)).not.toHaveClass(/copied/);
+});
+
 test('bankomat top-up sends a receipt for admin review', async ({ page }) => {
   const sent = await mockStore(page);
   await page.goto('/');
@@ -320,7 +350,7 @@ test('checkout validates player and zone, pays and shows server order', async ({
   await expect(page.locator('.product-icon').nth(1)).toHaveAttribute('data-visual', 'bonus');
   await expect(page.locator('.product-icon').nth(2)).toHaveAttribute('data-visual', 'pass');
   await expect(page.locator('.product-icon').nth(3)).toHaveAttribute('data-visual', 'twilight');
-  await expect(page.locator('.product-icon svg')).toHaveCount(5);
+  await expect(page.locator('.product-icon img')).toHaveCount(4);
   await expect(page.getByLabel('Player ID', { exact: true })).toHaveCount(0);
   await page.getByRole('radio').first().click();
   await expect(page.getByRole('heading', { name: "O'yin hisobingizni kiriting" })).toBeVisible();
@@ -341,11 +371,26 @@ test('checkout validates player and zone, pays and shows server order', async ({
   const checkout = sent.find((item) => item.path === '/orders')!;
   expect(checkout.body.zoneId).toBe('1234');
   expect(checkout.body.idempotencyKey).toBeTruthy();
-  await page.getByRole('button', { name: 'Tayyor', exact: true }).click();
+  await page.getByRole('button', { name: 'Buyurtmalarga borish' }).click();
   await page.getByRole('button', { name: 'Buyurtmalar', exact: true }).filter({ visible: true }).click();
   await expect(page.locator('.order-row')).toHaveCount(1);
   await noOverflow(page);
 });
+
+test('saved game quick buy pre-fills player, server and zone for final review', async ({ page }) => {
+  await mockStore(page);
+  await page.goto('/');
+  const savedGame = page.getByRole('button', { name: /123456789.*1234/ });
+  await expect(savedGame).toBeVisible();
+  await savedGame.click();
+  await expect(page.getByRole('heading', { name: 'Paketni tanlang' })).toBeVisible();
+  await page.getByRole('radio').first().click();
+  await expect(page.getByRole('heading', { name: 'Buyurtmani tasdiqlang' })).toBeVisible();
+  await expect(page.locator('.receipt')).toContainText('123456789');
+  await expect(page.locator('.receipt')).toContainText('1234');
+  await expect(page.locator('.receipt')).toContainText('Global');
+});
+
 test('Telegram uses signed login with the same wallet experience', async ({ page }) => {
   const sent = await mockStore(page, true);
   await page.goto('/');

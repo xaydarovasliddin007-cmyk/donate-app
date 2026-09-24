@@ -4,6 +4,9 @@ import { ConflictError, ForbiddenError, NotFoundError, ValidationError } from '.
 import { writeAuditLog } from '../../lib/audit.js';
 import { hashPassword } from '../auth/password.js';
 import { refundOrderToWallet, retryFulfillment as retryFulfillmentOrder } from '../orders/orders.service.js';
+import { ReSellCodesTopupProvider } from '../../providers/resellcodes/resellcodes-topup-provider.js';
+import { isProviderAdapterConfigured, isTopupProviderConfigured } from '../../providers/registry.js';
+import { env } from '../../config/env.js';
 import * as walletService from '../wallet/wallet.service.js';
 import * as topupService from '../topup/topup.service.js';
 import type {
@@ -368,7 +371,11 @@ export async function updateProductAdmin(
 // --- Providers --------------------------------------------------------------
 
 export async function listProvidersAdmin(ctx: AdminContext) {
-  return ctx.prisma.provider.findMany({ orderBy: [{ type: 'asc' }, { name: 'asc' }] });
+  const providers = await ctx.prisma.provider.findMany({ orderBy: [{ type: 'asc' }, { name: 'asc' }] });
+  return providers.map((provider) => ({
+    ...provider,
+    adapterConfigured: isProviderAdapterConfigured(provider.code, provider.type),
+  }));
 }
 
 /**
@@ -426,6 +433,10 @@ export async function updateProviderAdmin(
   const existing = await ctx.prisma.provider.findUnique({ where: { id: providerId } });
   if (!existing) {
     throw new NotFoundError('Provider not found');
+  }
+
+  if (existing.type === 'TOPUP' && changes.isActive === true && !isTopupProviderConfigured(existing.code)) {
+    throw new ConflictError(`${existing.name} API credentials are missing or the provider is unavailable in this environment`);
   }
 
   const updated = await ctx.prisma.provider.update({ where: { id: providerId }, data: changes });
@@ -1083,37 +1094,48 @@ export async function listAuditLogsAdmin(ctx: AdminContext, params: { entityType
 }
 
 export async function syncCatalogAdmin(ctx: AdminContext, actorId: string) {
+  const moogoldConfigured = isTopupProviderConfigured('MOOGOLD');
+  const smileoneConfigured = isTopupProviderConfigured('SMILEONE');
   const moogold = await ctx.prisma.provider.upsert({
     where: { code: 'MOOGOLD' },
-    update: { isActive: true, healthStatus: 'HEALTHY', lastCheckedAt: new Date() },
+    update: {
+      ...(moogoldConfigured ? {} : { isActive: false, healthStatus: 'UNKNOWN' as const, lastCheckedAt: null }),
+    },
     create: {
       code: 'MOOGOLD',
       name: 'MooGold',
       type: 'TOPUP',
-      isActive: true,
-      healthStatus: 'HEALTHY',
-      lastCheckedAt: new Date(),
+      isActive: false,
+      healthStatus: 'UNKNOWN',
     },
   });
 
   const smileone = await ctx.prisma.provider.upsert({
     where: { code: 'SMILEONE' },
-    update: { isActive: true, healthStatus: 'HEALTHY', lastCheckedAt: new Date() },
+    update: {
+      ...(smileoneConfigured ? {} : { isActive: false, healthStatus: 'UNKNOWN' as const, lastCheckedAt: null }),
+    },
     create: {
       code: 'SMILEONE',
       name: 'Smile.One',
       type: 'TOPUP',
-      isActive: true,
-      healthStatus: 'HEALTHY',
-      lastCheckedAt: new Date(),
+      isActive: false,
+      healthStatus: 'UNKNOWN',
     },
   });
 
-  // Link MLBB products to Smile.One (priority 0) and sync rock-bottom prices
+  // Apply the locally maintained retail prices; vendor prices require a live catalog sync.
   const mlbbGame = await ctx.prisma.game.findUnique({ where: { slug: 'mobile-legends' } });
   if (mlbbGame) {
     const mlbbPrices: Record<string, number> = {
+      '55 (50+5) Diamonds x2': 9_800 * 100,
+      '165 (150+15) Diamonds x2': 29_000 * 100,
+      '275 (250+25) Diamonds x2': 46_000 * 100,
+      '565 (500+65) Diamonds x2': 96_000 * 100,
+      'Weekly Elite Pack': 11_000 * 100,
+      'Monthly Elite Pack': 51_000 * 100,
       'Weekly Pass': 18_600 * 100,
+      'Twilight Pass': 105_000 * 100,
       '86 (78+8) Diamonds': 15_500 * 100,
       '172 (156+16) Diamonds': 29_800 * 100,
       '257 (234+23) Diamonds': 44_000 * 100,
@@ -1124,30 +1146,21 @@ export async function syncCatalogAdmin(ctx: AdminContext, actorId: string) {
       '9288 (7740+1548) Diamonds': 1_520_000 * 100,
     };
 
-    const mlbbProducts = await ctx.prisma.product.findMany({ where: { gameId: mlbbGame.id } });
+    const globalServer = await ctx.prisma.gameServer.findFirst({ where: { gameId: mlbbGame.id, code: 'GLOBAL' } });
+    const mlbbProducts = globalServer
+      ? await ctx.prisma.product.findMany({ where: { gameId: mlbbGame.id, serverId: globalServer.id } })
+      : [];
     for (const prod of mlbbProducts) {
-      const numericCode = prod.name.replace(/\D/g, '') || 'pass';
       if (mlbbPrices[prod.name]) {
         await ctx.prisma.product.update({
           where: { id: prod.id },
           data: { amountMinor: mlbbPrices[prod.name] },
         });
       }
-      await ctx.prisma.providerProduct.upsert({
-        where: { providerId_productId: { providerId: smileone.id, productId: prod.id } },
-        update: { isActive: true, priority: 0 },
-        create: {
-          providerId: smileone.id,
-          productId: prod.id,
-          providerProductCode: `mobilelegends:${numericCode}`,
-          priority: 0,
-          isActive: true,
-        },
-      });
     }
   }
 
-  // Link PUBG products to MooGold (priority 0) and sync rock-bottom prices
+  // Preserve the approved local PUBG retail prices.
   const pubgGame = await ctx.prisma.game.findUnique({ where: { slug: 'pubg-mobile' } });
   if (pubgGame) {
     const pubgPrices: Record<string, number> = {
@@ -1161,44 +1174,12 @@ export async function syncCatalogAdmin(ctx: AdminContext, actorId: string) {
 
     const pubgProducts = await ctx.prisma.product.findMany({ where: { gameId: pubgGame.id } });
     for (const prod of pubgProducts) {
-      const numericCode = prod.name.replace(/\D/g, '') || 'uc';
       if (pubgPrices[prod.name]) {
         await ctx.prisma.product.update({
           where: { id: prod.id },
           data: { amountMinor: pubgPrices[prod.name] },
         });
       }
-      await ctx.prisma.providerProduct.upsert({
-        where: { providerId_productId: { providerId: moogold.id, productId: prod.id } },
-        update: { isActive: true, priority: 0 },
-        create: {
-          providerId: moogold.id,
-          productId: prod.id,
-          providerProductCode: `12:${numericCode}`,
-          priority: 0,
-          isActive: true,
-        },
-      });
-    }
-  }
-
-  // Link Free Fire products to MooGold (priority 0)
-  const ffGame = await ctx.prisma.game.findUnique({ where: { slug: 'free-fire' } });
-  if (ffGame) {
-    const ffProducts = await ctx.prisma.product.findMany({ where: { gameId: ffGame.id } });
-    for (const prod of ffProducts) {
-      const numericCode = prod.name.replace(/\D/g, '') || 'diamonds';
-      await ctx.prisma.providerProduct.upsert({
-        where: { providerId_productId: { providerId: moogold.id, productId: prod.id } },
-        update: { isActive: true, priority: 0 },
-        create: {
-          providerId: moogold.id,
-          productId: prod.id,
-          providerProductCode: `5:${numericCode}`,
-          priority: 0,
-          isActive: true,
-        },
-      });
     }
   }
 
@@ -1207,8 +1188,101 @@ export async function syncCatalogAdmin(ctx: AdminContext, actorId: string) {
     action: 'catalog.sync',
     entityType: 'Catalog',
     entityId: actorId,
-    metadata: { moogoldId: moogold.id, smileoneId: smileone.id },
+    metadata: { moogoldId: moogold.id, smileoneId: smileone.id, moogoldConfigured, smileoneConfigured },
   });
 
-  return { success: true, message: 'Catalog synced with MooGold and Smile.One providers' };
+  return {
+    success: true,
+    message: 'Local retail prices were applied. Provider credentials and live API health were not tested; provider SKU mappings were not created.',
+    providers: [
+      { code: 'MOOGOLD', configured: moogoldConfigured, isActive: moogold.isActive, healthStatus: moogold.healthStatus },
+      { code: 'SMILEONE', configured: smileoneConfigured, isActive: smileone.isActive, healthStatus: smileone.healthStatus },
+    ],
+  };
+}
+
+export async function syncReSellCodesPricesAdmin(ctx: AdminContext, actorId: string) {
+  if (!env.RSC_API_KEY) throw new ConflictError('ReSellCodes API key is not configured on the server');
+  if (!env.RSC_USD_UZS_RATE) throw new ConflictError('Set the effective UZS/USD funding rate before syncing ReSellCodes prices');
+  const adapter = new ReSellCodesTopupProvider(env.RSC_API_KEY, env.RSC_USD_UZS_RATE);
+  const catalogues = await Promise.all(['Mobile Legends', 'PUBG Mobile', 'Free Fire'].map((query) => adapter.listOffers(query)));
+  const offers = catalogues.flat();
+  const provider = await ctx.prisma.provider.upsert({
+    where: { code: 'RESELLCODES' },
+    update: { name: 'ReSellCodes', type: 'TOPUP', isActive: false, lastCheckedAt: new Date() },
+    create: { code: 'RESELLCODES', name: 'ReSellCodes', type: 'TOPUP', isActive: false, healthStatus: 'UNKNOWN' },
+  });
+  const games = await ctx.prisma.game.findMany({
+    where: { slug: { in: ['mobile-legends', 'pubg-mobile', 'free-fire'] } },
+    include: { products: { where: { isActive: true }, include: { server: true } } },
+  });
+  const normalize = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  const mappedCodes = new Set<string>();
+  let unmatched = 0;
+  const appGameNames: Record<string, string> = {
+    'mobile-legends': 'mobile legends',
+    'pubg-mobile': 'pubg mobile',
+    'free-fire': 'free fire',
+  };
+  for (const game of games) {
+    const canonicalGame = appGameNames[game.slug];
+    const matchingCategories = new Map<string, string>();
+    for (const offer of offers) {
+      const categoryName = normalize(offer.categoryName.replace(/\s*\((auto|fast|global)\)\s*$/i, ''));
+      if (categoryName === canonicalGame) matchingCategories.set(offer.categoryId, offer.categoryName);
+    }
+    for (const [categoryId, categoryName] of matchingCategories) {
+      const categoryFields = await adapter.getCategoryFields(categoryId);
+      const fieldKeys = categoryFields.map((field) => field.key);
+      const playerField = fieldKeys.find((key) => key === 'player_id' || key === 'user_id');
+      const serverField = fieldKeys.find((key) => key === 'server_id' || key === 'zone_id');
+      if (
+        !playerField ||
+        categoryFields.some((field) => field.type && field.type !== 'text') ||
+        fieldKeys.some((key) => key !== playerField && key !== serverField)
+      ) {
+        unmatched += offers.filter((offer) => offer.categoryId === categoryId).length;
+        continue;
+      }
+      for (const offer of offers.filter((item) => item.categoryId === categoryId)) {
+        const productName = normalize(offer.name.replace(/\bdiamonds?\b|\buc\b/gi, '').trim());
+        const products = game.products.filter((product) => {
+          const appName = normalize(product.name.replace(/\bdiamonds?\b|\buc\b/gi, '').trim());
+          if (productName !== appName) return false;
+          if (!product.server) return true;
+          const category = normalize(`${categoryId} ${categoryName}`);
+          const region = normalize(product.server.code);
+          return category.includes(region);
+        });
+        if (products.length !== 1) {
+          unmatched++;
+          continue;
+        }
+        const product = products[0]!;
+        const mapping = `${offer.categoryId}:${offer.offerId}:${playerField}:${serverField ?? ''}`;
+        await ctx.prisma.providerProduct.upsert({
+          where: { providerId_productId: { providerId: provider.id, productId: product.id } },
+          update: { providerProductCode: mapping, costMinor: offer.costUzsMinor, priceUpdatedAt: new Date(), isActive: false },
+          create: {
+            providerId: provider.id,
+            productId: product.id,
+            providerProductCode: mapping,
+            costMinor: offer.costUzsMinor,
+            priceUpdatedAt: new Date(),
+            isActive: false,
+            priority: 0,
+          },
+        });
+        mappedCodes.add(`${offer.categoryId}:${product.id}`);
+      }
+    }
+  }
+  await writeAuditLog(ctx.prisma, {
+    actorId,
+    action: 'provider.resellcodes.catalog_sync',
+    entityType: 'Provider',
+    entityId: provider.id,
+    metadata: { mapped: mappedCodes.size, unmatched, offerCount: offers.length, usdUzsRate: env.RSC_USD_UZS_RATE },
+  });
+  return { success: true, mapped: mappedCodes.size, unmatched, offerCount: offers.length, usdUzsRate: env.RSC_USD_UZS_RATE };
 }

@@ -6,6 +6,7 @@ import { DigiflazzTopupProvider } from './digiflazz/digiflazz-topup-provider.js'
 import { FazerCardsTopupProvider } from './fazercards/fazercards-topup-provider.js';
 import { MooGoldTopupProvider } from './moogold/moogold-topup-provider.js';
 import { SmileOneTopupProvider } from './smileone/smileone-topup-provider.js';
+import { ReSellCodesTopupProvider } from './resellcodes/resellcodes-topup-provider.js';
 import { MockPaymentProvider } from './mock/mock-payment-provider.js';
 import { MockTopupProvider } from './mock/mock-topup-provider.js';
 import { PaymeProvider } from './payme/payme-provider.js';
@@ -54,6 +55,18 @@ if (env.MOOGOLD_PARTNER_ID && env.MOOGOLD_SECRET_KEY) {
 }
 if (env.SMILEONE_UID && env.SMILEONE_EMAIL && env.SMILEONE_API_KEY) {
   topupAdapters.SMILEONE = new SmileOneTopupProvider(env.SMILEONE_UID, env.SMILEONE_EMAIL, env.SMILEONE_API_KEY);
+}
+if (env.RSC_API_KEY && env.RSC_USD_UZS_RATE) {
+  topupAdapters.RESELLCODES = new ReSellCodesTopupProvider(env.RSC_API_KEY, env.RSC_USD_UZS_RATE);
+}
+
+export function isTopupProviderConfigured(code: string): boolean {
+  return Boolean(topupAdapters[code]) && !(isProduction && (code.startsWith('DEV_') || code === 'APIGAMES'));
+}
+
+export function isProviderAdapterConfigured(code: string, type: 'PAYMENT' | 'TOPUP'): boolean {
+  if (type === 'TOPUP') return isTopupProviderConfigured(code);
+  return Boolean(paymentAdapters[code]) && !(isProduction && code.startsWith('DEV_'));
 }
 
 export function getTopupProvider(code: string): TopupProviderAdapter {

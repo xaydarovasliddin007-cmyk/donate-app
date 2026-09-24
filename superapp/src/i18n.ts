@@ -2,6 +2,7 @@ export type Locale = 'uz' | 'ru';
 
 const ru: Record<string, string> = {
   'Asosiy': 'Главная', "O'yinlar": 'Игры', 'Buyurtmalar': 'Заказы', 'Profil': 'Профиль',
+  "SAQLANGAN O'YINLAR": 'СОХРАНЁННЫЕ ИГРЫ', "Mening o'yinlarim": 'Мои игры', 'Tezkor xarid': 'Быстрая покупка', 'Player ID': 'ID игрока',
   "Yorug' mavzu": 'Светлая тема', "Qorong'i mavzu": 'Тёмная тема',
   'Sinov muhiti': 'Тестовый режим', 'Xush kelibsiz': 'Добро пожаловать',
   'UZDONATE foydalanuvchisi': 'Пользователь UZDONATE', 'To\'ldirish': 'Пополнить',
@@ -29,6 +30,7 @@ const ru: Record<string, string> = {
   'To\'lovni davom ettirish': 'Продолжить оплату', 'Buyurtma bo\'yicha yordam': 'Помощь по заказу',
   'MUVAFFAQIYATLI': 'УСПЕШНО', 'Xarid bajarildi': 'Покупка выполнена', 'Buyurtma qabul qilindi': 'Заказ принят',
   "Holatini Buyurtmalar bo'limida kuzatishingiz mumkin.": 'Статус можно отслеживать в разделе «Заказы».', 'Tayyor': 'Готово',
+  'Buyurtmalarga borish': 'Перейти к заказам', "Do'konga qaytish": 'Вернуться в магазин',
   'UZDONATE balans orqali to\'lov': 'Оплата с баланса UZDONATE', 'Paketni tanlang': 'Выберите пакет',
   "Kerakli paket ustiga bosing. Keyingi qadamda o'yin hisobingizni kiritasiz.": 'Выберите пакет. На следующем шаге укажите игровой аккаунт.',
   'Mavjud paketlar': 'Доступные пакеты', 'ta': 'шт.', 'Bu hudud uchun paketlar hozircha yo\'q.': 'Для этого региона пока нет пакетов.',
@@ -68,7 +70,6 @@ const ru: Record<string, string> = {
   "Bankomatda aynan ko'rsatilgan summani o'tkazing va chekni rasmga olib yuklang.": 'Переведите точную сумму через банкомат и загрузите фото чека.',
   'Aynan ko\'rsatilgan summani o\'tkazing.': 'Переведите точную сумму.',
   'Tezkor amallar': 'Быстрые действия', 'Qidiruvni tozalash': 'Очистить поиск', 'BARCHA O\'YINLAR': 'ВСЕ ИГРЫ',
-  'so\'m hozircha band': 'сум временно занята',
   'Internet aloqasini tekshiring va qayta urinib ko\'ring.': 'Проверьте подключение к интернету и попробуйте снова.',
   "Hisobga qayta kiring yoki mini-ilovani qayta oching.": 'Войдите в аккаунт снова или перезапустите мини-приложение.',
   'Juda ko\'p so\'rov yuborildi. Bir ozdan keyin qayta urinib ko\'ring.': 'Слишком много запросов. Попробуйте немного позже.',

@@ -14,6 +14,10 @@ export interface User {
   email: string | null; avatarUrl: string | null; isGuest: boolean;
   hasTelegramAccount: boolean;
 }
+export interface SavedGame {
+  id: string; playerId: string; serverId: string | null; zoneId: string | null; updatedAt: string;
+  game: Game;
+}
 export interface Session { accessToken: string; refreshToken: string; user: User }
 export interface Wallet { balanceMinor: number; currency: string }
 export interface Order {

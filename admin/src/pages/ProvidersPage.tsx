@@ -18,17 +18,35 @@ export function ProvidersPage() {
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [confirmingDeactivate, setConfirmingDeactivate] = useState<Provider | null>(null);
   const [syncing, setSyncing] = useState(false);
+  const [syncingRsc, setSyncingRsc] = useState(false);
 
   async function syncCatalog() {
     setSyncing(true);
     try {
       await api.post('/admin/system/sync-catalog');
-      showSuccess('Katalog va provayderlar muvaffaqiyatli sinxronlandi!');
+      showSuccess('Mahalliy narxlar qo‘llandi. Live API tekshiruvi va SKU mosligi avtomatik bajarilmadi.');
       reload();
     } catch (err) {
       showError(err instanceof ApiError ? err.message : 'Sinxronlashda xatolik yuz berdi');
     } finally {
       setSyncing(false);
+    }
+  }
+
+  async function syncReSellCodesPrices() {
+    setSyncingRsc(true);
+    try {
+      const result = await api.post<{ mapped: number; unmatched: number; offerCount: number; usdUzsRate: number }>(
+        '/admin/system/sync-resellcodes-prices',
+      );
+      showSuccess(
+        `ReSellCodes: ${result.mapped} narx/mapping yangilandi, ${result.unmatched} mos kelmadi (${result.offerCount} taklif; $1 = ${result.usdUzsRate.toLocaleString('uz-UZ')} so'm kurs).`,
+      );
+      reload();
+    } catch (err) {
+      showError(err instanceof ApiError ? err.message : 'ReSellCodes narxlarini olishda xatolik');
+    } finally {
+      setSyncingRsc(false);
     }
   }
 
@@ -57,9 +75,18 @@ export function ProvidersPage() {
           <h1>{t('providers.title')}</h1>
           <p className="muted">{t('providers.blurb')}</p>
         </div>
-        <button className="btn btn-primary" onClick={syncCatalog} disabled={syncing}>
-          {syncing ? 'Sinxronlanmoqda…' : '🔄 Provayderlarni yangilash'}
-        </button>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          <button className="btn btn-secondary" onClick={syncReSellCodesPrices} disabled={syncingRsc}>
+            {syncingRsc ? 'Narxlar olinmoqda…' : 'ReSellCodes narxlarini tekshirish'}
+          </button>
+          <button className="btn btn-primary" onClick={syncCatalog} disabled={syncing}>
+            {syncing ? 'Narxlar qo‘llanmoqda…' : 'Mahalliy narxlarni qo‘llash'}
+          </button>
+        </div>
+      </div>
+      <div className="provider-health-note" role="note">
+        Faol holati API ishlayotganini bildirmaydi. Buyurtmalarni yoqishdan oldin provayder kabinetida API kalitlari, SKU kodlari,
+        narx va test buyurtmani alohida tekshiring. Avtomatik katalog sinxroni provayderni faol qilmaydi.
       </div>
       {loading && !data && (
         <table className="data-table">
@@ -69,6 +96,7 @@ export function ProvidersPage() {
               <th>{t('providers.colName')}</th>
               <th>{t('providers.colType')}</th>
               <th>{t('providers.colActive')}</th>
+              <th>API sozlamasi</th>
               <th>{t('providers.colHealth')}</th>
               <th>{t('providers.colSuccessRate')}</th>
               <th>{t('providers.colAttempts')}</th>
@@ -77,7 +105,7 @@ export function ProvidersPage() {
             </tr>
           </thead>
           <tbody>
-            <SkeletonRows columns={9} />
+            <SkeletonRows columns={10} />
           </tbody>
         </table>
       )}
@@ -90,6 +118,7 @@ export function ProvidersPage() {
               <th>{t('providers.colName')}</th>
               <th>{t('providers.colType')}</th>
               <th>{t('providers.colActive')}</th>
+              <th>API sozlamasi</th>
               <th>{t('providers.colHealth')}</th>
               <th>{t('providers.colSuccessRate')}</th>
               <th>{t('providers.colAttempts')}</th>
@@ -105,6 +134,11 @@ export function ProvidersPage() {
                 <td>{provider.type}</td>
                 <td>
                   <ActiveBadge active={provider.isActive} />
+                </td>
+                <td>
+                  <span className={`badge ${provider.adapterConfigured ? 'badge-success' : 'badge-warning'}`}>
+                    {provider.adapterConfigured ? 'Sozlangan' : 'Kalit/adapter yo‘q'}
+                  </span>
                 </td>
                 <td>
                   <StatusBadge status={provider.healthStatus} />
@@ -131,7 +165,7 @@ export function ProvidersPage() {
             ))}
             {data.providers.length === 0 && (
               <tr>
-                <td colSpan={9} className="muted">
+                <td colSpan={10} className="muted">
                   {t('providers.empty')}
                 </td>
               </tr>

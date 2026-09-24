@@ -10,6 +10,7 @@ function toPublicSavedGame(profile: {
   id: string;
   playerId: string;
   serverId: string | null;
+  zoneId: string | null;
   updatedAt: Date;
   game: {
     id: string;
@@ -24,6 +25,7 @@ function toPublicSavedGame(profile: {
     id: profile.id,
     playerId: profile.playerId,
     serverId: profile.serverId,
+    zoneId: profile.zoneId,
     updatedAt: profile.updatedAt,
     game: {
       id: profile.game.id,
@@ -59,8 +61,8 @@ export async function upsertSavedGame(
 
   const profile = await ctx.prisma.savedPlayerProfile.upsert({
     where: { userId_gameId: { userId, gameId } },
-    update: { playerId: input.playerId, serverId: input.serverId },
-    create: { userId, gameId, playerId: input.playerId, serverId: input.serverId },
+    update: { playerId: input.playerId, serverId: input.serverId, zoneId: input.zoneId },
+    create: { userId, gameId, playerId: input.playerId, serverId: input.serverId, zoneId: input.zoneId },
     include: { game: true },
   });
 
@@ -83,12 +85,13 @@ export async function recordPlayerProfileFromOrder(
   gameId: string,
   playerId: string,
   serverId: string | null,
+  zoneId: string | null,
 ): Promise<void> {
   try {
     await ctx.prisma.savedPlayerProfile.upsert({
       where: { userId_gameId: { userId, gameId } },
-      update: { playerId, serverId },
-      create: { userId, gameId, playerId, serverId },
+      update: { playerId, serverId, zoneId },
+      create: { userId, gameId, playerId, serverId, zoneId },
     });
   } catch {
     // Best-effort convenience feature — never let this block a purchase.

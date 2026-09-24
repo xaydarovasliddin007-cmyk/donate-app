@@ -145,6 +145,7 @@ model SavedPlayerProfile {
   game      Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
   playerId  String   @map("player_id")
   serverId  String?  @map("server_id")
+  zoneId    String?  @map("zone_id")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 

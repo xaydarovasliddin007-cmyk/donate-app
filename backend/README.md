@@ -384,6 +384,21 @@ Original setup steps, kept for reference / re-doing this for a new account:
    order) — encode it that way when mapping each `Product` to its `ProviderProduct` row, then
    flip the `FAZERCARDS` provider row's `isActive` to `true`.
 
+## ReSellCodes top-up setup
+
+ReSellCodes API v1 is wired as an optional server-side provider. Configure `RSC_API_KEY` only
+as a backend/Render secret, and set `RSC_USD_UZS_RATE` to the effective UZS paid per USD when
+funding the supplier wallet (including the actual exchange spread; do not use a guessed rate).
+The admin Providers page has a separate **ReSellCodes narxlarini tekshirish** action. It only
+reads the account-specific top-up catalog and stores exact supported SKU matches as disabled
+provider mappings. Review product, game region, required account fields, and the converted cost
+before enabling the provider or any individual mapping. This action never places an order.
+
+Do not use the RSC supplier for a paid order until its catalog is synced and the matching
+disabled mappings are reviewed. Provider order creation charges the RSC balance immediately;
+there is no live-order smoke test in this setup flow. The adapter treats ambiguous network
+results as pending to avoid an accidental second purchase.
+
 ## Card-transfer auto top-up setup
 
 This is the "choose HUMO or UZCARD, enter an amount, get assigned one card, transfer that exact

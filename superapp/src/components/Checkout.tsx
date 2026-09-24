@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { ArrowLeft, ArrowRight, Check, CheckCircle2, CircleUserRound, LoaderCircle, ShieldCheck, Sparkles } from 'lucide-react';
-import type { CheckoutInput, Game, GameServer, Order, Product, Wallet } from '../types';
+import type { CheckoutInput, Game, GameServer, Order, Product, SavedGame, Wallet } from '../types';
 import { api, errorText } from '../services/api';
 import { haptic } from '../services/telegram';
 import { Sheet } from './Sheet';
@@ -49,7 +49,7 @@ function productVisual(name: string, amountMinor: number): ProductVisual {
 function ProductIcon({ item, selected }: { item: Product; selected: boolean }) {
   const visual = productVisual(item.name, item.amountMinor);
   return (
-    <span className={`product-icon tone-${visual.tone}`}>
+    <span className={`product-icon tone-${visual.tone}`} data-visual={visual.badge === 'x2' ? 'bonus' : visual.icon === 'twilight-pass.png' ? 'twilight' : visual.icon.replace(/\.png$/, '')}>
       <img src={`assets-store/${visual.icon}`} alt="" />
       {visual.badge && <i className="product-badge">{visual.badge}</i>}
       {selected && <Check className="product-check" size={15} />}
@@ -57,18 +57,18 @@ function ProductIcon({ item, selected }: { item: Product; selected: boolean }) {
   );
 }
 
-export function Checkout({ game, onClose, onUpdated, wallet, authenticated, locale }: { game: Game; onClose: () => void; onUpdated: () => void; wallet: Wallet | null; authenticated: boolean; locale: Locale }) {
+export function Checkout({ game, savedProfile, onClose, onUpdated, onOrders, wallet, authenticated, locale }: { game: Game; savedProfile: SavedGame | null; onClose: () => void; onUpdated: () => void; onOrders: () => void | Promise<void>; wallet: Wallet | null; authenticated: boolean; locale: Locale }) {
   const t = (text: string) => tr(locale, text);
   const [servers, setServers] = useState<GameServer[]>([]);
-  const [server, setServer] = useState('');
+  const [server, setServer] = useState(savedProfile?.serverId || '');
   const [serversReady, setServersReady] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [revision, setRevision] = useState(0);
-  const [playerId, setPlayerId] = useState('');
-  const [zoneId, setZoneId] = useState('');
+  const [playerId, setPlayerId] = useState(savedProfile?.playerId || '');
+  const [zoneId, setZoneId] = useState(savedProfile?.zoneId || '');
   const [step, setStep] = useState<'product' | 'details' | 'review' | 'done'>('product');
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<Order | null>(null);
@@ -88,7 +88,8 @@ export function Checkout({ game, onClose, onUpdated, wallet, authenticated, loca
       .then((data) => {
         if (active) {
           setServers(data.servers);
-          setServer(data.servers[0]?.code || '');
+          const savedServer = savedProfile?.serverId && data.servers.some((item) => item.code === savedProfile.serverId) ? savedProfile.serverId : data.servers[0]?.code || '';
+          setServer(savedServer);
           setServersReady(true);
         }
       })
@@ -126,7 +127,7 @@ export function Checkout({ game, onClose, onUpdated, wallet, authenticated, loca
   function selectProduct(item: Product) {
     setProduct(item);
     setError('');
-    setStep('details');
+    setStep(savedProfile?.playerId && (!needsZone || savedProfile.zoneId) ? 'review' : 'details');
     haptic();
   }
   function review(event: FormEvent) {
@@ -190,9 +191,10 @@ export function Checkout({ game, onClose, onUpdated, wallet, authenticated, loca
           <h3>{t(result?.status === 'COMPLETED' ? 'Xarid bajarildi' : 'Buyurtma qabul qilindi')}</h3>
           <p>#{result?.orderNumber}</p>
           <p>{t("Holatini Buyurtmalar bo'limida kuzatishingiz mumkin.")}</p>
-          <button className="button primary" onClick={onClose}>
-            {t('Tayyor')} <Check size={18} />
-          </button>
+          <div className="checkout-result-actions">
+            <button className="button primary" onClick={() => void onOrders()}>{t('Buyurtmalarga borish')} <ArrowRight size={18}/></button>
+            <button className="button subtle" onClick={onClose}>{t("Do'konga qaytish")}</button>
+          </div>
         </div>
       ) : (
         <>

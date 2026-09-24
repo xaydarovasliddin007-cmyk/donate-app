@@ -265,6 +265,7 @@ export interface Provider {
   name: string;
   type: ProviderType;
   isActive: boolean;
+  adapterConfigured: boolean;
   healthStatus: ProviderHealthStatus;
   lastCheckedAt: string | null;
   totalAttempts: number;

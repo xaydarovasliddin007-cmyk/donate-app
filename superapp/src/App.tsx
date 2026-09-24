@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { ArrowRight, ArrowUpRight, CheckCircle2, ChevronRight, Clock3, Copy, Gamepad2, Headphones, Home, LoaderCircle, Moon, Package, Plus, RefreshCw, Search, ShieldCheck, Sparkles, Sun, UserRound, Wallet as WalletIcon, X } from 'lucide-react';
-import type { AppConfig, Game, Order, Session, TopUp, User, Wallet } from './types';
+import type { AppConfig, Game, Order, SavedGame, Session, TopUp, User, Wallet } from './types';
 import { api, errorText, login, signIn } from './services/api';
 import { haptic, inTelegram, openTelegram, telegram } from './services/telegram';
 import { Checkout } from './components/Checkout';
@@ -30,6 +30,7 @@ export default function App() {
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [topups, setTopups] = useState<TopUp[]>([]);
+  const [savedGames, setSavedGames] = useState<SavedGame[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [config, setConfig] = useState(defaultConfig);
   const [query, setQuery] = useState('');
@@ -37,6 +38,7 @@ export default function App() {
   const [onlyAvailable, setOnlyAvailable] = useState(false);
   const [orderFilter, setOrderFilter] = useState('all');
   const [game, setGame] = useState<Game | null>(null);
+  const [quickProfile, setQuickProfile] = useState<SavedGame | null>(null);
   const [order, setOrder] = useState<Order | null>(null);
   const [showWallet, setShowWallet] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
@@ -60,8 +62,9 @@ export default function App() {
         api<{ orders: Order[] }>('/orders?limit=50'),
         api<Wallet>('/wallet'),
         api<{ topUps: TopUp[] }>('/topups?limit=20'),
+        api<{ savedGames: SavedGame[] }>('/saved-games').catch(() => ({ savedGames: [] })),
       ]);
-      setOrders(result[0].orders); setWallet(result[1]); setTopups(result[2].topUps); setAccountError('');
+      setOrders(result[0].orders); setWallet(result[1]); setTopups(result[2].topUps); setSavedGames(result[3].savedGames); setAccountError('');
     } catch (err) { setAccountError(errorText(err)); }
     finally { accountLoading.current = false; setRefreshing(false); }
   }, []);
@@ -111,6 +114,7 @@ export default function App() {
   }, [games]);
 
   function navigate(next: Tab) { setTab(next); haptic(); window.scrollTo({ top: 0, behavior: 'instant' }); }
+  function openGame(selected: Game, profile: SavedGame | null = null) { setQuickProfile(profile); setGame(selected); haptic(); }
   function showCatalog() { navigate('games'); }
   const categories = [...new Set(games.map((item) => item.category).filter(Boolean))] as string[];
   const filtered = games.filter((item) => (!onlyAvailable || item.isPurchasable) &&
@@ -150,6 +154,7 @@ export default function App() {
           <button onClick={() => setShowWallet(true)}><span><WalletIcon size={21}/></span><strong>{t("Balans to'ldirish")}</strong><ChevronRight size={17}/></button>
           <button onClick={() => openTelegram(config.supportUrl)}><span><Headphones size={21}/></span><strong>{t('Yordam')}</strong><ChevronRight size={17}/></button>
         </section>
+        {savedGames.some((profile) => profile.game.isPurchasable) && <section className="saved-games-section"><div className="catalog-toolbar"><div><span className="eyebrow accent-text">{t('SAQLANGAN O\'YINLAR')}</span><h2>{t('Mening o\'yinlarim')}</h2></div></div><div className="saved-games-list">{savedGames.filter((profile) => profile.game.isPurchasable).map((profile) => <button className="saved-game-row" key={profile.id} onClick={() => openGame(profile.game, profile)}>{profile.game.logoUrl ? <img className="saved-game-logo" src={profile.game.logoUrl} alt=""/> : <span className="saved-game-logo saved-game-fallback"><Gamepad2 size={22}/></span>}<span className="saved-game-details"><strong>{profile.game.name}</strong><small>{t('Player ID')}: {profile.playerId}{profile.zoneId ? ` · ${t('Zone ID')}: ${profile.zoneId}` : ''}</small><span>{t('Tezkor xarid')} <ArrowRight size={15}/></span></span></button>)}</div></section>}
         {featuredGame && <button className="featured-banner" onClick={() => { haptic(); setGame(featuredGame); }}>
           <div className="featured-copy"><span><Sparkles size={14}/> {t('TEZKOR TOP-UP')}</span><h2>{featuredGame.name}</h2><p>{t(featuredCopy[featuredGame.slug] || "Eng yaxshi narxlar va tezkor yetkazib berish.")}</p><strong>{t('Xaridni boshlash')} <ArrowRight size={17}/></strong></div>
           {featuredGame.logoUrl && <img src={featuredGame.logoUrl} alt=""/>}
@@ -204,7 +209,27 @@ export default function App() {
       <button aria-current={tab === 'orders' ? 'page' : undefined} className={tab === 'orders' ? 'active' : ''} onClick={() => navigate('orders')}><span><Package size={21}/>{activeOrders.length > 0 && <i/>}</span>{t('Buyurtmalar')}</button>
       <button aria-current={tab === 'profile' ? 'page' : undefined} className={tab === 'profile' ? 'active' : ''} onClick={() => navigate('profile')}><span><UserRound size={21}/></span>{t('Profil')}</button>
     </nav>
-    {game && <Checkout key={game.id} game={game} authenticated={Boolean(user)} wallet={wallet} locale={locale} onClose={() => setGame(null)} onUpdated={refreshAccount}/>}
+    {game && (
+      <Checkout
+        key={`${game.id}:${quickProfile?.id || 'new'}`}
+        game={game}
+        savedProfile={quickProfile}
+        authenticated={Boolean(user)}
+        wallet={wallet}
+        locale={locale}
+        onClose={() => {
+          setGame(null);
+          setQuickProfile(null);
+        }}
+        onUpdated={refreshAccount}
+        onOrders={async () => {
+          await refreshAccount();
+          setGame(null);
+          setQuickProfile(null);
+          navigate('orders');
+        }}
+      />
+    )}
     {showWallet && (
       <WalletSheet
         wallet={wallet}

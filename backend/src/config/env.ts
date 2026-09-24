@@ -109,6 +109,11 @@ const envSchema = z.object({
   SMILEONE_EMAIL: z.string().trim().min(1).optional(),
   SMILEONE_API_KEY: z.string().trim().min(1).optional(),
 
+  // Optional: ReSellCodes wholesale game top-ups. Keep credentials server-side.
+  RSC_API_KEY: z.string().trim().min(1).optional(),
+  // Integer UZS per USD, based on the effective rate used to fund the account.
+  RSC_USD_UZS_RATE: z.coerce.number().int().positive().optional(),
+
   // Optional: shared secret the Telegram bank-notification listener script
   // (scripts/humo-listener.ts) must send on every request to
   // POST /webhooks/humo-transaction. Without it, that endpoint refuses all
