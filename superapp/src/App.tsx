@@ -89,7 +89,7 @@ export default function App() {
     api<AppConfig>('/app/config', undefined, false).then(setConfig).catch(() => {});
   }, [loadCatalog, authenticate]);
   useEffect(() => {
-    const timer = window.setTimeout(() => setShowIntro(false), 2200);
+    const timer = window.setTimeout(() => setShowIntro(false), 1350);
     return () => window.clearTimeout(timer);
   }, []);
   useEffect(() => {
@@ -166,7 +166,6 @@ export default function App() {
       {tab === 'shop' && <>
         <section className="store-heading">
           <div className="welcome-row">
-            <button className="welcome-avatar" onClick={() => navigate('profile')} aria-label="Profilni ochish">{user?.avatarUrl && !avatarFailed ? <img src={user.avatarUrl} alt="" onError={() => setAvatarFailed(true)}/> : user?.displayName?.slice(0, 1).toUpperCase() || <UserRound size={24}/>}</button>
             <div><span className="eyebrow">{t('Xush kelibsiz')}</span><h1>{user?.displayName || t('UZDONATE foydalanuvchisi')}</h1></div>
           </div>
           <div className="wallet-summary"><WalletIcon size={25}/><div><span>{locale === 'ru' ? 'БАЛАНС' : 'BALANS'}</span><strong>{wallet ? money(wallet.balanceMinor, wallet.currency, locale) : '...'}</strong></div><button className="wallet-action" onClick={() => setShowWallet(true)}><Plus size={17}/> {t("To'ldirish")}</button></div>
@@ -177,12 +176,12 @@ export default function App() {
           <button onClick={() => setShowWallet(true)}><span><WalletIcon size={21}/></span><strong>{t("Balans to'ldirish")}</strong><ChevronRight size={17}/></button>
           <button onClick={() => openTelegram(config.supportUrl)}><span><Headphones size={21}/></span><strong>{t('Yordam')}</strong><ChevronRight size={17}/></button>
         </section>
-        {savedGames.some((profile) => profile.game.isPurchasable) && <section className="saved-games-section"><div className="catalog-toolbar"><div><span className="eyebrow accent-text">{t('SAQLANGAN O\'YINLAR')}</span><h2>{t('Mening o\'yinlarim')}</h2></div></div><div className="saved-games-list">{savedGames.filter((profile) => profile.game.isPurchasable).map((profile) => <button className="saved-game-row" key={profile.id} onClick={() => openGame(profile.game, profile)}>{profile.game.logoUrl ? <img className="saved-game-logo" src={profile.game.logoUrl} alt=""/> : <span className="saved-game-logo saved-game-fallback"><Gamepad2 size={22}/></span>}<span className="saved-game-details"><strong>{profile.game.name}</strong><small>{t('Player ID')}: {profile.playerId}{profile.zoneId ? ` · ${t('Zone ID')}: ${profile.zoneId}` : ''}</small><span>{t('Tezkor xarid')} <ArrowRight size={15}/></span></span></button>)}</div></section>}
         {featuredGame && <button className="featured-banner" onClick={() => { haptic(); setGame(featuredGame); }}>
-          <div className="featured-copy"><span><Sparkles size={14}/> {t('TEZKOR TOP-UP')}</span><h2>{featuredGame.name}</h2><p>{t(featuredCopy[featuredGame.slug] || "Eng yaxshi narxlar va tezkor yetkazib berish.")}</p><strong>{t('Xaridni boshlash')} <ArrowRight size={17}/></strong></div>
-          {featuredGame.logoUrl && <img src={featuredGame.logoUrl} alt=""/>}
+          <div className="featured-copy" key={featuredGame.id}><span><Sparkles size={14}/> {t('TEZKOR TOP-UP')}</span><h2>{featuredGame.name}</h2><p>{t(featuredCopy[featuredGame.slug] || "Eng yaxshi narxlar va tezkor yetkazib berish.")}</p><strong>{t('Xaridni boshlash')} <ArrowRight size={17}/></strong></div>
+          {featuredGame.logoUrl && <span className="featured-art" key={featuredGame.id} aria-hidden="true"><img src={featuredGame.logoUrl} alt=""/></span>}
           {carouselGames.length > 1 && <span className="banner-dots" aria-label="Bannerlar">{carouselGames.map((item, index) => <i key={item.id} className={index === bannerIndex % carouselGames.length ? 'active' : ''}/>)}</span>}
         </button>}
+        {savedGames.some((profile) => profile.game.isPurchasable) && <section className="saved-games-section"><div className="catalog-toolbar"><div><span className="eyebrow accent-text">{t('SAQLANGAN O\'YINLAR')}</span><h2>{t('Mening o\'yinlarim')}</h2></div></div><div className="saved-games-list">{savedGames.filter((profile) => profile.game.isPurchasable).map((profile) => <button className="saved-game-row" key={profile.id} onClick={() => openGame(profile.game, profile)}>{profile.game.logoUrl ? <img className="saved-game-logo" src={profile.game.logoUrl} alt=""/> : <span className="saved-game-logo saved-game-fallback"><Gamepad2 size={22}/></span>}<span className="saved-game-details"><strong>{profile.game.name}</strong><small>{t('Player ID')}: {profile.playerId}{profile.zoneId ? ` · ${t('Zone ID')}: ${profile.zoneId}` : ''}</small><span>{t('Tezkor xarid')} <ArrowRight size={15}/></span></span></button>)}</div></section>}
         <section id="catalog" className="home-catalog" aria-label="Mashhur o'yinlar">
           <div className="catalog-toolbar"><div><span className="eyebrow accent-text">{t('KATALOG')}</span><h2>{t("Mashhur o'yinlar")}</h2></div><button className="catalog-all" onClick={showCatalog}>{t('Barchasi')} <ArrowRight size={17}/></button></div>
           {catalogError ? <ErrorBox message={catalogError} retry={() => void loadCatalog()} locale={locale}/> : loading ? <div className="games-grid" aria-label={t('Katalog yuklanmoqda')} aria-busy="true">{Array.from({ length: 8 }, (_, i) => <div key={i} className="game-skeleton skeleton"/>)}</div> : <div className="games-grid">{games.filter((item) => item.isPurchasable).slice(0, 8).map((item) => <GameCard key={item.id} game={item} locale={locale} onSelect={(selected) => { haptic(); setGame(selected); }}/>)}</div>}

@@ -5,6 +5,7 @@ import { generateOrderNumber } from '../../lib/order-number.js';
 import { notifyAdmins } from '../../lib/telegram.js';
 import { applyDiscount, formatMinorAmount } from '../../lib/money.js';
 import { getTopupProvider } from '../../providers/registry.js';
+import type { TopupValidatePlayerResult } from '../../providers/topup-provider.js';
 import { createNotification } from '../notifications/notifications.service.js';
 import { recordPlayerProfileFromOrder } from '../saved-games/saved-games.service.js';
 import * as walletService from '../wallet/wallet.service.js';
@@ -15,6 +16,39 @@ import { listFulfillmentCandidates, type FulfillmentCandidate } from './provider
 
 interface OrderContext {
   prisma: PrismaClient;
+}
+
+async function validatePlayerWithCandidates(
+  gameSlug: string,
+  candidates: FulfillmentCandidate[],
+  playerId: string,
+  zoneId?: string,
+): Promise<TopupValidatePlayerResult> {
+  const requiresNickname = gameSlug === 'mobile-legends';
+  let lastResult: TopupValidatePlayerResult = { valid: false, reason: 'Player account could not be verified' };
+
+  for (const candidate of candidates) {
+    try {
+      const result = await getTopupProvider(candidate.provider.code).validatePlayer({
+        providerProductCode: candidate.providerProductCode,
+        playerId,
+        serverId: zoneId,
+      });
+      if (!requiresNickname) return result;
+      if (result.valid && result.playerName?.trim()) return result;
+      lastResult = result.valid
+        ? { valid: false, reason: 'Player nickname could not be verified. Check the Player ID and Zone ID' }
+        : result;
+    } catch (error) {
+      if (!requiresNickname) throw error;
+      lastResult = {
+        valid: false,
+        reason: error instanceof Error ? error.message : 'Player account check is unavailable',
+      };
+    }
+  }
+
+  return lastResult;
 }
 
 function toPublicOrder(
@@ -132,19 +166,18 @@ export async function createOrder(ctx: OrderContext, userId: string, input: Crea
     throw new NotFoundError('Product not found or unavailable');
   }
 
-  const [providerProduct] = await listFulfillmentCandidates(ctx.prisma, product.id);
-  if (!providerProduct) {
+  const providerProducts = await listFulfillmentCandidates(ctx.prisma, product.id);
+  if (!providerProducts.length) {
     throw new NotFoundError('No fulfillment provider is currently configured for this product');
   }
 
-  const adapter = getTopupProvider(providerProduct.provider.code);
-  const validation = await adapter.validatePlayer({
-    providerProductCode: providerProduct.providerProductCode,
-    playerId: input.playerId,
-    // The adapter's serverId means "real identity", not pricing region —
-    // see the zoneId comment on the Order model.
-    serverId: input.zoneId,
-  });
+  // The first route is still the cheapest supplier for fulfillment, but some
+  // providers cannot resolve MLBB nicknames. Ask active alternatives until
+  // one verifies both IDs and returns a name; never charge on a weak match.
+  const validation = await validatePlayerWithCandidates(game.slug, providerProducts, input.playerId, input.zoneId);
+  if (game.slug === 'mobile-legends' && validation.valid && !validation.playerName?.trim()) {
+    throw new ConflictError('Player nickname could not be verified. Check the Player ID and Zone ID');
+  }
   if (!validation.valid) {
     throw new ConflictError(validation.reason ?? 'Player ID could not be validated');
   }
@@ -255,19 +288,16 @@ export async function validatePlayer(ctx: OrderContext, input: ValidatePlayerInp
     throw new NotFoundError('Product not found or unavailable');
   }
 
-  const [providerProduct] = await listFulfillmentCandidates(ctx.prisma, product.id);
-  if (!providerProduct) {
+  const providerProducts = await listFulfillmentCandidates(ctx.prisma, product.id);
+  if (!providerProducts.length) {
     throw new NotFoundError('No fulfillment provider is currently configured for this product');
   }
 
-  const adapter = getTopupProvider(providerProduct.provider.code);
-  return adapter.validatePlayer({
-    providerProductCode: providerProduct.providerProductCode,
-    playerId: input.playerId,
-    // The adapter's serverId means "real identity", not pricing region —
-    // see the zoneId comment on the Order model.
-    serverId: input.zoneId,
-  });
+  const validation = await validatePlayerWithCandidates(game.slug, providerProducts, input.playerId, input.zoneId);
+  if (game.slug === 'mobile-legends' && validation.valid && !validation.playerName?.trim()) {
+    return { ...validation, valid: false, reason: 'Player nickname could not be verified. Check the Player ID and Zone ID' };
+  }
+  return validation;
 }
 
 export async function listOrders(ctx: OrderContext, userId: string, limit: number) {

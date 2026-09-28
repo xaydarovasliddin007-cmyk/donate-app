@@ -482,7 +482,7 @@ export async function listTopUpRequestsAdmin(
  * must still be able to credit it manually instead of the money being
  * stuck with no way to apply it.
  */
-export async function verifyTopUpRequest(ctx: TopUpContext, adminId: string, topUpRequestId: string) {
+export async function verifyTopUpRequest(ctx: TopUpContext, adminId: string | null, topUpRequestId: string) {
   const request = await ctx.prisma.topUpRequest.findUnique({ where: { id: topUpRequestId } });
   if (!request) throw new NotFoundError('Top-up request not found');
   if (request.status !== 'PENDING' && request.status !== 'EXPIRED') {
@@ -500,7 +500,7 @@ export async function verifyTopUpRequest(ctx: TopUpContext, adminId: string, top
     idempotencyKey: `topup:${request.id}`,
     reference: `Top-up ${request.id}`,
     topUpRequestId: request.id,
-    createdByAdminId: adminId,
+    ...(adminId ? { createdByAdminId: adminId } : {}),
   });
 
   const updated = await ctx.prisma.topUpRequest.update({
@@ -522,7 +522,7 @@ export async function verifyTopUpRequest(ctx: TopUpContext, adminId: string, top
 
 export async function rejectTopUpRequest(
   ctx: TopUpContext,
-  adminId: string,
+  adminId: string | null,
   topUpRequestId: string,
   rejectionReason: string,
 ) {

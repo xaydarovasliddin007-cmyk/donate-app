@@ -72,8 +72,14 @@ export async function sendTopUpReceiptPhoto(input: {
     `Summa: <b>${escapeHtml(input.amount)}</b>\n` +
     `Mijoz: ${escapeHtml(input.userLabel)}\n` +
     `So'rov: <code>${escapeHtml(input.requestId)}</code>\n` +
-    `Admin panelda tekshirib tasdiqlang.`,
+    `To'lovni tekshirib, quyidan qaror qiling.`,
   );
+  form.append('reply_markup', JSON.stringify({
+    inline_keyboard: [[
+      { text: '✅ Tasdiqlash', callback_data: `topup:approve:${input.requestId}` },
+      { text: '❌ Rad etish', callback_data: `topup:reject:${input.requestId}` },
+    ]],
+  }));
   const response = await fetch(`${TELEGRAM_API_BASE}/bot${env.TOPUP_REVIEW_BOT_TOKEN}/sendPhoto`, {
     method: 'POST', body: form, signal: AbortSignal.timeout(15_000),
   });

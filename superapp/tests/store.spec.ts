@@ -15,7 +15,7 @@ const games = [
     slug: 'pubg-mobile',
     name: 'PUBG Mobile',
     category: 'Battle Royale',
-    logoUrl: '/assets-store/brand.png',
+    logoUrl: '/assets-store/uc_stack.png',
     availability: 'ACTIVE',
     isPurchasable: true,
   },
@@ -24,7 +24,7 @@ const games = [
     slug: 'free-fire',
     name: 'Free Fire',
     category: 'Battle Royale',
-    logoUrl: '/assets-store/diamond.png',
+    logoUrl: '/assets-store/fire.png',
     availability: 'ACTIVE',
     isPurchasable: true,
   },
@@ -38,7 +38,7 @@ const games = [
     isPurchasable: false,
   },
 ];
-async function mockStore(page: Page, tg = false, busyTopup = false, insufficientBalance = false) {
+async function mockStore(page: Page, tg = false, busyTopup = false, insufficientBalance = false, invalidPlayer = false) {
   let orders: object[] = [];
   const sent: { path: string; body: Record<string, unknown> }[] = [];
   await page.route('https://telegram.org/**', (route) => route.fulfill({ contentType: 'text/javascript', body: '' }));
@@ -179,6 +179,9 @@ async function mockStore(page: Page, tg = false, busyTopup = false, insufficient
       };
     else if (path === '/topups') data = { topUps: [] };
     else if (path === '/orders' && !body) data = { orders };
+    else if (path === '/orders/validate-player') data = invalidPlayer
+      ? { valid: false, reason: 'Zone ID does not match' }
+      : { valid: true, playerName: 'AsliddinMLBB', playerRegion: 'Global' };
     else if (path === '/orders' || path === '/telegram/invoices') {
       const order = {
         id: 'order-1',
@@ -214,8 +217,15 @@ test('catalog filters, light mode and responsive layout', async ({ page }, info)
   page.on('pageerror', (error) => errors.push(error.message));
   await mockStore(page);
   await page.goto('/');
+  await expect(page.locator('.launch-screen')).toHaveCount(0);
   await expect(page.locator('.game-card')).toHaveCount(3);
   await page.waitForTimeout(1500);
+  const featuredArt = page.locator('.featured-art');
+  await expect(featuredArt).toBeVisible();
+  await expect(page.locator('.featured-copy')).toHaveCount(1);
+  const artBox = await featuredArt.boundingBox();
+  expect(artBox).not.toBeNull();
+  expect(Math.abs((artBox?.width || 0) - (artBox?.height || 0))).toBeLessThan(2);
   if (info.project.name !== 'desktop') {
     const mobileNav = page.getByRole('navigation', { name: "Asosiy bo'limlar" }).filter({ visible: true });
     const dockBottom = await mobileNav.evaluate((element) => Math.round(element.getBoundingClientRect().bottom));
@@ -241,11 +251,24 @@ test('catalog filters, light mode and responsive layout', async ({ page }, info)
   await noOverflow(page);
   expect(errors).toEqual([]);
 });
+test('tablet Telegram webview keeps navigation inside the viewport', async ({ page }) => {
+  await mockStore(page);
+  await page.setViewportSize({ width: 700, height: 900 });
+  await page.goto('/');
+  await expect(page.getByRole('navigation', { name: "Asosiy bo'limlar" })).toBeVisible();
+  await noOverflow(page);
+});
 test('wallet top-up chooses the payment method before amount', async ({ page }, info) => {
   const sent = await mockStore(page);
   await page.goto('/');
   await page.getByRole('button', { name: "Balans to'ldirish", exact: true }).click();
   await expect(page.getByRole('heading', { name: "To'lov usulini tanlang" })).toBeVisible();
+  await expect(page.locator('.wallet-balance-card')).toBeVisible();
+  await expect(page.locator('.topup-progress > div')).toHaveCount(3);
+  await page.screenshot({
+    path: `../artifacts/wallet-${info.project.name}.png`,
+    fullPage: true,
+  });
   if (info.project.name !== 'desktop') {
     const walletNav = page.getByRole('navigation', {
       name: "Balans sahifasi bo'limlari",
@@ -258,10 +281,6 @@ test('wallet top-up chooses the payment method before amount', async ({ page }, 
     await expect(walletNav).toBeVisible();
     expect(await walletNav.evaluate((element) => Math.round(element.getBoundingClientRect().bottom))).toBe(bottomBeforeScroll);
   }
-  await page.screenshot({
-    path: `../artifacts/wallet-${info.project.name}.png`,
-    fullPage: true,
-  });
   await page.getByRole('button', { name: /^HUMO/ }).click();
   await expect(page.getByRole('heading', { name: 'Summani kiriting' })).toBeVisible();
   await page.getByLabel("Summa, so'm").fill('75000');
@@ -361,7 +380,9 @@ test('checkout validates player and zone, pays and shows server order', async ({
   await page.getByLabel('Player ID', { exact: true }).fill('123456789');
   await page.getByLabel('Zone ID', { exact: true }).fill('1234');
   await page.getByRole('button', { name: 'Davom etish' }).click();
+  await expect(page.getByText('Akkaunt tasdiqlandi')).toBeVisible();
   await expect(page.getByText('Buyurtmani tasdiqlang')).toBeVisible();
+  await expect(page.locator('.receipt')).toContainText('AsliddinMLBB');
   await page.waitForTimeout(400);
   await page.screenshot({
     path: `../artifacts/checkout-${info.project.name}.png`,
@@ -369,6 +390,7 @@ test('checkout validates player and zone, pays and shows server order', async ({
   await page.getByRole('button', { name: /to'lash/ }).click();
   await expect(page.getByRole('heading', { name: 'Xarid bajarildi' })).toBeVisible();
   const checkout = sent.find((item) => item.path === '/orders')!;
+  expect(sent.find((item) => item.path === '/orders/validate-player')?.body).toMatchObject({ playerId: '123456789', zoneId: '1234' });
   expect(checkout.body.zoneId).toBe('1234');
   expect(checkout.body.idempotencyKey).toBeTruthy();
   await page.getByRole('button', { name: 'Buyurtmalarga borish' }).click();
@@ -393,6 +415,20 @@ test('checkout offers in-place wallet top-up when balance is insufficient', asyn
   await expect(page.locator('.receipt')).toContainText('123456789');
 });
 
+test('MLBB checkout stays on identity step when Player ID and Zone ID do not match', async ({ page }) => {
+  const sent = await mockStore(page, false, false, false, true);
+  await page.goto('/');
+  await page.locator('.game-card').first().click();
+  await page.getByRole('radio').first().click();
+  await page.getByLabel('Player ID', { exact: true }).fill('123456789');
+  await page.getByLabel('Zone ID', { exact: true }).fill('9999');
+  await page.getByRole('button', { name: 'Davom etish' }).click();
+  await expect(page.getByRole('heading', { name: "O'yin hisobingizni kiriting" })).toBeVisible();
+  await expect(page.getByRole('alert')).toContainText('Zone ID does not match');
+  expect(sent.some((item) => item.path === '/orders/validate-player')).toBe(true);
+  expect(sent.some((item) => item.path === '/orders')).toBe(false);
+});
+
 test('saved game quick buy pre-fills player, server and zone for final review', async ({ page }) => {
   await mockStore(page);
   await page.goto('/');
@@ -401,7 +437,10 @@ test('saved game quick buy pre-fills player, server and zone for final review', 
   await savedGame.click();
   await expect(page.getByRole('heading', { name: 'Paketni tanlang' })).toBeVisible();
   await page.getByRole('radio').first().click();
+  await expect(page.getByRole('heading', { name: "O'yin hisobingizni kiriting" })).toBeVisible();
+  await page.getByRole('button', { name: 'Davom etish' }).click();
   await expect(page.getByRole('heading', { name: 'Buyurtmani tasdiqlang' })).toBeVisible();
+  await expect(page.locator('.receipt')).toContainText('AsliddinMLBB');
   await expect(page.locator('.receipt')).toContainText('123456789');
   await expect(page.locator('.receipt')).toContainText('1234');
   await expect(page.locator('.receipt')).toContainText('Global');

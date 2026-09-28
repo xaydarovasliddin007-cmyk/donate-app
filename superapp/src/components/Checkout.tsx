@@ -69,6 +69,8 @@ export function Checkout({ game, savedProfile, onClose, onUpdated, onOrders, onT
   const [revision, setRevision] = useState(0);
   const [playerId, setPlayerId] = useState(savedProfile?.playerId || '');
   const [zoneId, setZoneId] = useState(savedProfile?.zoneId || '');
+  const [validatingPlayer, setValidatingPlayer] = useState(false);
+  const [playerValidation, setPlayerValidation] = useState<{ playerName: string; playerRegion?: string } | null>(null);
   const [step, setStep] = useState<'product' | 'details' | 'review' | 'done'>('product');
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<Order | null>(null);
@@ -127,13 +129,48 @@ export function Checkout({ game, savedProfile, onClose, onUpdated, onOrders, onT
   function selectProduct(item: Product) {
     setProduct(item);
     setError('');
-    setStep(savedProfile?.playerId && (!needsZone || savedProfile.zoneId) ? 'review' : 'details');
+    setPlayerValidation(null);
+    setStep(savedProfile?.playerId && !needsZone ? 'review' : 'details');
     haptic();
   }
-  function review(event: FormEvent) {
+  async function review(event: FormEvent) {
     event.preventDefault();
     if (!product || !playerId.trim() || (needsZone && !zoneId.trim())) return;
     setError('');
+    if (needsZone) {
+      const checkedPlayerId = playerId.trim();
+      const checkedZoneId = zoneId.trim();
+      setValidatingPlayer(true);
+      try {
+        const result = await api<{ valid: boolean; playerName?: string; playerRegion?: string; reason?: string }>(
+          '/orders/validate-player',
+          {
+            gameId: game.id,
+            productId: product.id,
+            playerId: checkedPlayerId,
+            serverId: server || undefined,
+            zoneId: checkedZoneId,
+          },
+        );
+        if (playerId.trim() !== checkedPlayerId || zoneId.trim() !== checkedZoneId) return;
+        if (!result.valid) {
+          setPlayerValidation(null);
+          setError(result.reason || t('Player ID yoki Zone ID tekshiruvdan o\'tmadi.'));
+          return;
+        }
+        if (!result.playerName?.trim()) {
+          setPlayerValidation(null);
+          setError(t('Akkaunt nikini aniqlab bo\'lmadi. ID va Zone ID ni tekshiring.'));
+          return;
+        }
+        setPlayerValidation({ playerName: result.playerName.trim(), playerRegion: result.playerRegion?.trim() || undefined });
+      } catch (err) {
+        setError(errorText(err));
+        return;
+      } finally {
+        setValidatingPlayer(false);
+      }
+    }
     setStep('review');
     haptic();
   }
@@ -145,7 +182,7 @@ export function Checkout({ game, savedProfile, onClose, onUpdated, onOrders, onT
     onClose();
   }
   async function pay() {
-    if (locked.current || !product) return;
+    if (locked.current || !product || (needsZone && !playerValidation)) return;
     locked.current = true;
     setBusy(true);
     setError('');
@@ -312,12 +349,12 @@ export function Checkout({ game, savedProfile, onClose, onUpdated, onOrders, onT
               <div className="field-grid account-fields">
                 <label>
                   {accountLabel}
-                  <input autoFocus autoComplete="off" value={playerId} onChange={(event) => setPlayerId(event.target.value)} required maxLength={64} inputMode={usesTag || usesName ? 'text' : 'numeric'} pattern={usesTag || usesName ? undefined : '[0-9]+'} placeholder={usesName ? 'Username' : usesTag ? '#ABC123' : '123456789'} />
+                  <input autoFocus autoComplete="off" value={playerId} onChange={(event) => { setPlayerId(event.target.value); setPlayerValidation(null); setError(''); }} required maxLength={64} inputMode={usesTag || usesName ? 'text' : 'numeric'} pattern={usesTag || usesName ? undefined : '[0-9]+'} placeholder={usesName ? 'Username' : usesTag ? '#ABC123' : '123456789'} />
                 </label>
                 {needsZone && (
                   <label>
                     Zone ID
-                    <input value={zoneId} onChange={(event) => setZoneId(event.target.value)} required maxLength={32} inputMode="numeric" pattern="[0-9]+" placeholder="1234" />
+                    <input value={zoneId} onChange={(event) => { setZoneId(event.target.value); setPlayerValidation(null); setError(''); }} required maxLength={32} inputMode="numeric" pattern="[0-9]+" placeholder="1234" />
                   </label>
                 )}
               </div>
@@ -325,14 +362,17 @@ export function Checkout({ game, savedProfile, onClose, onUpdated, onOrders, onT
                 <ShieldCheck size={17} />
                 {t("ID ma'lumotlari faqat buyurtmani o'yin hisobiga yetkazish uchun ishlatiladi.")}
               </p>
+              {validatingPlayer && <div className="player-verification checking" role="status"><LoaderCircle className="spin" size={19}/><span>{t("O'yin hisobi tekshirilmoqda...")}</span></div>}
+              {playerValidation && <div className="player-verification verified" role="status"><CheckCircle2 size={20}/><div><strong>{t('Akkaunt tasdiqlandi')}</strong><span>{playerValidation.playerName}</span><small>{t('Player ID')}: {playerId.trim()} · Zone ID: {zoneId.trim()}{playerValidation.playerRegion ? ` · ${playerValidation.playerRegion}` : ''}</small></div></div>}
+              {error && <ErrorBox message={error} locale={locale} />}
               {!authenticated && <p className="muted">Xarid uchun hisobga kirish kerak. Ilovani qayta oching.</p>}
               <footer className="checkout-footer">
                 <div>
                   <span className="muted">{t('Jami')}</span>
                   <strong>{price || 'Paket tanlanmagan'}</strong>
                 </div>
-                <button className="button primary" type="submit" disabled={!product || !authenticated || !playerId.trim() || (needsZone && !zoneId.trim())}>
-                  {t('Davom etish')} <ArrowRight size={18} />
+                <button className="button primary" type="submit" disabled={!product || !authenticated || validatingPlayer || !playerId.trim() || (needsZone && !zoneId.trim())}>
+                  {validatingPlayer ? <><LoaderCircle className="spin" size={18}/> {t("Tekshirilmoqda...")}</> : <>{t('Davom etish')} <ArrowRight size={18} /></>}
                 </button>
               </footer>
             </form>
@@ -356,6 +396,7 @@ export function Checkout({ game, savedProfile, onClose, onUpdated, onOrders, onT
                   <dt>{accountLabel}</dt>
                   <dd>{playerId}</dd>
                 </div>
+                {playerValidation && <div><dt>{t("O'yinchi nikneymi")}</dt><dd>{playerValidation.playerName}</dd></div>}
                 {needsZone && (
                   <div>
                     <dt>Zone ID</dt>
@@ -373,13 +414,13 @@ export function Checkout({ game, savedProfile, onClose, onUpdated, onOrders, onT
                   <dd>{price}</dd>
                 </div>
               </dl>
-              <p className="notice">
-                <ShieldCheck size={19} />
-                {t("O'yin ID va hududni tekshiring. Paket shu hisobga yuboriladi.")}
+              <p className={playerValidation ? 'notice verification-note' : 'notice'}>
+                {playerValidation ? <CheckCircle2 size={19} /> : <ShieldCheck size={19} />}
+                {playerValidation ? `${t('Akkaunt tasdiqlandi')}: ${playerValidation.playerName} · Zone ID ${zoneId}` : t("O'yin ID va hududni tekshiring. Paket shu hisobga yuboriladi.")}
               </p>
               {wallet && wallet.balanceMinor < (product?.amountMinor ?? 0) && <div className="checkout-insufficient"><ErrorBox message={t("Balans yetarli emas. Shu yerdan balansingizni to'ldiring.")} locale={locale}/><button className="button primary full-width" disabled={busy} onClick={onTopUp}><Plus size={18}/><WalletIcon size={18}/>{t("Balansni to'ldirish")}</button></div>}
               {error && <ErrorBox message={error} locale={locale} />}
-              <button className="button primary full-width" disabled={busy || !wallet || wallet.balanceMinor < (product?.amountMinor ?? 0)} onClick={pay}>
+              <button className="button primary full-width" disabled={busy || (needsZone && !playerValidation) || !wallet || wallet.balanceMinor < (product?.amountMinor ?? 0)} onClick={pay}>
                 {busy ? <LoaderCircle className="spin" size={18} /> : <ShieldCheck size={18} />}
                 {busy ? t('Kutilmoqda...') : locale === 'ru' ? `Оплатить ${price}` : `${price} to'lash`}
               </button>

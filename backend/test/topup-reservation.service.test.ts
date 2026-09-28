@@ -406,6 +406,37 @@ describe('topup reservation + auto-verification (live DB)', () => {
       expect(wallet.balanceMinor).toBe(reservation.amountMinor);
     });
 
+    it('credits a Telegram-reviewed request without inventing an admin account', async () => {
+      const user = await makeUser();
+      const reservation = await topupService.reserveTopUpRequest(ctx, user.id, 43500_00);
+
+      const updated = await topupService.verifyTopUpRequest(ctx, null, reservation.id);
+
+      expect(updated.status).toBe('VERIFIED');
+      expect(updated.reviewedByAdminId).toBeNull();
+      const ledgerEntry = await prisma.walletTransaction.findUniqueOrThrow({
+        where: { idempotencyKey: `topup:${reservation.id}` },
+      });
+      expect(ledgerEntry.createdByAdminId).toBeNull();
+    });
+
+    it('records Telegram rejection without crediting the customer wallet', async () => {
+      const user = await makeUser();
+      const reservation = await topupService.reserveTopUpRequest(ctx, user.id, 43600_00);
+
+      const updated = await topupService.rejectTopUpRequest(
+        ctx,
+        null,
+        reservation.id,
+        'Bankomat cheki tasdiqlanmadi.',
+      );
+
+      expect(updated.status).toBe('REJECTED');
+      expect(updated.reviewedByAdminId).toBeNull();
+      const wallet = await prisma.wallet.findUniqueOrThrow({ where: { userId: user.id } });
+      expect(wallet.balanceMinor).toBe(0);
+    });
+
     it('refuses a request that was already REJECTED', async () => {
       const user = await makeUser();
       const reservation = await topupService.reserveTopUpRequest(ctx, user.id, 44000_00);

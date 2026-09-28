@@ -355,6 +355,16 @@ real endpoint paths, `X-API-Key` auth, and request/response shapes, not guessed)
 unverified against a live *order* (as opposed to the price-list call above), same caveat as the
 other two adapters.
 
+For Mobile Legends, the adapter first reads FazerCards' dynamic validation catalog, then posts
+the catalog's validation-specific category ID and exact field keys with the Player ID and Zone ID.
+These IDs are separate from the regional purchase category (for example, `mobile_legends_global`).
+The catalog is cached for five minutes. A valid response must include `player_name`; otherwise the
+checkout is blocked. The web and Flutter checkout screens show the returned nickname alongside
+the submitted IDs, and order creation repeats the check server-side. When the lowest-cost active
+fulfillment route cannot return a nickname, active alternatives are checked without changing the
+lowest-cost supplier used for delivery. Validation is read-only and does not place an order. The
+live account and a paid delivery still need to be tested after the provider subscription is active.
+
 Why it's worth adding alongside Digiflazz/Apigames: checking a matching Mobile Legends
 denomination against MRCODA's consumer storefront put FazerCards' listed wholesale price roughly
 30-35% cheaper per diamond, and — unlike Digiflazz/Apigames, which only take an Indonesian
@@ -376,10 +386,10 @@ Original setup steps, kept for reference / re-doing this for a new account:
    fund the balance (USDT deposit).
 2. Create an API key from the reseller hub (Profile) and set `FAZERCARDS_API_KEY` in
    `backend/.env` — the provider registers itself in `src/providers/registry.ts` once present.
-3. Open the API Cookbook / OpenAPI schema from the reseller hub (or share it with the AI
-   assistant) to confirm/correct the endpoint paths and `fields` payload shape in
-   `fazercards-topup-provider.ts` — the `fields: { player_id }` mapping is a best guess from the
-   docs excerpt available, not confirmed per-game.
+3. Open the API Cookbook / OpenAPI schema from the reseller hub to confirm the account's active
+   top-up categories and their required fields. The adapter uses the validation catalog's returned
+   category and field keys for MLBB name checks; purchase mappings must likewise use the exact
+   field keys returned for each top-up offer.
 4. Note `providerProductCode` here is `"<category_id>:<offer_id>"` (both are needed to place an
    order) — encode it that way when mapping each `Product` to its `ProviderProduct` row, then
    flip the `FAZERCARDS` provider row's `isActive` to `true`.
@@ -481,6 +491,14 @@ success/failure, and refunds. To enable: create a bot via
 [@BotFather](https://t.me/BotFather), add it to the admin group/channel, send one message there,
 then call `https://api.telegram.org/bot<token>/getUpdates` to find the numeric chat ID. Set both
 `TELEGRAM_BOT_TOKEN` and `TELEGRAM_ADMIN_CHAT_ID` in `backend/.env`.
+
+Bankomat receipt review uses the separate `TOPUP_REVIEW_BOT_TOKEN` and
+`TOPUP_REVIEW_CHAT_ID`. Send `/start` to that bot from the private admin chat. On
+server startup, the app registers its callback-only webhook using
+`TELEGRAM_WEBHOOK_SECRET` and `PUBLIC_APP_URL`. Receipt photos include
+`Tasdiqlash` and `Rad etish` buttons; only the configured private chat owner can
+use them. A successful review is recorded as a system audit event, and approval
+credits the wallet through the normal idempotent top-up ledger.
 
 ## A note on error-handler registration order
 

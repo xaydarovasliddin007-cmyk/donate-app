@@ -40,6 +40,27 @@ interface FazerCardsCheckLoginResponse {
   can_refill?: boolean;
 }
 
+interface FazerCardsValidatePlayerResponse {
+  ok?: boolean;
+  valid?: boolean;
+  player_name?: string;
+  region?: string;
+  error?: string;
+  message?: string;
+}
+
+interface FazerCardsValidationGame {
+  category_id?: string;
+  name?: string;
+  fields?: { key?: string; label?: string }[];
+}
+
+interface FazerCardsValidationGamesResponse {
+  ok?: boolean;
+  items?: FazerCardsValidationGame[];
+  error?: string;
+}
+
 /**
  * FazerCards — a B2B wholesale reseller platform (reseller.fazercards.com)
  * chosen for its per-diamond price on Mobile Legends packages coming out
@@ -75,6 +96,8 @@ interface FazerCardsCheckLoginResponse {
  */
 export class FazerCardsTopupProvider implements TopupProviderAdapter {
   readonly code = 'FAZERCARDS';
+  private validationGamesCache: { expiresAt: number; items: FazerCardsValidationGame[] } | null = null;
+  private validationGamesRequest: Promise<FazerCardsValidationGame[]> | null = null;
 
   constructor(private readonly apiKey: string) {}
 
@@ -105,7 +128,13 @@ export class FazerCardsTopupProvider implements TopupProviderAdapter {
           `"<category_id>:<offer_id>[:<playerFieldKey>[:<serverFieldKey>]]"`,
       );
     }
-    return { categoryId, offerId, playerField: playerField || 'player_id', serverField: serverField || 'server_id' };
+    const defaultServerField = /^mobile[_-]?legends/i.test(categoryId) ? 'zone_id' : 'server_id';
+    return {
+      categoryId,
+      offerId,
+      playerField: playerField || 'player_id',
+      serverField: serverField || defaultServerField,
+    };
   }
 
   private splitSteamCode(providerProductCode: string): { currency: string; amount: string } {
@@ -118,12 +147,94 @@ export class FazerCardsTopupProvider implements TopupProviderAdapter {
     return { currency, amount };
   }
 
+  private async getValidationGames(): Promise<FazerCardsValidationGame[]> {
+    if (this.validationGamesCache && this.validationGamesCache.expiresAt > Date.now()) {
+      return this.validationGamesCache.items;
+    }
+    if (this.validationGamesRequest) return this.validationGamesRequest;
+
+    this.validationGamesRequest = (async () => {
+      const response = await fetch(`${BASE_URL}/topups/validate-id`, {
+        signal: AbortSignal.timeout(10000),
+        headers: this.headers(),
+      });
+      const raw = (await response.json().catch(() => null)) as FazerCardsValidationGamesResponse | null;
+      if (!response.ok || !raw?.ok || !Array.isArray(raw.items)) {
+        throw new Error(raw?.error ?? `FazerCards validation catalog failed (${response.status})`);
+      }
+      this.validationGamesCache = { items: raw.items, expiresAt: Date.now() + 5 * 60 * 1000 };
+      return raw.items;
+    })();
+
+    try {
+      return await this.validationGamesRequest;
+    } finally {
+      this.validationGamesRequest = null;
+    }
+  }
+
+  private async validateMobileLegends(
+    playerId: string,
+    zoneId: string,
+  ): Promise<TopupValidatePlayerResult> {
+    try {
+      // FazerCards uses a separate, dynamic category namespace for validation;
+      // purchasable IDs such as mobile_legends_global are not guaranteed to work here.
+      const games = await this.getValidationGames();
+      const matches = games.filter((game) =>
+        /mobile[_\s-]*legends|mlbb/i.test(`${game.name ?? ''} ${game.category_id ?? ''}`),
+      );
+      const validationGame =
+        matches.find((game) => /^mobile[_-]?legends$/i.test(game.category_id ?? '')) ??
+        matches.find((game) => /^mobile legends(?: bang bang)?$/i.test(game.name?.trim() ?? '')) ??
+        (matches.length === 1 ? matches[0] : undefined);
+      const fields = validationGame?.fields ?? [];
+      const fieldKey = (pattern: RegExp) =>
+        fields.find((field) => pattern.test(`${field.key ?? ''} ${field.label ?? ''}`))?.key;
+      const playerField = fieldKey(/player|user|account|game\s*id/i);
+      const zoneField = fieldKey(/zone|server/i);
+      if (!validationGame?.category_id || !playerField || !zoneField) {
+        return { valid: false, reason: 'FazerCards does not expose MLBB ID and Zone validation for this account' };
+      }
+
+      const response = await fetch(`${BASE_URL}/topups/validate-id`, {
+        signal: AbortSignal.timeout(10000),
+        method: 'POST',
+        headers: this.headers(),
+        body: JSON.stringify({
+          category_id: validationGame.category_id,
+          fields: { [playerField]: playerId, [zoneField]: zoneId },
+        }),
+      });
+      const raw = (await response.json().catch(() => null)) as FazerCardsValidatePlayerResponse | null;
+      const playerName = raw?.player_name?.trim();
+      if (!response.ok || !raw?.ok || !raw.valid) {
+        return {
+          valid: false,
+          reason: raw?.error ?? raw?.message ?? `FazerCards player check failed (${response.status})`,
+        };
+      }
+      if (!playerName) {
+        return { valid: false, reason: 'Player was found, but FazerCards did not return a nickname' };
+      }
+      return {
+        valid: true,
+        playerName,
+        playerRegion: raw.region?.trim() || undefined,
+      };
+    } catch (error) {
+      return {
+        valid: false,
+        reason: error instanceof Error ? error.message : 'FazerCards player check is unavailable',
+      };
+    }
+  }
+
   /**
-   * Real check for Steam (POST /steam-topup/check-login). Everything else
-   * falls back to "any non-empty player ID is provisionally valid, and
-   * createTopup()'s result is the real answer" — FazerCards' docs don't
-   * describe a dedicated validate endpoint for the generic /topups catalog
-   * or for Telegram Premium (same situation as the Digiflazz adapter).
+   * Uses the provider's preflight endpoint for MLBB so both the player and
+   * Zone ID are checked together and the customer can confirm the nickname
+   * before paying. Other generic top-ups retain the existing best-effort
+   * non-empty-ID check until their categories expose validation.
    */
   async validatePlayer(params: TopupValidatePlayerParams): Promise<TopupValidatePlayerResult> {
     if (params.providerProductCode.startsWith('steam_topup:')) {
@@ -135,6 +246,15 @@ export class FazerCardsTopupProvider implements TopupProviderAdapter {
       const raw = (await response.json().catch(() => null)) as FazerCardsCheckLoginResponse | null;
       const valid = !!raw?.ok && raw.can_refill === true;
       return { valid, reason: valid ? undefined : 'This Steam login cannot be refilled' };
+    }
+
+    const { categoryId } = this.splitProductCode(params.providerProductCode);
+    if (/^(mobile[_-]?legends|mlbb)/i.test(categoryId)) {
+      const playerId = params.playerId.trim();
+      const serverId = params.serverId?.trim();
+      if (!playerId) return { valid: false, reason: 'Player ID is required' };
+      if (!serverId) return { valid: false, reason: 'Zone ID is required' };
+      return this.validateMobileLegends(playerId, serverId);
     }
 
     const valid = params.playerId.trim().length > 0;

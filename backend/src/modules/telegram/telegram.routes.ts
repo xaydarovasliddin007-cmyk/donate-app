@@ -8,7 +8,11 @@ import { authenticate } from '../../middleware/authenticate.js';
 import { telegramAuth } from '../auth/auth.service.js';
 import { createOrder } from '../orders/orders.service.js';
 import { createOrderSchema, type CreateOrderInput } from '../orders/orders.schemas.js';
+import { ConflictError, NotFoundError } from '../../lib/errors.js';
+import { logger } from '../../lib/logger.js';
+import * as topupService from '../topup/topup.service.js';
 import { telegramApi } from './telegram-api.js';
+import { topUpReviewBotApi } from './topup-review-bot.js';
 import { checkStarsCheckout, createStarsInvoice, settleStarsPayment } from './telegram-payments.js';
 
 const authSchema = z.object({ initData: z.string().min(1).max(16384) });
@@ -32,6 +36,24 @@ const updateSchema = z.object({
     successful_payment: paymentSchema.extend({ telegram_payment_charge_id: z.string().min(1).max(512) }).optional(),
   }).optional(),
 });
+const topUpReviewUpdateSchema = z.object({
+  update_id: z.number().int(),
+  callback_query: z.object({
+    id: z.string().min(1),
+    from: telegramUser,
+    data: z.string().optional(),
+    message: z.object({
+      message_id: z.number().int(),
+      chat: z.object({ id: z.number().int(), type: z.string() }),
+      caption: z.string().optional(),
+    }).optional(),
+  }).optional(),
+});
+
+function secretMatches(supplied: string | undefined, expected: string | undefined) {
+  return Boolean(expected && supplied && Buffer.byteLength(supplied) === Buffer.byteLength(expected) &&
+    timingSafeEqual(Buffer.from(supplied), Buffer.from(expected)));
+}
 
 export async function telegramRoutes(app: FastifyInstance) {
   const ctx = { prisma: app.prisma };
@@ -106,6 +128,97 @@ export async function telegramRoutes(app: FastifyInstance) {
         if (command === '/terms' && env.PUBLIC_APP_URL) rows.push([{ text: 'Xizmat shartlari', url: new URL('/webapp/terms.html', env.PUBLIC_APP_URL).href }]);
         rows.push([{ text: 'Yordam', url: env.SUPPORT_TELEGRAM_URL }]);
         await telegramApi('sendMessage', { chat_id: message.chat.id, text, reply_markup: { inline_keyboard: rows } });
+      }
+    }
+    return { ok: true };
+  });
+
+  app.post('/telegram/topup-review-webhook', {
+    config: { rateLimit: false },
+    preHandler: async (request, reply) => {
+      const supplied = request.headers['x-telegram-bot-api-secret-token'];
+      if (typeof supplied !== 'string' || !secretMatches(supplied, env.TELEGRAM_WEBHOOK_SECRET)) {
+        return reply.status(403).send({ error: { code: 'FORBIDDEN', message: 'Invalid webhook secret' } });
+      }
+    },
+  }, async (request, reply) => {
+    const parsed = topUpReviewUpdateSchema.safeParse(request.body);
+    if (!parsed.success) return reply.status(400).send({ error: { code: 'INVALID_UPDATE', message: 'Invalid Telegram update' } });
+    const callback = parsed.data.callback_query;
+    if (!callback) return { ok: true };
+
+    const configuredChatId = env.TOPUP_REVIEW_CHAT_ID;
+    const message = callback.message;
+    if (!configuredChatId || !message || message.chat.type !== 'private' ||
+        String(message.chat.id) !== configuredChatId || String(callback.from.id) !== configuredChatId) {
+      return { ok: true };
+    }
+
+    const action = callback.data?.match(/^topup:(approve|reject):([0-9a-f-]{36})$/i);
+    if (!action) {
+      await topUpReviewBotApi('answerCallbackQuery', { callback_query_id: callback.id, text: 'Noma’lum amal.' }).catch(() => undefined);
+      return { ok: true };
+    }
+
+    const decision = action[1];
+    const requestId = z.string().uuid().safeParse(action[2]);
+    if (!requestId.success) return { ok: true };
+
+    try {
+      const topUp = await app.prisma.topUpRequest.findUnique({ where: { id: requestId.data } });
+      if (!topUp || (topUp.channel !== 'BANKOMAT' && topUp.type !== 'PAYNET_TERMINAL')) {
+        throw new NotFoundError('Bankomat cheki topilmadi');
+      }
+
+      const rejected = decision === 'reject';
+      const rejectionReason = 'Bankomat cheki tasdiqlanmadi. Iltimos, chekni tekshirib yordam xizmatiga murojaat qiling.';
+      if (rejected) {
+        await topupService.rejectTopUpRequest({ prisma: app.prisma }, null, requestId.data, rejectionReason);
+      } else {
+        await topupService.verifyTopUpRequest({ prisma: app.prisma }, null, requestId.data);
+      }
+
+      const status = rejected ? '❌ <b>Rad etildi</b>' : '✅ <b>Balansga muvaffaqiyatli qo‘shildi</b>';
+      await app.prisma.auditLog.create({
+        data: {
+          actorType: 'SYSTEM',
+          action: rejected ? 'telegram.topup.reject' : 'telegram.topup.verify',
+          entityType: 'TopUpRequest',
+          entityId: requestId.data,
+          metadata: { source: 'telegram_review_bot', telegramId: callback.from.id, chatId: message.chat.id },
+        },
+      }).catch((err: unknown) => logger.error({ err, topUpRequestId: requestId.data }, 'Telegram top-up action audit write failed'));
+
+      await topUpReviewBotApi('answerCallbackQuery', {
+        callback_query_id: callback.id,
+        text: rejected ? 'To‘lov rad etildi.' : 'To‘lov tasdiqlandi.',
+      }).catch((err: unknown) => logger.warn({ err }, 'Telegram review callback answer failed'));
+      await topUpReviewBotApi('editMessageCaption', {
+        chat_id: message.chat.id,
+        message_id: message.message_id,
+        caption: `${message.caption ?? '🧾 <b>Bankomat cheki</b>'}\n\n${status}`,
+        parse_mode: 'HTML',
+        reply_markup: { inline_keyboard: [] },
+      }).catch((err: unknown) => logger.warn({ err, topUpRequestId: requestId.data }, 'Telegram review message update failed'));
+    } catch (err) {
+      if (err instanceof ConflictError || err instanceof NotFoundError) {
+        await topUpReviewBotApi('answerCallbackQuery', {
+          callback_query_id: callback.id,
+          text: 'Bu chek avval ko‘rib chiqilgan yoki topilmadi.',
+          show_alert: true,
+        }).catch(() => undefined);
+        await topUpReviewBotApi('editMessageReplyMarkup', {
+          chat_id: message.chat.id,
+          message_id: message.message_id,
+          reply_markup: { inline_keyboard: [] },
+        }).catch(() => undefined);
+      } else {
+        logger.error({ err, topUpRequestId: requestId.data }, 'Telegram top-up review action failed');
+        await topUpReviewBotApi('answerCallbackQuery', {
+          callback_query_id: callback.id,
+          text: 'Amal bajarilmadi. Admin paneldan tekshiring.',
+          show_alert: true,
+        }).catch(() => undefined);
       }
     }
     return { ok: true };

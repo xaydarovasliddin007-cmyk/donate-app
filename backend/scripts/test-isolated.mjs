@@ -18,6 +18,9 @@ const env = { ...process.env, NODE_ENV: 'test', LOG_LEVEL: 'error',
   PORT: '4001', HOST: '127.0.0.1',
   DOTENV_CONFIG_PATH: path.join(databaseDir, 'no-secrets.env'),
   DATABASE_URL: `postgresql://postgres:${password}@127.0.0.1:${port}/donate_test`,
+  TELEGRAM_WEBHOOK_SECRET: 'isolated-review-webhook-secret-32-bytes',
+  TOPUP_REVIEW_BOT_TOKEN: '123456789:isolated-test-token',
+  TOPUP_REVIEW_CHAT_ID: '123456789',
   TELEGRAM_ADMIN_CHAT_ID: '', SMTP_HOST: '',
 };
 // dotenv must not load real notification/provider credentials into isolated tests.

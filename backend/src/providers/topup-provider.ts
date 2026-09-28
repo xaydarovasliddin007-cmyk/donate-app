@@ -21,6 +21,7 @@ export interface TopupValidatePlayerParams {
 export interface TopupValidatePlayerResult {
   valid: boolean;
   playerName?: string;
+  playerRegion?: string;
   reason?: string;
 }
 
