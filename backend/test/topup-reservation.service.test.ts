@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PrismaClient } from '@prisma/client';
 import * as topupService from '../src/modules/topup/topup.service.js';
 
@@ -435,6 +435,52 @@ describe('topup reservation + auto-verification (live DB)', () => {
       expect(updated.reviewedByAdminId).toBeNull();
       const wallet = await prisma.wallet.findUniqueOrThrow({ where: { userId: user.id } });
       expect(wallet.balanceMinor).toBe(0);
+    });
+
+    it('allows a late Bankomat receipt and sends it only once to the review bot', async () => {
+      const user = await makeUser();
+      const reservation = await topupService.reserveTopUpRequest(
+        ctx, user.id, 43700_00, 'PAYNET_TERMINAL', 'BANKOMAT',
+      );
+      await prisma.topUpRequest.update({ where: { id: reservation.id }, data: { status: 'EXPIRED' } });
+
+      const originalFetch = globalThis.fetch;
+      const fetchMock = vi.fn(async () => new Response(
+        JSON.stringify({ ok: true, result: { message_id: 88 } }), { status: 200 },
+      ));
+      globalThis.fetch = fetchMock;
+      const input = {
+        fileName: 'receipt.jpg',
+        mimeType: 'image/jpeg' as const,
+        dataBase64: Buffer.from([0xff, 0xd8, 0xff, 0x00]).toString('base64'),
+      };
+      try {
+        const submitted = await topupService.submitTopUpReceipt(ctx, user.id, reservation.id, input);
+        const retried = await topupService.submitTopUpReceipt(ctx, user.id, reservation.id, input);
+
+        expect(submitted.status).toBe('EXPIRED');
+        expect(submitted.userReference).toBe('Telegram chek #88');
+        expect(submitted.userConfirmedPaidAt).not.toBeNull();
+        expect(retried.userReference).toBe(submitted.userReference);
+        expect(fetchMock).toHaveBeenCalledTimes(1);
+      } finally {
+        globalThis.fetch = originalFetch;
+      }
+    });
+
+    it('lets the Telegram reviewer reject an expired Bankomat request', async () => {
+      const user = await makeUser();
+      const reservation = await topupService.reserveTopUpRequest(
+        ctx, user.id, 43800_00, 'PAYNET_TERMINAL', 'BANKOMAT',
+      );
+      await prisma.topUpRequest.update({ where: { id: reservation.id }, data: { status: 'EXPIRED' } });
+
+      const updated = await topupService.rejectTopUpRequest(
+        ctx, null, reservation.id, 'Bankomat cheki tasdiqlanmadi.',
+      );
+
+      expect(updated.status).toBe('REJECTED');
+      expect((await prisma.wallet.findUniqueOrThrow({ where: { userId: user.id } })).balanceMinor).toBe(0);
     });
 
     it('refuses a request that was already REJECTED', async () => {

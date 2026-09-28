@@ -38,7 +38,7 @@ const games = [
     isPurchasable: false,
   },
 ];
-async function mockStore(page: Page, tg = false, busyTopup = false, insufficientBalance = false, invalidPlayer = false) {
+async function mockStore(page: Page, tg = false, busyTopup = false, insufficientBalance = false, invalidPlayer = false, expiredTopup = false) {
   let orders: object[] = [];
   const sent: { path: string; body: Record<string, unknown> }[] = [];
   await page.route('https://telegram.org/**', (route) => route.fulfill({ contentType: 'text/javascript', body: '' }));
@@ -150,7 +150,7 @@ async function mockStore(page: Page, tg = false, busyTopup = false, insufficient
         type: body.type,
         channel: body.channel,
         status: 'PENDING',
-        expiresAt: new Date(Date.now() + 420000).toISOString(),
+        expiresAt: new Date(Date.now() + (expiredTopup ? -1000 : 420000)).toISOString(),
         receivingMethods: [
           {
             id: 'method-1',
@@ -345,18 +345,20 @@ test('copy feedback is shown only for the card that was copied', async ({ page }
 });
 
 test('bankomat top-up sends a receipt for admin review', async ({ page }) => {
-  const sent = await mockStore(page);
+  const sent = await mockStore(page, false, false, false, false, true);
   await page.goto('/');
   await page.getByRole('button', { name: "Balans to'ldirish", exact: true }).click();
   await page.getByRole('button', { name: /^Bankomat/ }).click();
   await page.getByRole('button', { name: "To'lov rekvizitlari" }).click();
+  await expect(page.getByText('Rezerv muddati tugadi, lekin bankomat chekini tekshiruvga yuborishingiz mumkin.')).toBeVisible();
   await page.getByLabel('Chek screenshotini yuklang').setInputFiles({
     name: 'chek.png',
     mimeType: 'image/png',
     buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64'),
   });
   await page.getByRole('button', { name: 'Chekni yuborish' }).click();
-  await expect(page.getByText('Chek adminga yuborildi. Tasdiqlangach balans yangilanadi.')).toBeVisible();
+  await expect(page.getByText('Chek adminga yuborildi.')).toBeVisible();
+  await expect(page.getByText('Admin tasdiqlashi yoki rad etishi bilan balans holati yangilanadi.')).toBeVisible();
   expect(sent.find((item) => item.path === '/topups/reserve')?.body).toMatchObject({ type: 'PAYNET_TERMINAL', channel: 'BANKOMAT' });
   expect(sent.find((item) => item.path === '/topups/topup-1/receipt')?.body).toMatchObject({ fileName: 'chek.png', mimeType: 'image/png' });
 });

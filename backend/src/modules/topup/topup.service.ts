@@ -321,11 +321,9 @@ export async function listMyTopUpRequests(ctx: TopUpContext, userId: string, lim
 }
 
 /**
- * Lets the caller attach a hint (e.g. a Paynet terminal receipt/check
- * number) to their own still-pending request — this is how the
- * PAYNET_TERMINAL flow's proof-of-payment reaches the admin's manual
- * review screen, since (unlike CARD_TRANSFER) there's no automated
- * transaction feed to match against for that method.
+ * Lets the caller attach a Paynet receipt screenshot to their own request.
+ * Reservation expiry only releases the amount for reuse; it must not prevent
+ * a customer from submitting proof after a late terminal payment.
  */
 export async function submitTopUpReference(
   ctx: TopUpContext,
@@ -375,11 +373,17 @@ export async function submitTopUpReceipt(
   });
   if (!request) throw new NotFoundError('Top-up request not found');
   if (request.userId !== userId) throw new ForbiddenError('This top-up request does not belong to you');
-  if (request.status !== 'PENDING') {
-    throw new ConflictError(`Only PENDING top-up requests can be updated (this one is ${request.status})`);
-  }
   if (request.channel !== 'BANKOMAT' && request.type !== 'PAYNET_TERMINAL') {
     throw new ValidationError('Receipt screenshots are accepted only for Bankomat payments');
+  }
+  if (request.status !== 'PENDING' && request.status !== 'EXPIRED') {
+    throw new ConflictError(`Only open Bankomat top-up requests can accept a receipt (this one is ${request.status})`);
+  }
+  if (request.userConfirmedPaidAt && request.userReference?.startsWith('Telegram chek #')) {
+    return ctx.prisma.topUpRequest.findUniqueOrThrow({
+      where: { id: request.id },
+      include: { receivingMethod: true },
+    });
   }
   const image = decodeReceiptImage(input);
   const messageId = await sendTopUpReceiptPhoto({
@@ -528,8 +532,8 @@ export async function rejectTopUpRequest(
 ) {
   const request = await ctx.prisma.topUpRequest.findUnique({ where: { id: topUpRequestId } });
   if (!request) throw new NotFoundError('Top-up request not found');
-  if (request.status !== 'PENDING') {
-    throw new ConflictError(`Only PENDING top-up requests can be rejected (this one is ${request.status})`);
+  if (request.status !== 'PENDING' && request.status !== 'EXPIRED') {
+    throw new ConflictError(`Only PENDING or EXPIRED top-up requests can be rejected (this one is ${request.status})`);
   }
   if (!rejectionReason.trim()) {
     throw new ValidationError('rejectionReason is required');

@@ -1,4 +1,5 @@
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { randomUUID } from 'node:crypto';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { buildApp } from '../src/app.js';
 import type { FastifyInstance } from 'fastify';
 let app: FastifyInstance;
@@ -34,6 +35,70 @@ describe('Telegram endpoint boundaries', () => {
     });
     expect(response.statusCode).toBe(200);
     expect(response.json()).toEqual({ ok: true });
+  });
+  it('credits a late Bankomat receipt from the configured admin approve button', async () => {
+    const userId = randomUUID();
+    const email = `telegram-review-${Date.now()}@uzdonate.dev`;
+    const user = await app.prisma.user.create({
+      data: {
+        id: userId,
+        publicId: `TR${Date.now().toString(36)}`.slice(0, 20),
+        email,
+        passwordHash: 'test-hash',
+        locale: 'uz',
+        emailVerifiedAt: new Date(),
+        wallet: { create: {} },
+      },
+    });
+    const topUp = await app.prisma.topUpRequest.create({
+      data: {
+        userId: user.id,
+        amountMinor: 5_000_000,
+        type: 'PAYNET_TERMINAL',
+        channel: 'BANKOMAT',
+        status: 'EXPIRED',
+        userReference: 'Telegram chek #88',
+        userConfirmedPaidAt: new Date(),
+      },
+    });
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = vi.fn(async () => new Response(
+      JSON.stringify({ ok: true, result: true }), { status: 200 },
+    ));
+
+    try {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/v1/telegram/topup-review-webhook',
+        headers: { 'x-telegram-bot-api-secret-token': 'isolated-review-webhook-secret-32-bytes' },
+        payload: {
+          update_id: 3,
+          callback_query: {
+            id: 'approve-callback',
+            from: { id: 123456789 },
+            data: `topup:approve:${topUp.id}`,
+            message: {
+              message_id: 88,
+              chat: { id: 123456789, type: 'private' },
+              caption: 'Bankomat cheki',
+            },
+          },
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect((await app.prisma.topUpRequest.findUniqueOrThrow({ where: { id: topUp.id } })).status).toBe('VERIFIED');
+      expect((await app.prisma.wallet.findUniqueOrThrow({ where: { userId: user.id } })).balanceMinor).toBe(5_000_000);
+      expect(await app.prisma.walletTransaction.count({ where: { idempotencyKey: `topup:${topUp.id}` } })).toBe(1);
+    } finally {
+      globalThis.fetch = originalFetch;
+      await app.prisma.auditLog.deleteMany({ where: { entityId: topUp.id } });
+      await app.prisma.notification.deleteMany({ where: { userId: user.id } });
+      await app.prisma.walletTransaction.deleteMany({ where: { wallet: { userId: user.id } } });
+      await app.prisma.topUpRequest.delete({ where: { id: topUp.id } });
+      await app.prisma.wallet.delete({ where: { userId: user.id } });
+      await app.prisma.user.delete({ where: { id: user.id } });
+    }
   });
   it('does not expose the old public bot-reconfiguration endpoint', async () => {
     const response = await app.inject({ method: 'POST', url: '/api/v1/telegram/set-webhook', payload: {} });
