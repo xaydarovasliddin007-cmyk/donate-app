@@ -101,18 +101,6 @@ to { opacity: 1; }
 .saved-game-details strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
 .saved-game-details small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 10px; }
 .saved-game-details > span { display: inline-flex; align-items: center; gap: 5px; color: var(--accent-2); font-size: 10px; font-weight: 800; }
-.featured-banner { position: relative; isolation: isolate; width: 100%; min-height: 230px; overflow: hidden; margin: 0 0 30px; padding: 30px; border: 1px solid #5c4d85; border-radius: 8px; text-align: left; background: #251b43; color: #fff; }
-.featured-banner::before { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(90deg,#181126 0%,#27194a 58%,#103c45 100%); }
-.featured-banner::after { content: ''; position: absolute; width: 130px; height: 130px; right: 16%; top: -30%; border: 24px solid #7b53e8; transform: rotate(24deg); opacity: 0.24; z-index: -1; }
-.featured-banner > img { position: absolute; right: 0; top: 0; width: 42%; height: 100%; object-fit: cover; object-position: center; mask-image: linear-gradient(90deg,transparent 0%,black 45%); z-index: -1; }
-.featured-copy { max-width: 520px; }
-.featured-copy > span { display: flex; align-items: center; gap: 7px; color: #aaf4df; font-size: 10px; font-weight: 800; }
-.featured-copy h2 { max-width: 430px; margin: 14px 0 9px; font-size: 30px; }
-.featured-copy p { max-width: 460px; color: #c8ccda; font-size: 12px; }
-.featured-copy > strong { display: inline-flex; align-items: center; gap: 8px; margin-top: 24px; font-size: 12px; }
-.banner-dots { position: absolute; left: 30px; bottom: 13px; display: flex; gap: 5px; }
-.banner-dots i { width: 16px; height: 3px; border-radius: 3px; background: #ffffff4a; }
-.banner-dots i.active { background: var(--accent-2); }
 .catalog-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding-bottom: 22px; }
 .catalog-toolbar h2 { display: flex; align-items: center; gap: 10px; margin-top: 4px; }
 .catalog-all { display: inline-flex; align-items: center; gap: 7px; color: var(--accent-2); background: none; font-size: 12px; font-weight: 800; }
@@ -440,13 +428,6 @@ h2 { font-size: 18px; }
 .wallet-action { min-height: 40px; padding: 0 13px; font-size: 11px; }
 .quick-actions { margin-bottom: 14px; }
 .quick-actions button { min-height: 54px; padding: 9px 11px; }
-.featured-banner { min-height: 174px; margin-bottom: 25px; padding: 20px; }
-.featured-banner > img { width: 48%; }
-.featured-copy { max-width: 68%; }
-.featured-copy h2 { margin: 10px 0 6px; font-size: 21px; line-height: 1.22; }
-.featured-copy p { font-size: 10px; line-height: 1.5; }
-.featured-copy > strong { margin-top: 15px; font-size: 10px; }
-.banner-dots { left: 20px; bottom: 8px; }
 .catalog-toolbar { flex-direction: column; align-items: stretch; gap: 12px; padding-bottom: 15px; }
 .catalog-toolbar > div { min-width: 0; }
 .catalog-toolbar h2 { font-size: 17px; white-space: nowrap; }
@@ -528,8 +509,6 @@ h2 { font-size: 18px; }
  .header-actions > .icon-button { width: 34px; min-width: 34px; height: 34px; }
  .avatar { flex-basis: 32px; width: 32px; height: 32px; }
 h1 { font-size: 26px; }
-.featured-copy h2 { font-size: 18px; }
-.featured-copy p { display: none; }
 .game-card-caption { padding: 9px; }
 .game-card-caption > svg { display: none; }
 .bank-details { gap: 9px; padding: 12px; }
@@ -645,39 +624,6 @@ body {
 .quick-actions button:active { transform: scale(.98); }
 .quick-actions button > span { border: 1px solid color-mix(in srgb, var(--accent) 18%, transparent); border-radius: 9px; background: linear-gradient(145deg, color-mix(in srgb, var(--accent) 20%, var(--surface)), color-mix(in srgb, var(--surface) 82%, transparent)); box-shadow: inset 0 1px #ffffff1e, 0 4px 12px #0005; }
 .quick-actions button > span svg { filter: drop-shadow(0 2px 5px color-mix(in srgb, var(--accent) 45%, transparent)); stroke-width: 1.9; }
-.featured-banner {
-  min-height: 252px;
-  border-color: color-mix(in srgb, var(--accent) 38%, var(--border));
-  border-radius: 8px;
-  background: #111621;
-  box-shadow: 0 18px 48px #0004, inset 0 1px #ffffff16;
-  animation: rise-in .62s cubic-bezier(.2,.8,.2,1) .16s both;
-  transition: transform .28s cubic-bezier(.2,.8,.2,1), border-color .25s ease, box-shadow .25s ease;
-}
-.featured-banner::before { background: linear-gradient(100deg, #10151e 0%, #17182a 45%, #213b3c 100%); }
-.featured-banner::after {
-  width: 42%; height: 180%; top: -40%; right: auto; left: -55%;
-  border: 0; opacity: 0; transform: skewX(-18deg);
-  z-index: 0; pointer-events: none;
-  background: linear-gradient(90deg, transparent, #ffffff12, transparent);
-  animation: banner-glint 8s ease-in-out 1.2s infinite;
-}
-.featured-banner > img {
-  width: 52%;
-  object-position: center 36%;
-  mask-image: linear-gradient(90deg, transparent 0%, #000 26%, #000 100%);
-  animation: banner-art-in .7s cubic-bezier(.2,.8,.2,1) both, banner-drift 9s ease-in-out .7s infinite alternate;
-  transition: filter .3s ease;
-}
-.featured-banner:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--accent) 65%, var(--border)); box-shadow: 0 22px 52px #0005, inset 0 1px #ffffff1c; }
-.featured-banner:hover > img { filter: saturate(1.08) brightness(1.06); }
-.featured-copy { position: relative; z-index: 1; animation: copy-arrive .48s cubic-bezier(.2,.8,.2,1) both; }
-.featured-copy > span { color: var(--accent-2); }
-.featured-copy h2 { text-wrap: balance; }
-.featured-copy > strong { transition: gap .2s ease, color .2s ease; }
-.featured-banner:hover .featured-copy > strong { gap: 12px; color: #fff; }
-.banner-dots i { width: 7px; height: 4px; transition: width .3s cubic-bezier(.2,.8,.2,1), background .25s ease; }
-.banner-dots i.active { width: 22px; }
 .home-catalog,.saved-games-section { animation: rise-in .58s cubic-bezier(.2,.8,.2,1) .2s both; }
 .catalog-toolbar { padding-bottom: 18px; }
 .catalog-toolbar h2 { text-wrap: balance; }
@@ -878,85 +824,14 @@ body {
 .product-option:hover .product-icon { transform: translateY(-2px) rotate(-1.5deg); border-color: color-mix(in srgb, var(--icon-tone,var(--accent)) 60%, #ffffff40); box-shadow: inset 0 1px #ffffff38, inset 0 -8px 15px #0003, 0 11px 24px #0008; }
 .product-option:hover .product-icon img { transform: scale(1.08); filter: drop-shadow(0 8px 10px #0009) saturate(1.12); }
 .product-option:hover .product-icon::after { transform: translateX(72%) rotate(18deg); }
-
-/* Keep the store's logo art crisp instead of enlarging square app icons as banners. */
-.featured-banner {
-  min-height: 238px;
-  padding: 30px;
-  background: #090d16;
-  border-color: color-mix(in srgb, var(--accent) 34%, var(--border));
-  box-shadow: inset 0 1px #ffffff12, 0 18px 46px #0005;
-}
-.featured-banner::before {
-  background: linear-gradient(105deg, #10131e 0%, #151728 54%, #112427 100%);
-}
-.featured-banner::after { z-index: 0; }
-.featured-copy { width: min(62%, 560px); }
-.featured-art {
-  position: absolute;
-  z-index: 0;
-  top: 50%;
-  right: clamp(22px, 5vw, 54px);
-  width: clamp(144px, 27%, 226px);
-  aspect-ratio: 1;
-  display: grid;
-  place-items: center;
-  padding: 13px;
-  overflow: hidden;
-  border: 1px solid #ffffff24;
-  border-radius: 20px;
-  background: linear-gradient(145deg, #ffffff18, #ffffff06 55%, #00000022);
-  box-shadow: inset 0 1px #ffffff30, 0 18px 42px #0007;
-  transform: translateY(-50%);
-  animation: featured-art-enter .7s cubic-bezier(.2,.8,.2,1) both;
-  backdrop-filter: blur(15px) saturate(1.25);
-  -webkit-backdrop-filter: blur(15px) saturate(1.25);
-}
-.featured-art img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  border-radius: 12px;
-  filter: drop-shadow(0 10px 18px #0008);
-  animation: banner-drift 9s ease-in-out .7s infinite alternate;
-}
-@keyframes featured-art-enter {
-  from { opacity: 0; scale: .94; }
-  to { opacity: 1; scale: 1; }
-}
-.featured-banner:hover .featured-art { border-color: color-mix(in srgb, var(--accent-2) 52%, #ffffff30); }
-.featured-banner:hover .featured-art img { filter: drop-shadow(0 13px 20px #0009) saturate(1.08); }
-.banner-dots { z-index: 1; }
 .app-preparing { pointer-events: none; }
 
 @media (max-width: 640px) {
-  .featured-banner { min-height: 194px; padding: 19px; }
-  .featured-copy { width: calc(100% - 122px); max-width: none; }
-  .featured-copy h2 { font-size: 20px; }
-  .featured-copy p { max-width: 100%; font-size: 11px; }
-  .featured-copy > strong { margin-top: 14px; }
-  .featured-art { right: 14px; width: 116px; padding: 9px; border-radius: 16px; }
-  .featured-art img { border-radius: 10px; }
   .home-catalog .game-card-caption h3 { font-size: 10px; }
-}
-@media (max-width: 360px) {
-  .featured-banner { min-height: 180px; padding: 16px; }
-  .featured-copy { width: calc(100% - 104px); }
-  .featured-copy h2 { font-size: 18px; }
-  .featured-copy p { font-size: 10px; }
-  .featured-art { width: 100px; right: 11px; padding: 7px; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .featured-art,.featured-art img { animation: none; }
-  .featured-art { transform: translateY(-50%); }
 }
 @keyframes rise-in { from { opacity: 0; transform: translateY(14px) scale(.99); } to { opacity: 1; transform: none; } }
 @keyframes glass-surface-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes card-arrive { from { opacity: 0; transform: translateY(12px) scale(.985); } to { opacity: 1; transform: none; } }
-@keyframes banner-art-in { from { opacity: 0; transform: translateX(15px) scale(1.04); filter: saturate(.8); } to { opacity: 1; transform: none; filter: saturate(1); } }
-@keyframes banner-drift { to { scale: 1.035; translate: -4px 0; } }
-@keyframes banner-glint { 0%, 58% { left: -55%; opacity: 0; } 62% { opacity: 1; } 74% { left: 115%; opacity: 0; } 100% { left: 115%; opacity: 0; } }
-@keyframes copy-arrive { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 @keyframes skeleton-sheen { from { background-position: 100% 0; } to { background-position: -100% 0; } }
 @keyframes dock-glass-sweep { to { transform: translateX(100%); opacity: 0; } }
 @media (max-width: 900px) {
@@ -970,12 +845,6 @@ body {
   .wallet-summary { min-height: 78px; padding: 13px 14px; }
   .quick-actions { gap: 9px; margin-bottom: 18px; }
   .quick-actions button { min-height: 58px; border-radius: 8px; }
-  .featured-banner { min-height: 188px; margin-bottom: 28px; padding: 19px; }
-  .featured-banner > img { width: 54%; object-position: 48% 38%; }
-  .featured-copy { max-width: 70%; }
-  .featured-copy h2 { font-size: 22px; line-height: 1.18; }
-  .featured-copy p { display: block; max-width: 230px; font-size: 10px; }
-  .featured-copy > strong { margin-top: 13px; }
   .home-catalog .games-grid { gap: 12px 9px; }
   .home-catalog .game-cover { border-radius: 8px; box-shadow: 0 7px 18px #0003; }
   .home-catalog .game-card-caption { min-height: 44px; }
@@ -989,17 +858,10 @@ body {
   .support-band { padding: 24px 0; }
 }
 @media (max-width: 360px) {
-  .featured-banner { min-height: 178px; padding: 16px; }
-  .featured-copy { max-width: 72%; }
-  .featured-copy h2 { font-size: 19px; }
-  .featured-copy p { font-size: 9px; }
   .bottom-nav { width: calc(100% - 18px); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .tab-view,.store-heading,.quick-actions,.featured-banner,.featured-copy,.featured-banner > img,.sheet[open],
-  .home-catalog,.saved-games-section,.support-band,.game-card,.error-box,.skeleton,
-  .bottom-nav button.active::after { animation: none !important; }
-  .featured-banner > img { transform: none !important; }
+  .tab-view,.store-heading,.quick-actions,.sheet[open],.home-catalog,.saved-games-section,.support-band,.game-card,.error-box,.skeleton,.bottom-nav button.active::after { animation: none !important; }
   .product-option,.product-icon,.product-icon img,.payment-method-list > button > span img { transform: none !important; }
   .product-icon::after { display: none; }
 }

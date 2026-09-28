@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
-import { ArrowRight, ArrowUpRight, Bell, CheckCircle2, ChevronRight, Clock3, Copy, Gamepad2, Headphones, Home, LoaderCircle, Moon, Package, Plus, RefreshCw, Search, ShieldCheck, Sparkles, Sun, UserRound, Wallet as WalletIcon, X } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, Bell, CheckCircle2, ChevronRight, Clock3, Copy, Gamepad2, Headphones, Home, LoaderCircle, Moon, Package, Plus, RefreshCw, Search, ShieldCheck, Sun, UserRound, Wallet as WalletIcon, X } from 'lucide-react';
 import type { AppConfig, AppNotification, Game, Order, SavedGame, Session, TopUp, User, Wallet } from './types';
 import { api, errorText, login, signIn } from './services/api';
 import { haptic, inTelegram, openTelegram, telegram } from './services/telegram';
 import { Checkout } from './components/Checkout';
 import { WalletSheet } from './components/WalletSheet';
 import { Sheet } from './components/Sheet';
+import { GameBanner } from './components/GameBanner';
 import { date, ErrorBox, GameCard, money, statuses } from './components/ui';
 import { tr, type Locale } from './i18n';
 
@@ -45,7 +46,6 @@ export default function App() {
   const [order, setOrder] = useState<Order | null>(null);
   const [showWallet, setShowWallet] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
-  const [bannerIndex, setBannerIndex] = useState(0);
   const [showIntro, setShowIntro] = useState(true);
   const [avatarFailed, setAvatarFailed] = useState(false);
   const [theme, setTheme] = useState(() => {
@@ -53,9 +53,6 @@ export default function App() {
   });
   const accountLoading = useRef(false);
   const tg = inTelegram();
-  const carouselGames = ['mobile-legends', 'pubg-mobile', 'free-fire']
-    .map((slug) => games.find((item) => item.slug === slug))
-    .filter((item): item is Game => Boolean(item));
 
   const refreshAccount = useCallback(async () => {
     if (accountLoading.current) return;
@@ -111,11 +108,6 @@ export default function App() {
     return () => { clearInterval(interval); document.removeEventListener('visibilitychange', refresh); };
   }, [user, refreshAccount]);
   useEffect(() => setAvatarFailed(false), [user?.avatarUrl]);
-  useEffect(() => {
-    if (carouselGames.length < 2) return;
-    const timer = window.setInterval(() => setBannerIndex((index) => (index + 1) % carouselGames.length), 4500);
-    return () => clearInterval(timer);
-  }, [games]);
 
   function navigate(next: Tab) { setTab(next); haptic(); window.scrollTo({ top: 0, behavior: 'instant' }); }
   function openGame(selected: Game, profile: SavedGame | null = null) { setQuickProfile(profile); setGame(selected); haptic(); }
@@ -144,12 +136,6 @@ export default function App() {
   const activeOrders = orders.filter((item) => ['PENDING', 'PAID', 'PROCESSING'].includes(item.status));
   const filteredOrders = orderFilter === 'all' ? orders : orderFilter === 'active' ? activeOrders : orders.filter((item) => !['PENDING', 'PAID', 'PROCESSING'].includes(item.status));
   const navigation = [{ id: 'shop' as const, icon: Home, label: t('Asosiy') }, { id: 'games' as const, icon: Gamepad2, label: t("O'yinlar") }, { id: 'orders' as const, icon: Package, label: t('Buyurtmalar') }, { id: 'profile' as const, icon: UserRound, label: t('Profil') }];
-  const featuredGame = carouselGames[bannerIndex % Math.max(carouselGames.length, 1)] || games.find((item) => item.isPurchasable);
-  const featuredCopy: Record<string, string> = {
-    'mobile-legends': 'Olmoslarni tez va xavfsiz xarid qiling.',
-    'pubg-mobile': 'UC paketlari eng qulay narxlarda.',
-    'free-fire': 'Diamond paketlari bir necha bosishda.',
-  };
 
   return <><div className={`app-shell ${showIntro ? 'app-preparing' : 'app-ready'}`}>
     <header className="app-header"><div className="header-inner">
@@ -176,11 +162,7 @@ export default function App() {
           <button onClick={() => setShowWallet(true)}><span><WalletIcon size={21}/></span><strong>{t("Balans to'ldirish")}</strong><ChevronRight size={17}/></button>
           <button onClick={() => openTelegram(config.supportUrl)}><span><Headphones size={21}/></span><strong>{t('Yordam')}</strong><ChevronRight size={17}/></button>
         </section>
-        {featuredGame && <button className="featured-banner" onClick={() => { haptic(); setGame(featuredGame); }}>
-          <div className="featured-copy" key={featuredGame.id}><span><Sparkles size={14}/> {t('TEZKOR TOP-UP')}</span><h2>{featuredGame.name}</h2><p>{t(featuredCopy[featuredGame.slug] || "Eng yaxshi narxlar va tezkor yetkazib berish.")}</p><strong>{t('Xaridni boshlash')} <ArrowRight size={17}/></strong></div>
-          {featuredGame.logoUrl && <span className="featured-art" key={featuredGame.id} aria-hidden="true"><img src={featuredGame.logoUrl} alt=""/></span>}
-          {carouselGames.length > 1 && <span className="banner-dots" aria-label="Bannerlar">{carouselGames.map((item, index) => <i key={item.id} className={index === bannerIndex % carouselGames.length ? 'active' : ''}/>)}</span>}
-        </button>}
+        <GameBanner games={games} locale={locale} active={!showIntro && !game && !showWallet && !showLogin && !showNotifications && !order} onSelect={openGame}/>
         {savedGames.some((profile) => profile.game.isPurchasable) && <section className="saved-games-section"><div className="catalog-toolbar"><div><span className="eyebrow accent-text">{t('SAQLANGAN O\'YINLAR')}</span><h2>{t('Mening o\'yinlarim')}</h2></div></div><div className="saved-games-list">{savedGames.filter((profile) => profile.game.isPurchasable).map((profile) => <button className="saved-game-row" key={profile.id} onClick={() => openGame(profile.game, profile)}>{profile.game.logoUrl ? <img className="saved-game-logo" src={profile.game.logoUrl} alt=""/> : <span className="saved-game-logo saved-game-fallback"><Gamepad2 size={22}/></span>}<span className="saved-game-details"><strong>{profile.game.name}</strong><small>{t('Player ID')}: {profile.playerId}{profile.zoneId ? ` · ${t('Zone ID')}: ${profile.zoneId}` : ''}</small><span>{t('Tezkor xarid')} <ArrowRight size={15}/></span></span></button>)}</div></section>}
         <section id="catalog" className="home-catalog" aria-label="Mashhur o'yinlar">
           <div className="catalog-toolbar"><div><span className="eyebrow accent-text">{t('KATALOG')}</span><h2>{t("Mashhur o'yinlar")}</h2></div><button className="catalog-all" onClick={showCatalog}>{t('Barchasi')} <ArrowRight size={17}/></button></div>

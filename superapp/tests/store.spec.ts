@@ -220,12 +220,17 @@ test('catalog filters, light mode and responsive layout', async ({ page }, info)
   await expect(page.locator('.launch-screen')).toHaveCount(0);
   await expect(page.locator('.game-card')).toHaveCount(3);
   await page.waitForTimeout(1500);
-  const featuredArt = page.locator('.featured-art');
+  const featuredBanner = page.locator('.game-banner');
+  const featuredArt = featuredBanner.locator('.game-banner__art');
+  await expect(featuredBanner).toHaveCount(1);
   await expect(featuredArt).toBeVisible();
-  await expect(page.locator('.featured-copy')).toHaveCount(1);
+  await expect(featuredBanner.locator('.game-banner__copy')).toHaveCount(1);
   const artBox = await featuredArt.boundingBox();
+  const bannerBox = await featuredBanner.boundingBox();
   expect(artBox).not.toBeNull();
-  expect(Math.abs((artBox?.width || 0) - (artBox?.height || 0))).toBeLessThan(2);
+  expect(bannerBox).not.toBeNull();
+  expect((bannerBox?.height || 0)).toBeGreaterThan(170);
+  expect((bannerBox?.height || 0)).toBeLessThanOrEqual(240);
   if (info.project.name !== 'desktop') {
     const mobileNav = page.getByRole('navigation', { name: "Asosiy bo'limlar" }).filter({ visible: true });
     const dockBottom = await mobileNav.evaluate((element) => Math.round(element.getBoundingClientRect().bottom));
@@ -251,6 +256,43 @@ test('catalog filters, light mode and responsive layout', async ({ page }, info)
   await noOverflow(page);
   expect(errors).toEqual([]);
 });
+
+test('banner keeps one matching slide through repeated rotations and manual selection', async ({ page }, info) => {
+  const errors: string[] = [];
+  page.on('console', (message) => { if (message.type() === 'error' && /same key|Encountered two children/i.test(message.text())) errors.push(message.text()); });
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.addInitScript(() => localStorage.setItem('uzdonate_locale', 'ru'));
+  await page.clock.install();
+  await mockStore(page);
+  await page.goto('/');
+  await expect(page.locator('.game-card')).toHaveCount(3);
+  await page.clock.fastForward(2000);
+  await expect(page.locator('.launch-screen')).toHaveCount(0);
+  const banner = page.locator('.game-banner');
+  const initialHeight = await banner.evaluate((element) => (element as HTMLElement).offsetHeight);
+
+  for (let rotation = 0; rotation < 24; rotation++) {
+    const currentGame = games[rotation % 3];
+    await expect(banner.locator('.game-banner__slide')).toHaveCount(1);
+    await expect(banner.locator('.game-banner__slide')).toHaveAttribute('data-game-id', currentGame.id);
+    await expect(banner.locator('.game-banner__copy')).toHaveCount(1);
+    await expect(banner.locator('.game-banner__art')).toHaveAttribute('src', currentGame.logoUrl!);
+    await expect.poll(() => banner.locator('.game-banner__art').evaluate((element) => (element as HTMLImageElement).naturalWidth > 0)).toBe(true);
+    await expect(banner.locator('.game-banner__title')).toHaveText(currentGame.slug === 'mobile-legends' ? 'Mobile Legends' : currentGame.name);
+    expect(await banner.evaluate((element) => (element as HTMLElement).offsetHeight)).toBe(initialHeight);
+    await page.clock.fastForward(4500);
+  }
+
+  await banner.getByRole('button', { name: 'Free Fire', exact: true }).click();
+  await page.clock.fastForward(18000);
+  await expect(banner.locator('.game-banner__slide')).toHaveAttribute('data-game-id', 'game-3');
+  await expect(banner.locator('.game-banner__copy')).toHaveCount(1);
+  await page.screenshot({ path: `../artifacts/banner-ru-${info.project.name}.png`, fullPage: true });
+  await banner.locator('.game-banner__slide').click();
+  await expect(page.getByRole('dialog', { name: 'Free Fire' })).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
 test('tablet Telegram webview keeps navigation inside the viewport', async ({ page }) => {
   await mockStore(page);
   await page.setViewportSize({ width: 700, height: 900 });
