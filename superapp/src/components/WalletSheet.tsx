@@ -7,6 +7,53 @@ import { Sheet } from './Sheet';
 import { ErrorBox, money } from './ui';
 import { tr, type Locale } from '../i18n';
 
+const MAX_RECEIPT_BYTES = 5 * 1024 * 1024;
+
+async function prepareReceiptImage(file: File): Promise<File> {
+  if (file.size > 25 * 1024 * 1024) throw new Error('too-large');
+
+  let bitmap: ImageBitmap | HTMLImageElement;
+  let release = () => {};
+  if (typeof createImageBitmap === 'function') {
+    bitmap = await createImageBitmap(file);
+  } else {
+    const url = URL.createObjectURL(file);
+    const image = new Image();
+    image.src = url;
+    try {
+      await image.decode();
+      bitmap = image;
+      release = () => URL.revokeObjectURL(url);
+    } catch (error) {
+      URL.revokeObjectURL(url);
+      throw error;
+    }
+  }
+  try {
+    const scale = Math.min(1, 1800 / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+    canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+    const context = canvas.getContext('2d');
+    if (!context) throw new Error('canvas-unavailable');
+    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+
+    for (const quality of [0.9, 0.84, 0.78, 0.7]) {
+      const blob = await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob((value) => value ? resolve(value) : reject(new Error('encode-failed')), 'image/jpeg', quality);
+      });
+      if (blob.size <= MAX_RECEIPT_BYTES) {
+        const baseName = file.name.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9._-]/g, '_') || 'receipt';
+        return new File([blob], `${baseName}.jpg`, { type: 'image/jpeg', lastModified: Date.now() });
+      }
+    }
+    throw new Error('too-large');
+  } finally {
+    if ('close' in bitmap) bitmap.close();
+    release();
+  }
+}
+
 export function WalletSheet({ wallet, onClose, onUpdated, onNavigate, locale }: { wallet: Wallet | null; onClose: () => void; onUpdated: () => void; onNavigate: (tab: 'shop' | 'games' | 'orders' | 'profile') => void; locale: Locale }) {
   const t = (text: string) => tr(locale, text);
   const [options, setOptions] = useState<TopUpOption[]>([]);
@@ -17,6 +64,7 @@ export function WalletSheet({ wallet, onClose, onUpdated, onNavigate, locale }: 
   const [amountConflict, setAmountConflict] = useState<{ requested: number; suggestions: number[] } | null>(null);
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
   const [receiptPreview, setReceiptPreview] = useState('');
+  const [preparingReceipt, setPreparingReceipt] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -71,15 +119,22 @@ export function WalletSheet({ wallet, onClose, onUpdated, onNavigate, locale }: 
     finally { setBusy(false); lock.current = false; }
   }
   useEffect(() => () => { if (receiptPreview) URL.revokeObjectURL(receiptPreview); }, [receiptPreview]);
-  function chooseReceipt(file: File | null) {
+  async function chooseReceipt(file: File | null) {
     if (receiptPreview) URL.revokeObjectURL(receiptPreview);
     setReceiptPreview(''); setReceiptFile(null); setError('');
     if (!file) return;
-    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) {
-      setError("Chek JPG, PNG yoki WEBP formatida va 5 MB dan kichik bo'lishi kerak.");
-      return;
+    setPreparingReceipt(true);
+    try {
+      const prepared = await prepareReceiptImage(file);
+      setReceiptFile(prepared);
+      setReceiptPreview(URL.createObjectURL(prepared));
+    } catch {
+      setError(locale === 'ru'
+        ? 'Не удалось подготовить фото. Выберите обычный скриншот JPG или PNG размером до 25 МБ.'
+        : "Rasmni tayyorlab bo'lmadi. 25 MB gacha bo'lgan JPG yoki PNG skrinshotni tanlang.");
+    } finally {
+      setPreparingReceipt(false);
     }
-    setReceiptFile(file); setReceiptPreview(URL.createObjectURL(file));
   }
   async function submitReceipt(event: FormEvent) {
     event.preventDefault(); if (!request || !receiptFile || lock.current) return;
@@ -95,7 +150,11 @@ export function WalletSheet({ wallet, onClose, onUpdated, onNavigate, locale }: 
       setRequest((previous) => previous ? { ...previous, ...updated } : updated);
       setConfirmed(true);
     }
-    catch (err) { setError(errorText(err)); }
+    catch (err) {
+      setError(err instanceof ApiError && err.status >= 500
+        ? locale === 'ru' ? 'Фото не удалось доставить администратору. Проверьте подключение и попробуйте ещё раз.' : 'Chek adminga yetkazilmadi. Aloqani tekshirib, qayta urinib ko\'ring.'
+        : errorText(err));
+    }
     finally { setBusy(false); lock.current = false; }
   }
   const requestMethods = request?.receivingMethod ? [request.receivingMethod] : request?.receivingMethods || [];
@@ -126,7 +185,7 @@ export function WalletSheet({ wallet, onClose, onUpdated, onNavigate, locale }: 
         {request.type === 'QR_CODE' ? <div className="qr-methods">{requestMethods.map((method) => method.qrPayload && <div className="qr-method" key={method.id}><GeneratedQr payload={method.qrPayload}/><strong>{method.cardHolderName}</strong><span>{method.bankName || t('QR orqali to‘lov')}</span></div>)}</div> : <div className="bank-methods">{requestMethods.map((method) => <div className="bank-details" key={method.id}>{request.channel === 'BANKOMAT' ? <img className="bank-card-logo bank-atm-logo" src="payment/atm.png" alt="BANKOMAT"/> : <img className="bank-card-logo" src={request.channel === 'UZCARD' ? 'payment/uzcard.png' : 'payment/humo.png'} alt={request.channel || 'HUMO'}/>}<div><span>{method.bankName || (request.type === 'PAYNET_TERMINAL' ? t('Bankomat uchun karta') : t('Qabul qiluvchi karta'))}</span><strong>{method.cardNumber}</strong><span>{method.cardHolderName}</span></div>{method.cardNumber && <button className={`icon-button copy-control ${copied?.type === 'card' && copied.id === method.id ? 'copied' : ''}`} aria-label={locale === 'ru' ? 'Скопировать номер карты' : t('Karta raqamini nusxalash')} title={copied?.type === 'card' && copied.id === method.id ? t('Nusxalandi') : t('Nusxalash')} onClick={() => void copyValue(method.cardNumber!, 'card', method.id)}>{copied?.type === 'card' && copied.id === method.id ? <Check size={18}/> : <Copy size={18}/>}<span>{copied?.type === 'card' && copied.id === method.id ? t('Nusxalandi') : t('Nusxalash')}</span></button>}</div>)}</div>}
         <p className="notice">{request.type === 'PAYNET_TERMINAL' ? t("Bankomatda aynan ko'rsatilgan summani o'tkazing va chekni rasmga olib yuklang.") : t("Aynan ko'rsatilgan summani o'tkazing. Bank xabari kelishi bilan balans avtomatik yangilanadi.")}</p>
         {request.expiresAt && <p className="muted">{t('Qolgan vaqt:')} {Math.floor(remaining / 60)}:{String(remaining % 60).padStart(2, '0')}</p>}
-        {request.type === 'PAYNET_TERMINAL' ? receiptSubmitted ? <div className="notice success"><LoaderCircle className="spin" size={20}/><div><strong>{t('Chek adminga yuborildi.')}</strong><br/><span>{t('Admin tasdiqlashi yoki rad etishi bilan balans holati yangilanadi.')}</span></div></div> : <form className="stack compact" onSubmit={submitReceipt}><label className="receipt-upload"><input type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => chooseReceipt(event.target.files?.[0] || null)}/>{receiptPreview ? <img src={receiptPreview} alt={t('Yuklangan chek')}/> : <span><ImageUp size={28}/><strong>{t('Chek screenshotini yuklang')}</strong><small>{t('JPG, PNG yoki WEBP · 5 MB gacha')}</small></span>}</label><button className="button primary" disabled={busy || !receiptFile}>{busy ? <LoaderCircle className="spin" size={18}/> : <ImageUp size={18}/>} {t('Chekni yuborish')}</button></form> : <div className="notice success"><LoaderCircle className="spin" size={20}/><div><strong>{t('Avtomatik tekshirilmoqda')}</strong><br/><span>{t("Ilovani yopmang. To'lov aniqlanganda balans o'zi yangilanadi.")}</span></div></div>}
+        {request.type === 'PAYNET_TERMINAL' ? receiptSubmitted ? <div className="notice success"><LoaderCircle className="spin" size={20}/><div><strong>{t('Chek adminga yuborildi.')}</strong><br/><span>{t('Admin tasdiqlashi yoki rad etishi bilan balans holati yangilanadi.')}</span></div></div> : <form className="stack compact" onSubmit={submitReceipt}><label className="receipt-upload"><input type="file" accept="image/*" disabled={preparingReceipt} onChange={(event) => { void chooseReceipt(event.target.files?.[0] || null); }}/>{receiptPreview ? <img src={receiptPreview} alt={t('Yuklangan chek')}/> : <span><ImageUp size={28}/><strong>{preparingReceipt ? (locale === 'ru' ? 'Подготовка фото…' : 'Rasm tayyorlanmoqda…') : t('Chek screenshotini yuklang')}</strong><small>{t('JPG, PNG yoki WEBP · 5 MB gacha')}</small></span>}</label><button className="button primary" disabled={busy || preparingReceipt || !receiptFile}>{busy ? <LoaderCircle className="spin" size={18}/> : <ImageUp size={18}/>} {t('Chekni yuborish')}</button></form> : <div className="notice success"><LoaderCircle className="spin" size={20}/><div><strong>{t('Avtomatik tekshirilmoqda')}</strong><br/><span>{t("Ilovani yopmang. To'lov aniqlanganda balans o'zi yangilanadi.")}</span></div></div>}
         {remaining === 0 && !receiptSubmitted && request.type === 'PAYNET_TERMINAL' && <p className="notice" role="status">{t('Rezerv muddati tugadi, lekin bankomat chekini tekshiruvga yuborishingiz mumkin.')}</p>}
         {remaining === 0 && !receiptSubmitted && request.type !== 'PAYNET_TERMINAL' && <p role="status">{t("Muddat tugadi. To'lov qilgan bo'lsangiz, yordam xizmatiga buyurtma raqamini yuboring.")}</p>}
         <small className="muted">{t("So'rov:")} {request.id}</small>
