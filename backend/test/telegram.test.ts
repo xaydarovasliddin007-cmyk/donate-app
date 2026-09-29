@@ -49,4 +49,28 @@ describe('notifyAdmins', () => {
       `topup:reject:${requestId}`,
     ]);
   });
+
+  it('registers the store bot webhook for start messages and payment updates', async () => {
+    vi.stubEnv('TELEGRAM_BOT_TOKEN', '123456789:test-store-token');
+    vi.stubEnv('TELEGRAM_WEBHOOK_SECRET', 'isolated-store-webhook-secret-32-bytes');
+    vi.stubEnv('PUBLIC_APP_URL', 'https://donate.example');
+    vi.stubEnv('API_VERSION', 'v1');
+    const fetchMock = vi.fn(async () => new Response(
+      JSON.stringify({ ok: true, result: true }), { status: 200 },
+    ));
+    globalThis.fetch = fetchMock;
+    const { configureStoreBotWebhook } = await import('../src/modules/telegram/telegram-bot.js');
+
+    await configureStoreBotWebhook();
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    const [url, options] = fetchMock.mock.calls[0]!;
+    expect(url).toBe('https://api.telegram.org/bot123456789:test-store-token/setWebhook');
+    expect(JSON.parse(String(options?.body))).toMatchObject({
+      url: 'https://donate.example/api/v1/telegram/webhook',
+      secret_token: 'isolated-store-webhook-secret-32-bytes',
+      allowed_updates: ['message', 'pre_checkout_query'],
+      drop_pending_updates: false,
+    });
+  });
 });

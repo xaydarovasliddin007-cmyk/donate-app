@@ -3,12 +3,14 @@ import { buildApp } from './app.js';
 import { env } from './config/env.js';
 import { startCardTransactionListener } from './lib/card-transaction-listener.js';
 import { reconcileFulfillment } from './modules/orders/fulfillment-worker.js';
+import { configureStoreBotWebhook } from './modules/telegram/telegram-bot.js';
 import { configureTopUpReviewWebhook } from './modules/telegram/topup-review-bot.js';
 
 async function main() {
   const app = await buildApp();
 
   await app.listen({ port: env.PORT, host: env.HOST });
+  void configureStoreBotWebhook();
   void configureTopUpReviewWebhook();
   let stopCardListener = async () => {};
   let listenerStart: Promise<void> | undefined;
