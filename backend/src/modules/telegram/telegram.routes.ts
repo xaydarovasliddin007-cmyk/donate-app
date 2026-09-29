@@ -11,12 +11,16 @@ import { createOrderSchema, type CreateOrderInput } from '../orders/orders.schem
 import { ConflictError, NotFoundError } from '../../lib/errors.js';
 import { logger } from '../../lib/logger.js';
 import * as topupService from '../topup/topup.service.js';
-import { telegramApi } from './telegram-api.js';
+import { telegramApi, TelegramApiError } from './telegram-api.js';
 import { topUpReviewBotApi } from './topup-review-bot.js';
 import { checkStarsCheckout, createStarsInvoice, settleStarsPayment } from './telegram-payments.js';
 
 const authSchema = z.object({ initData: z.string().min(1).max(16384) });
-const telegramUser = z.object({ id: z.number().int().positive().max(Number.MAX_SAFE_INTEGER) });
+const telegramUser = z.object({
+  id: z.number().int().positive().max(Number.MAX_SAFE_INTEGER),
+  first_name: z.string().optional(),
+  language_code: z.string().optional(),
+});
 const paymentSchema = z.object({ currency: z.string(), total_amount: z.number().int().positive(), invoice_payload: z.string().uuid() });
 const webAppRelease = process.env.RENDER_GIT_COMMIT?.slice(0, 12) || 'current';
 
@@ -119,15 +123,35 @@ export async function telegramRoutes(app: FastifyInstance) {
     } else if (message?.text && message.chat.type === 'private') {
       const command = message.text.split(/[ @]/)[0] ?? '';
       if (['/start', '/shop', '/prices', '/help', '/paysupport', '/terms'].includes(command)) {
+        const ru = message.from?.language_code?.startsWith('ru') ?? false;
+        const name = (message.from?.first_name ?? '').slice(0, 64)
+          .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         const support = ['/help', '/paysupport'].includes(command);
-        const text = support
+        const welcome = ru
+          ? `<b>Добро пожаловать в UZDONATE!</b>\n\n${name ? `Привет, ${name}!` : 'Привет!'} Любимые игры начинаются здесь.\n\n<b>Mobile Legends · PUBG Mobile · Free Fire</b>\nАлмазы, UC и игровые пропуски в одном магазине.\n\nВыберите игру и пакет, укажите игровой ID и следите за заказом в приложении.\n\n<b>Готовы к следующей игре?</b> Откройте магазин ниже.`
+          : `<b>UZDONATE'ga xush kelibsiz!</b>\n\n${name ? `Salom, ${name}!` : 'Salom!'} Sevimli o'yinlaringiz shu yerdan boshlanadi.\n\n<b>Mobile Legends · PUBG Mobile · Free Fire</b>\nAlmazlar, UC va o'yin passlari bir do'konda.\n\nO'yin va paketni tanlang, o'yin ID'ingizni kiriting va buyurtmangizni ilovada kuzating.\n\n<b>Keyingi o'yinga tayyormisiz?</b> Do'konni quyidagi tugma orqali oching.`;
+        const text = command === '/start' ? welcome : support
           ? "To'lov yoki buyurtma bo'yicha yordam: buyurtma raqamingiz bilan operatorga murojaat qiling."
           : "UZDONATE\n\nO'yinlar, paketlar va amaldagi narxlar do'konda. Buyurtmalaringizni shu yerdan kuzatishingiz mumkin.";
         const rows: Record<string, unknown>[][] = [];
-        if (env.PUBLIC_APP_URL) rows.push([{ text: "Do'konni ochish", web_app: { url: storefrontUrl(env.PUBLIC_APP_URL) } }]);
+        if (env.PUBLIC_APP_URL) rows.push([{ text: ru ? 'Открыть магазин' : "Do'konni ochish", web_app: { url: storefrontUrl(env.PUBLIC_APP_URL) } }]);
         if (command === '/terms' && env.PUBLIC_APP_URL) rows.push([{ text: 'Xizmat shartlari', url: new URL('/webapp/terms.html', env.PUBLIC_APP_URL).href }]);
-        rows.push([{ text: 'Yordam', url: env.SUPPORT_TELEGRAM_URL }]);
-        await telegramApi('sendMessage', { chat_id: message.chat.id, text, reply_markup: { inline_keyboard: rows } });
+        rows.push([{ text: ru ? 'Поддержка' : 'Yordam', url: env.SUPPORT_TELEGRAM_URL }]);
+        const reply = { chat_id: message.chat.id, parse_mode: 'HTML', reply_markup: { inline_keyboard: rows } };
+        if (command === '/start' && env.PUBLIC_APP_URL) {
+          try {
+            await telegramApi('sendPhoto', {
+              ...reply,
+              photo: new URL('/webapp/assets-store/brand.png', env.PUBLIC_APP_URL).href,
+              caption: text,
+            });
+            return { ok: true };
+          } catch (err) {
+            // A failed image download must not prevent the welcome message.
+            if (!(err instanceof TelegramApiError) || !/photo|image|file|HTTP URL|WEBPAGE/i.test(err.description)) throw err;
+          }
+        }
+        await telegramApi('sendMessage', { ...reply, text });
       }
     }
     return { ok: true };
