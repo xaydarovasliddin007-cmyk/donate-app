@@ -6,6 +6,7 @@ import type {
   TopupValidatePlayerParams,
   TopupValidatePlayerResult,
 } from '../topup-provider.js';
+import { usdToUzsMinor } from '../usd-cost.js';
 
 const BASE_URL = 'https://resell.codes/api/v1';
 
@@ -73,18 +74,14 @@ export class ReSellCodesTopupProvider implements TopupProviderAdapter {
   }
 
   private splitCode(code: string) {
-    const [categoryId, offerId, playerField = 'player_id', serverField = 'server_id'] = code.split(':');
+    const [categoryId, offerId, rawPlayerField, serverField = ''] = code.split(':');
+    const playerField = rawPlayerField || 'player_id';
     if (!categoryId || !offerId) throw new Error('Invalid ReSellCodes product mapping');
     return { categoryId, offerId, playerField, serverField };
   }
 
   private toMinor(priceUsd: string): number {
-    if (!/^\d+(?:\.\d{1,4})?$/.test(priceUsd)) throw new Error('Invalid USD amount from ReSellCodes');
-    const [whole = '0', fraction = ''] = priceUsd.split('.');
-    const usdTenThousandths = BigInt(whole) * 10_000n + BigInt(fraction.padEnd(4, '0'));
-    const uzsMinor = (usdTenThousandths * BigInt(this.usdUzsRate)) / 100n;
-    if (uzsMinor > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error('ReSellCodes price is out of range');
-    return Number(uzsMinor);
+    return usdToUzsMinor(priceUsd, this.usdUzsRate);
   }
 
   async listOffers(query = ''): Promise<ReSellCodesOffer[]> {
@@ -96,7 +93,7 @@ export class ReSellCodesTopupProvider implements TopupProviderAdapter {
     const groups = await Promise.all(matches.map(async (category) => {
       const categoryId = category.category_id!;
       const result = await this.request<RscOffers>(`/top-ups/categories/${encodeURIComponent(categoryId)}/offers`);
-      if (!result.response.ok || !result.data?.offers) return [];
+      if (!result.response.ok || !result.data?.offers) throw new Error(`ReSellCodes offers returned HTTP ${result.response.status}`);
       return result.data.offers.map((offer) => ({
         categoryId,
         categoryName: result.data?.name ?? category.name ?? categoryId,
@@ -121,7 +118,10 @@ export class ReSellCodesTopupProvider implements TopupProviderAdapter {
     if (playerField !== 'player_id' && playerField !== 'user_id') {
       return { valid: false, reason: `Unsupported required account field: ${playerField}` };
     }
-    if (serverField !== 'server_id' && params.serverId && !params.serverId.trim()) {
+    if (serverField && serverField !== 'server_id' && serverField !== 'zone_id') {
+      return { valid: false, reason: `Unsupported required account field: ${serverField}` };
+    }
+    if (serverField && !params.serverId?.trim()) {
       return { valid: false, reason: 'Server ID is required' };
     }
     return { valid: true };
@@ -132,8 +132,11 @@ export class ReSellCodesTopupProvider implements TopupProviderAdapter {
     if (!params.playerId.trim()) {
       return { success: false, reason: 'Player ID is required', canFallback: true, status: 'FAILED' };
     }
+    if (serverField && !params.serverId?.trim()) {
+      return { success: false, reason: 'Server ID is required', canFallback: true, status: 'FAILED' };
+    }
     const fields: Record<string, string> = { [playerField]: params.playerId.trim() };
-    if (params.serverId) fields[serverField] = params.serverId.trim();
+    if (serverField && params.serverId) fields[serverField] = params.serverId.trim();
 
     let response: Response;
     let raw: RscOrder | null;

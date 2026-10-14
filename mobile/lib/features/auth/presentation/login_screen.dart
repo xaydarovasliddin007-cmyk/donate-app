@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/branding/brand_mark.dart';
 import '../../../core/errors/failure.dart';
+import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_motion.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/reduce_motion_controller.dart';
@@ -81,13 +82,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     } catch (error) {
       final failure = Failure.from(error);
       if (!mounted) return;
-      final isDevError = error.toString().contains('10') ||
-          error.toString().contains('DEVELOPER_ERROR');
+      final googleDetails = error is ApiException ? error.details : error;
+      final isDevError =
+          googleDetails.toString().contains('clientConfigurationError') ||
+          googleDetails.toString().contains('providerConfigurationError') ||
+          googleDetails.toString().contains('DEVELOPER_ERROR');
       setState(() {
-        if (failure.code == 'GOOGLE_NOT_CONFIGURED') {
+        if (failure.code == 'GOOGLE_NOT_CONFIGURED' ||
+            failure.code == 'SERVICE_UNAVAILABLE') {
           _googleErrorMessage = l10n.authGoogleUnavailableMessage;
+        } else if (failure.code == 'GOOGLE_CLIENT_MISCONFIGURED') {
+          _googleErrorMessage = l10n.authGoogleClientMisconfiguredMessage;
+        } else if (failure.code == 'CONFLICT') {
+          _googleErrorMessage = l10n.authGoogleAccountConflict;
         } else if (isDevError) {
-          _googleErrorMessage = Localizations.localeOf(context).languageCode == 'ru'
+          _googleErrorMessage =
+              Localizations.localeOf(context).languageCode == 'ru'
               ? 'Ошибка Google Play (SHA-1 не привязан в Google Cloud Console). Войдите по Email или продолжите как гость.'
               : 'Google Play xatosi (Google Cloud Console\'da SHA-1 ulanmagan). Email orqali kiring yoki Mehmon rejimida davom eting.';
         } else {
@@ -103,7 +113,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final reduceMotion = ref.watch(reduceMotionProvider);
+    final reduceMotion =
+        ref.watch(reduceMotionProvider) ||
+        MediaQuery.disableAnimationsOf(context);
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.authLoginTitle)),

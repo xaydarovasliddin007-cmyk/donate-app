@@ -11,6 +11,29 @@ import { useToast } from '../components/Toast';
 import { useLocale } from '../i18n/LocaleContext';
 import { formatMinor } from '../lib/money';
 
+const RETAIL_PRICE_STEP_MINOR = 10_000;
+
+function estimateMargin(saleMinor: number, costMinor: number, feePercent: number, targetPercent: number) {
+  const feeTenths = Math.round(feePercent * 10);
+  const targetTenths = Math.round(targetPercent * 10);
+  const remainingTenths = 1000 - feeTenths - targetTenths;
+  if (remainingTenths <= 0) return null;
+
+  const feeFor = (amount: number) => Math.ceil((amount * feeTenths) / 1000);
+  const targetFor = (amount: number) => Math.ceil((amount * targetTenths) / 1000);
+  const netMinor = saleMinor - feeFor(saleMinor) - costMinor;
+  let targetSaleMinor = Math.ceil((costMinor * 1000) / remainingTenths / RETAIL_PRICE_STEP_MINOR) * RETAIL_PRICE_STEP_MINOR;
+  while (targetSaleMinor - feeFor(targetSaleMinor) - costMinor < targetFor(targetSaleMinor)) {
+    targetSaleMinor += RETAIL_PRICE_STEP_MINOR;
+  }
+
+  return {
+    netMinor,
+    netPercent: saleMinor > 0 ? (netMinor / saleMinor) * 100 : 0,
+    targetSaleMinor,
+  };
+}
+
 export function ProductProviderMappingsPage() {
   const { t } = useLocale();
   const { showError } = useToast();
@@ -34,6 +57,8 @@ export function ProductProviderMappingsPage() {
   const [priority, setPriority] = useState('0');
   const [cost, setCost] = useState('');
   const [costDrafts, setCostDrafts] = useState<Record<string, string>>({});
+  const [feePercent, setFeePercent] = useState(3);
+  const [targetPercent, setTargetPercent] = useState(5);
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [togglingId, setTogglingId] = useState<string | null>(null);
@@ -124,6 +149,35 @@ export function ProductProviderMappingsPage() {
       <h1>{t('providerMappings.title', { product: product?.name ?? '…' })}</h1>
       <p className="muted">{t('providerMappings.blurb')}</p>
       <p className="provider-health-note">{t('providerMappings.marginDisclaimer')}</p>
+
+      <div className="toolbar" style={{ margin: '16px 0' }}>
+        <label>
+          {t('providerMappings.feePercent')}{' '}
+          <input
+            type="number"
+            min="0"
+            max="50"
+            step="0.1"
+            value={feePercent}
+            onChange={(event) => setFeePercent(Number(event.target.value))}
+            style={{ width: 86 }}
+          />
+          %
+        </label>
+        <label>
+          {t('providerMappings.targetPercent')}{' '}
+          <input
+            type="number"
+            min="0"
+            max="50"
+            step="0.1"
+            value={targetPercent}
+            onChange={(event) => setTargetPercent(Number(event.target.value))}
+            style={{ width: 86 }}
+          />
+          %
+        </label>
+      </div>
 
       <div className="panel">
         <h3>{t('providerMappings.addMapping')}</h3>
@@ -237,12 +291,29 @@ export function ProductProviderMappingsPage() {
                 <td>
                   {mapping.costMinor == null || !product ? (
                     <span className="badge badge-warning">{t('providerMappings.marginUnknown')}</span>
-                  ) : (() => {
-                    const gross = product.amountMinor - mapping.costMinor;
-                    const percent = product.amountMinor > 0 ? (gross / product.amountMinor) * 100 : 0;
-                    const stale = mapping.priceUpdatedAt && Date.now() - new Date(mapping.priceUpdatedAt).getTime() > 7 * 86400000;
-                    return <><span className={`badge ${stale || gross <= 0 ? 'badge-warning' : 'badge-success'}`}>{formatMinor(gross, product.currency)} ({percent.toFixed(1)}%)</span>{stale && <div className="muted">{t('providerMappings.priceStale')}</div>}<div className="muted">{t('providerMappings.marginBeforeFees')}</div></>;
-                  })()}
+                  ) : (
+                    (() => {
+                      const estimate = estimateMargin(product.amountMinor, mapping.costMinor, feePercent, targetPercent);
+                      const quoteAge = mapping.priceUpdatedAt ? Date.now() - new Date(mapping.priceUpdatedAt).getTime() : Infinity;
+                      const stale = quoteAge > 24 * 60 * 60 * 1000;
+                      const belowTarget = !estimate || estimate.netPercent < targetPercent;
+                      return (
+                        <>
+                          <span className={`badge ${stale || belowTarget ? 'badge-warning' : 'badge-success'}`}>
+                            {estimate
+                              ? `${formatMinor(estimate.netMinor, product.currency)} (${estimate.netPercent.toFixed(1)}%)`
+                              : t('providerMappings.invalidTarget')}
+                          </span>
+                          {estimate && (
+                            <div className="muted">
+                              {t('providerMappings.targetPrice')}: {formatMinor(estimate.targetSaleMinor, product.currency)}
+                            </div>
+                          )}
+                          {stale && <div className="muted">{t('providerMappings.priceStale')}</div>}
+                        </>
+                      );
+                    })()
+                  )}
                 </td>
                 <td>{mapping.priority}</td>
                 <td>

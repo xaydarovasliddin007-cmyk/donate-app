@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/branding/brand_icon.dart';
 import '../../../core/branding/brand_mark.dart';
 import '../../../core/errors/failure.dart';
 import '../../../core/localization/locale_controller.dart';
@@ -11,7 +12,6 @@ import '../../../core/widgets/empty_view.dart';
 import '../../../core/widgets/error_view.dart';
 import '../../../core/widgets/skeletons.dart';
 import '../../../core/widgets/staggered_entrance.dart';
-import '../../../core/widgets/user_avatar.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../games/application/games_providers.dart';
@@ -53,14 +53,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final promotionsAsync = ref.watch(promotionsListProvider);
     final user = ref.watch(authControllerProvider).value?.user;
     final isAuthenticated = user != null;
+    final compactHeader =
+        MediaQuery.sizeOf(context).width < 380 ||
+        MediaQuery.textScalerOf(context).scale(1) > 1.2;
 
     return Scaffold(
       appBar: AppBar(
-        title: user == null || user.isGuest
-            ? const BrandMark(size: 28, showWordmark: true)
+        title: user == null || user.isGuest || compactHeader
+            ? BrandMark(size: 30, showWordmark: !compactHeader)
             : Row(
                 children: [
-                  UserAvatar(avatarUrl: user.avatarUrl, radius: 16),
+                  const BrandMark(size: 30),
                   const SizedBox(width: AppSpacing.sm),
                   Flexible(
                     child: Text(
@@ -73,7 +76,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ],
               ),
         actions: [
-          const _BalanceChip(),
+          if (isAuthenticated) const _BalanceChip(),
           const SizedBox(width: 4),
           if (isAuthenticated && !user.isGuest)
             Consumer(
@@ -92,7 +95,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               },
             ),
           const _LocaleToggleButton(),
-          const _ThemeToggleButton(),
+          if (!compactHeader) const _ThemeToggleButton(),
           const SizedBox(width: AppSpacing.sm),
         ],
       ),
@@ -108,9 +111,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           children: [
             const SizedBox(height: AppSpacing.md),
             if (user == null)
-              _GuestHero(
-                onBrowse: () => context.go('/catalog'),
-                onCreateAccount: () => context.push('/register'),
+              StaggeredEntrance(
+                index: 0,
+                child: _GuestHero(
+                  onBrowse: () => context.go('/catalog'),
+                  onCreateAccount: () => context.push('/register'),
+                ),
               )
             else
               const WalletBalanceCard(),
@@ -134,8 +140,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   return _QuickCategoryPill(
                     icon: entry.$1,
                     label: entry.$2,
-                    gradient: AppColors
-                        .tileGradients[index % AppColors.tileGradients.length],
                     onTap: () => context.go('/catalog', extra: entry.$2),
                   );
                 },
@@ -435,18 +439,26 @@ class _GuestHero extends StatelessWidget {
         child: Stack(
           children: [
             Positioned(
-              right: -12,
-              top: -10,
-              child: Icon(
-                Icons.sports_esports_rounded,
-                size: 132,
-                color: Colors.white.withValues(alpha: 0.12),
+              right: -28,
+              top: -28,
+              child: ExcludeSemantics(
+                child: Opacity(
+                  opacity: 0.18,
+                  child: Transform.rotate(
+                    angle: -0.16,
+                    child: const BrandMark(size: 150),
+                  ),
+                ),
               ),
             ),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const BrandMark(size: 42),
+                const BrandMark(
+                  size: 32,
+                  showWordmark: true,
+                  wordmarkColor: Colors.white,
+                ),
                 const SizedBox(height: AppSpacing.lg),
                 Text(
                   l10n.homeHeroTitle,
@@ -471,10 +483,10 @@ class _GuestHero extends StatelessWidget {
                       onPressed: onBrowse,
                       style: FilledButton.styleFrom(
                         backgroundColor: Colors.white,
-                        foregroundColor: AppColors.brandPrimary,
+                        foregroundColor: AppColors.brandAction,
                         minimumSize: const Size(0, 44),
                       ),
-                      icon: const Icon(Icons.bolt_rounded, size: 18),
+                      icon: const BrandIcon(BrandSymbol.catalog, size: 18),
                       label: Text(l10n.homeHeroPrimaryCta),
                     ),
                     OutlinedButton.icon(
@@ -535,9 +547,7 @@ class _SearchLauncher extends StatelessWidget {
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(
-                    alpha: isDark ? 0.22 : 0.05,
-                  ),
+                  color: Colors.black.withValues(alpha: isDark ? 0.22 : 0.05),
                   blurRadius: 16,
                   offset: const Offset(0, 6),
                 ),
@@ -550,11 +560,13 @@ class _SearchLauncher extends StatelessWidget {
                   height: 36,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: scheme.primary.withValues(alpha: isDark ? 0.16 : 0.10),
+                    color: scheme.primary.withValues(
+                      alpha: isDark ? 0.16 : 0.10,
+                    ),
                   ),
                   child: Center(
-                    child: Icon(
-                      Icons.search_rounded,
+                    child: BrandIcon(
+                      BrandSymbol.search,
                       size: 20,
                       color: scheme.primary,
                     ),
@@ -574,11 +586,13 @@ class _SearchLauncher extends StatelessWidget {
                   height: 32,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: scheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                    color: scheme.surfaceContainerHighest.withValues(
+                      alpha: 0.5,
+                    ),
                   ),
                   child: Center(
-                    child: Icon(
-                      Icons.arrow_forward_rounded,
+                    child: BrandIcon(
+                      BrandSymbol.arrowRight,
                       size: 16,
                       color: scheme.onSurfaceVariant,
                     ),
@@ -662,20 +676,16 @@ const _quickCategories = <(IconData, String)>[
   (Icons.sports_soccer_rounded, 'Sports'),
 ];
 
-/// A filled gradient pill (icon + label in one row) rather than a bordered
-/// vertical card — denser and reads more like a quick-action chip than a
-/// standalone tile, matching the reference apps' horizontal category strip.
+/// Neutral category pills keep the brand accent for primary actions.
 class _QuickCategoryPill extends StatelessWidget {
   const _QuickCategoryPill({
     required this.icon,
     required this.label,
-    required this.gradient,
     required this.onTap,
   });
 
   final IconData icon;
   final String label;
-  final List<Color> gradient;
   final VoidCallback onTap;
 
   @override
@@ -694,29 +704,28 @@ class _QuickCategoryPill extends StatelessWidget {
             vertical: AppSpacing.xs,
           ),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: gradient,
+            color: theme.colorScheme.surface,
+            border: Border.all(
+              color: theme.colorScheme.outlineVariant.withValues(alpha: 0.55),
             ),
             borderRadius: BorderRadius.circular(AppRadius.pill),
             boxShadow: [
               BoxShadow(
-                color: gradient.first.withValues(alpha: 0.3),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
+                color: Colors.black.withValues(alpha: 0.025),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
               ),
             ],
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, color: Colors.white, size: 17),
+              Icon(icon, color: theme.colorScheme.primary, size: 17),
               const SizedBox(width: 6),
               Text(
                 label,
                 style: theme.textTheme.labelMedium?.copyWith(
-                  color: Colors.white,
+                  color: theme.colorScheme.onSurface,
                   fontWeight: FontWeight.w800,
                 ),
               ),
@@ -744,9 +753,7 @@ class _BalanceChip extends ConsumerWidget {
       loading: () => const SizedBox.shrink(),
       error: (_, _) => const SizedBox.shrink(),
       data: (wallet) => Material(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(
-          alpha: 0.6,
-        ),
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(AppRadius.pill),
         child: InkWell(
           borderRadius: BorderRadius.circular(AppRadius.pill),
@@ -756,10 +763,10 @@ class _BalanceChip extends ConsumerWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
-                  Icons.bolt_rounded,
+                BrandIcon(
+                  BrandSymbol.wallet,
                   size: 14,
-                  color: AppColors.brandWarm,
+                  color: theme.colorScheme.primary,
                 ),
                 const SizedBox(width: 4),
                 Text(

@@ -50,5 +50,5 @@ export interface TopUpOption {
   mode: 'AUTO' | 'MANUAL';
   available: boolean;
 }
-export interface AppConfig { supportUrl: string; telegramBotUrl: string; telegramPaymentsEnabled: boolean; testMode?: boolean }
+export interface AppConfig { supportUrl: string; telegramBotUrl: string; telegramPaymentsEnabled: boolean; googleClientId?: string | null; testMode?: boolean }
 export interface CheckoutInput { gameId: string; productId: string; playerId: string; serverId?: string; zoneId?: string; idempotencyKey: string }

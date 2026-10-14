@@ -1,0 +1,28 @@
+[Unit]
+Description=UZDONATE API and web applications
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=uzdonate
+Group=uzdonate
+WorkingDirectory=/opt/uzdonate/current/backend
+EnvironmentFile=/etc/uzdonate/environment
+Environment=PATH=/opt/uzdonate/node/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ExecStart=/opt/uzdonate/node/bin/node /opt/uzdonate/current/backend/dist/server.js
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+KillSignal=SIGTERM
+UMask=0077
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectHome=yes
+ProtectSystem=strict
+StateDirectory=uzdonate
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+MemoryMax=768M
+
+[Install]
+WantedBy=multi-user.target

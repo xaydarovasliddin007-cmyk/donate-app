@@ -39,7 +39,9 @@ class _AnimatedBalanceState extends ConsumerState<AnimatedBalance> {
 
   @override
   Widget build(BuildContext context) {
-    final reduceMotion = ref.watch(reduceMotionProvider);
+    final reduceMotion =
+        ref.watch(reduceMotionProvider) ||
+        MediaQuery.disableAnimationsOf(context);
     return TweenAnimationBuilder<int>(
       tween: IntTween(
         begin: reduceMotion ? widget.amountMinor : _previous,

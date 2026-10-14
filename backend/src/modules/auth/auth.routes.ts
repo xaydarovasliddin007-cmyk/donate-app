@@ -55,6 +55,15 @@ export async function authRoutes(app: FastifyInstance) {
     },
   );
 
+  app.post('/auth/account/complete', {
+    config: { rateLimit: { max: 8, timeWindow: 60_000 } },
+    preHandler: [authenticate, validateBody(registerCompleteSchema)],
+  }, async (request) => authService.completeRegistration(
+    ctx, request.body as RegisterCompleteInput,
+    { userAgent: request.headers['user-agent'], ipAddress: request.ip },
+    request.currentUser!.id,
+  ));
+
   app.post(
     '/auth/login',
     {
@@ -106,6 +115,16 @@ export async function authRoutes(app: FastifyInstance) {
       ipAddress: request.ip,
     });
   });
+
+  app.post('/auth/google/link', {
+    config: { rateLimit: { max: 10, timeWindow: 60_000 } },
+    preHandler: [authenticate, validateBody(googleAuthSchema)],
+  }, async (request) => authService.linkGoogleAccount(
+    ctx,
+    request.currentUser!.id,
+    request.body as GoogleAuthInput,
+    { userAgent: request.headers['user-agent'], ipAddress: request.ip },
+  ));
 
   app.post('/auth/guest', { preHandler: validateBody(guestAuthSchema) }, async (request) => {
     const body = request.body as GuestAuthInput;

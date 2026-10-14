@@ -93,6 +93,19 @@ class AuthApi {
     return AuthResult.fromJson(json);
   }
 
+  /// Links a verified Google identity to this device's signed-in guest or
+  /// email account without changing its user ID, wallet, or order history.
+  Future<AuthResult> googleLink({
+    required String idToken,
+    required String locale,
+  }) async {
+    final json = await _client.post(
+      '/auth/google/link',
+      body: {'idToken': idToken, 'locale': locale},
+    );
+    return AuthResult.fromJson(json);
+  }
+
   Future<AuthResult> guestAuth({
     String? deviceId,
     required String locale,

@@ -6,7 +6,10 @@ const root = fileURLToPath(new URL('../', import.meta.url));
 const target = path.join(root, 'superapp/public');
 await mkdir(path.join(target, 'assets-store'), { recursive: true });
 for (const [from, to] of [
-  ['mobile/assets/branding/uzdonate-profile.png', 'assets-store/brand.png'],
+  ['mobile/assets/branding/brand-profile.png', 'assets-store/brand.png'],
+  ['mobile/assets/branding/brand-mark.svg', 'assets-store/brand.svg'],
+  ['mobile/assets/branding/brand-bot-card.png', 'assets-store/brand-bot-card.png'],
+  ['mobile/assets/branding/favicon.png', 'assets-store/favicon.png'],
   ['landing/terms.html', 'terms.html'],
   ['landing/privacy.html', 'privacy.html'],
 ]) await copyFile(path.join(root, from), path.join(target, to));

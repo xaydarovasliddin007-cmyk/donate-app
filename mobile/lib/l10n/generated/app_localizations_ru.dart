@@ -249,6 +249,25 @@ class AppLocalizationsRu extends AppLocalizations {
   String get authContinueWithGoogle => 'Продолжить через Google';
 
   @override
+  String get authSaveAccountWithGoogle => 'Сохранить аккаунт через Google';
+
+  @override
+  String get authSaveAccountWithGoogleMessage =>
+      'Google будет привязан к этому гостевому аккаунту. Баланс и заказы сохранятся.';
+
+  @override
+  String get authGoogleLinkConflict =>
+      'Не удалось связать Google с этим аккаунтом. Выберите Google-аккаунт с тем же email.';
+
+  @override
+  String get authGoogleAccountConflict =>
+      'Этот аккаунт Google уже связан с другим аккаунтом или email не совпадает.';
+
+  @override
+  String get authGoogleClientMisconfiguredMessage =>
+      'Настройки Google неверны. Проверьте OAuth Client ID и SHA-1 приложения в Google Cloud.';
+
+  @override
   String get authOrDivider => 'или';
 
   @override

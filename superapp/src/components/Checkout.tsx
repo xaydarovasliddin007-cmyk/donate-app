@@ -244,7 +244,7 @@ export function Checkout({ game, savedProfile, onClose, onUpdated, onOrders, onT
             </div>
           </div>
           {game.isPurchasable && (
-            <div className="checkout-progress" aria-label={`Buyurtma bosqichi: ${currentStep}/3`}>
+            <div className="checkout-progress" aria-label={`${t('Buyurtma bosqichi')}: ${currentStep}/3`}>
               {[
                 ['1', 'Paket'],
                 ['2', 'Hisob'],
@@ -252,7 +252,7 @@ export function Checkout({ game, savedProfile, onClose, onUpdated, onOrders, onT
               ].map(([number, label], index) => (
                 <div key={number} className={currentStep >= index + 1 ? 'active' : ''}>
                   <span>{currentStep > index + 1 ? <Check size={13} /> : number}</span>
-                  <small>{label}</small>
+                  <small>{t(label)}</small>
                 </div>
               ))}
             </div>
@@ -266,7 +266,7 @@ export function Checkout({ game, savedProfile, onClose, onUpdated, onOrders, onT
             <div className="checkout-form checkout-view view-forward">
               {servers.length > 0 && (
                 <label>
-                  Hudud
+                  {t('Hudud')}
                   <select value={server} onChange={(event) => setServer(event.target.value)}>
                     {servers.map((item) => (
                       <option key={item.id} value={item.code}>
@@ -341,7 +341,7 @@ export function Checkout({ game, savedProfile, onClose, onUpdated, onOrders, onT
                   <CircleUserRound size={27} />
                 </span>
                 <div>
-                  <span className="eyebrow accent-text">2-QADAM</span>
+                  <span className="eyebrow accent-text">{t('2-QADAM')}</span>
                   <h3>{t("O'yin hisobingizni kiriting")}</h3>
                   <p>{t('Diamonds yoki valyuta aynan shu hisobga yuboriladi.')}</p>
                 </div>

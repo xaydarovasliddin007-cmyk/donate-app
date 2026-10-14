@@ -36,10 +36,9 @@ class AuthController extends AsyncNotifier<AuthState> {
       final storage = ref.read(secureStorageServiceProvider);
       final deviceId = await storage.getOrCreateDeviceId();
       final locale = ref.read(localeControllerProvider).languageCode;
-      final result = await ref.read(authApiProvider).guestAuth(
-        deviceId: deviceId,
-        locale: locale,
-      );
+      final result = await ref
+          .read(authApiProvider)
+          .guestAuth(deviceId: deviceId, locale: locale);
       await storage.saveTokens(
         accessToken: result.accessToken,
         refreshToken: result.refreshToken,
@@ -154,7 +153,7 @@ class AuthController extends AsyncNotifier<AuthState> {
 
   /// Returns true on success, false if the user cancelled the Google
   /// account picker (not an error — callers should just stay put silently).
-  Future<bool> signInWithGoogle() async {
+  Future<bool> signInWithGoogle({bool linkToCurrentAccount = false}) async {
     if (!AppConfig.isGoogleSignInConfigured) {
       throw ApiException.googleNotConfigured();
     }
@@ -165,9 +164,10 @@ class AuthController extends AsyncNotifier<AuthState> {
     }
 
     final locale = ref.read(localeControllerProvider).languageCode;
-    final result = await ref
-        .read(authApiProvider)
-        .googleAuth(idToken: idToken, locale: locale);
+    final authApi = ref.read(authApiProvider);
+    final result = linkToCurrentAccount
+        ? await authApi.googleLink(idToken: idToken, locale: locale)
+        : await authApi.googleAuth(idToken: idToken, locale: locale);
     await _applyAuthResult(result);
     return true;
   }

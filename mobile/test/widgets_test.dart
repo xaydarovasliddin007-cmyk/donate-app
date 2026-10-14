@@ -1,9 +1,14 @@
+import 'package:donate_app/core/branding/brand_icon.dart';
 import 'package:donate_app/core/storage/preferences_provider.dart';
 import 'package:donate_app/core/storage/preferences_service.dart';
 import 'package:donate_app/core/widgets/empty_view.dart';
 import 'package:donate_app/core/widgets/error_view.dart';
+import 'package:donate_app/core/widgets/app_bottom_nav.dart';
 import 'package:donate_app/features/games/domain/game.dart';
 import 'package:donate_app/features/games/presentation/widgets/game_card.dart';
+import 'package:donate_app/features/wallet/application/wallet_providers.dart';
+import 'package:donate_app/features/wallet/domain/wallet.dart';
+import 'package:donate_app/features/wallet/presentation/widgets/wallet_balance_card.dart';
 import 'package:donate_app/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -13,9 +18,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 Widget _wrap(Widget child, PreferencesService prefs) {
   return ProviderScope(
-    overrides: [
-      preferencesServiceProvider.overrideWithValue(prefs),
-    ],
+    overrides: [preferencesServiceProvider.overrideWithValue(prefs)],
     child: MaterialApp(
       locale: const Locale('uz'),
       supportedLocales: const [Locale('uz'), Locale('ru')],
@@ -59,7 +62,9 @@ void main() {
   });
 
   group('ErrorView', () {
-    testWidgets('renders title, message and triggers onRetry callback', (tester) async {
+    testWidgets('renders title, message and triggers onRetry callback', (
+      tester,
+    ) async {
       var retryClicked = false;
 
       await tester.pumpWidget(
@@ -89,7 +94,9 @@ void main() {
   });
 
   group('GameCard', () {
-    testWidgets('renders purchasable game card with name and category', (tester) async {
+    testWidgets('renders purchasable game card with name and category', (
+      tester,
+    ) async {
       var tapped = false;
       const game = Game(
         id: 'game-1',
@@ -125,7 +132,9 @@ void main() {
       expect(tapped, isTrue);
     });
 
-    testWidgets('shows coming soon badge for non-purchasable game', (tester) async {
+    testWidgets('shows coming soon badge for non-purchasable game', (
+      tester,
+    ) async {
       const game = Game(
         id: 'game-2',
         slug: 'valorant',
@@ -139,10 +148,7 @@ void main() {
           SizedBox(
             width: 160,
             height: 220,
-            child: GameCard(
-              game: game,
-              onTap: () {},
-            ),
+            child: GameCard(game: game, onTap: () {}),
           ),
           prefs,
         ),
@@ -152,5 +158,107 @@ void main() {
       expect(find.text('Valorant'), findsOneWidget);
       expect(find.text('Tez kunda'), findsOneWidget);
     });
+  });
+
+  testWidgets(
+    'wallet stays usable at 320px with large text and reduced motion',
+    (tester) async {
+      tester.view.physicalSize = const Size(320, 720);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(
+        _wrap(
+          MediaQuery(
+            data: const MediaQueryData(
+              textScaler: TextScaler.linear(1.6),
+              disableAnimations: true,
+            ),
+            child: ProviderScope(
+              overrides: [
+                walletProvider.overrideWith(
+                  (ref) async =>
+                      const Wallet(balanceMinor: 12345678900, currency: 'UZS'),
+                ),
+              ],
+              child: const WalletBalanceCard(),
+            ),
+          ),
+          prefs,
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(find.text('UZDONATE'), findsOneWidget);
+      await tester.tap(find.byIcon(Icons.visibility_outlined));
+      await tester.pumpAndSettle();
+      expect(find.text('••••••'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('brand navigation fits 320px and honors system reduced motion', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(320, 720);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    var selectedIndex = 0;
+
+    await tester.pumpWidget(
+      _wrap(
+        MediaQuery(
+          data: const MediaQueryData(
+            textScaler: TextScaler.linear(1.6),
+            disableAnimations: true,
+          ),
+          child: StatefulBuilder(
+            builder: (context, setState) => AppBottomNav(
+              currentIndex: selectedIndex,
+              onTap: (index) => setState(() => selectedIndex = index),
+              items: const [
+                AppNavItem(
+                  icon: Icons.home_outlined,
+                  selectedIcon: Icons.home,
+                  brandSymbol: BrandSymbol.home,
+                  label: 'Главная',
+                ),
+                AppNavItem(
+                  icon: Icons.gamepad_outlined,
+                  selectedIcon: Icons.gamepad,
+                  brandSymbol: BrandSymbol.catalog,
+                  label: 'Магазин',
+                ),
+                AppNavItem(
+                  icon: Icons.receipt_outlined,
+                  selectedIcon: Icons.receipt,
+                  brandSymbol: BrandSymbol.orders,
+                  label: 'Заказы',
+                ),
+                AppNavItem(
+                  icon: Icons.person_outline,
+                  selectedIcon: Icons.person,
+                  brandSymbol: BrandSymbol.profile,
+                  label: 'Профиль',
+                ),
+              ],
+            ),
+          ),
+        ),
+        prefs,
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(
+      tester.widget<AnimatedAlign>(find.byType(AnimatedAlign)).duration,
+      Duration.zero,
+    );
+    await tester.tap(find.text('Магазин'));
+    await tester.pumpAndSettle();
+    expect(selectedIndex, 1);
+    expect(tester.takeException(), isNull);
   });
 }

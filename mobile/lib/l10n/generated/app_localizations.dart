@@ -554,6 +554,36 @@ abstract class AppLocalizations {
   /// **'Google orqali davom etish'**
   String get authContinueWithGoogle;
 
+  /// No description provided for @authSaveAccountWithGoogle.
+  ///
+  /// In uz, this message translates to:
+  /// **'Google bilan hisobni saqlash'**
+  String get authSaveAccountWithGoogle;
+
+  /// No description provided for @authSaveAccountWithGoogleMessage.
+  ///
+  /// In uz, this message translates to:
+  /// **'Google shu mehmon hisobiga ulanadi. Balans va buyurtmalar saqlanadi.'**
+  String get authSaveAccountWithGoogleMessage;
+
+  /// No description provided for @authGoogleLinkConflict.
+  ///
+  /// In uz, this message translates to:
+  /// **'Bu Google hisobini joriy hisobga ulab bo‘lmadi. Shu hisobdagi emailga tegishli Google’ni tanlang.'**
+  String get authGoogleLinkConflict;
+
+  /// No description provided for @authGoogleAccountConflict.
+  ///
+  /// In uz, this message translates to:
+  /// **'Bu Google hisobi boshqa hisobga ulangan yoki email mos emas.'**
+  String get authGoogleAccountConflict;
+
+  /// No description provided for @authGoogleClientMisconfiguredMessage.
+  ///
+  /// In uz, this message translates to:
+  /// **'Google sozlamasi noto‘g‘ri. Google Cloud’da OAuth Client ID va ilovaning SHA-1 barmoq izini tekshiring.'**
+  String get authGoogleClientMisconfiguredMessage;
+
   /// No description provided for @authOrDivider.
   ///
   /// In uz, this message translates to:

@@ -31,6 +31,13 @@ class ApiException implements Exception {
     details: cause,
   );
 
+  factory ApiException.googleClientMisconfigured([Object? cause]) =>
+      ApiException(
+        code: 'GOOGLE_CLIENT_MISCONFIGURED',
+        message: 'Google sign-in client is misconfigured',
+        details: cause,
+      );
+
   final String code;
   final String message;
   final int? statusCode;

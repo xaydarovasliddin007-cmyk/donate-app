@@ -5,11 +5,7 @@ import '../theme/app_motion.dart';
 import '../theme/reduce_motion_controller.dart';
 
 class PressableScale extends ConsumerStatefulWidget {
-  const PressableScale({
-    super.key,
-    required this.child,
-    this.onTap,
-  });
+  const PressableScale({super.key, required this.child, this.onTap});
 
   final Widget child;
   final VoidCallback? onTap;
@@ -28,7 +24,9 @@ class _PressableScaleState extends ConsumerState<PressableScale> {
 
   @override
   Widget build(BuildContext context) {
-    final reduceMotion = ref.watch(reduceMotionProvider);
+    final reduceMotion =
+        ref.watch(reduceMotionProvider) ||
+        MediaQuery.disableAnimationsOf(context);
     return GestureDetector(
       onTap: widget.onTap == null
           ? null
@@ -40,7 +38,7 @@ class _PressableScaleState extends ConsumerState<PressableScale> {
       onTapUp: (_) => _setPressed(false),
       onTapCancel: () => _setPressed(false),
       child: AnimatedScale(
-        scale: _pressed ? 0.97 : 1.0,
+        scale: _pressed && !reduceMotion ? 0.98 : 1.0,
         duration: reduceMotion ? Duration.zero : AppMotion.micro,
         curve: Curves.easeOut,
         child: widget.child,

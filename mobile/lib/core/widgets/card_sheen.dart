@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 
 /// A single diagonal light sweep across [child], shortly after mount —
@@ -23,23 +24,28 @@ class CardSheen extends StatefulWidget {
 
 class _CardSheenState extends State<CardSheen>
     with SingleTickerProviderStateMixin {
-  late final AnimationController _controller = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 1100),
-  );
+  late final AnimationController _controller;
+  Timer? _startTimer;
 
   @override
   void initState() {
     super.initState();
+    // Initialize while the State is active, including when motion is off.
+    // Lazy creation from dispose would read TickerMode after deactivation.
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 850),
+    );
     if (widget.enabled) {
-      Future.delayed(const Duration(milliseconds: 450), () {
-        if (mounted) _controller.forward();
+      _startTimer = Timer(const Duration(milliseconds: 300), () {
+        if (mounted && widget.enabled) _controller.forward();
       });
     }
   }
 
   @override
   void dispose() {
+    _startTimer?.cancel();
     _controller.dispose();
     super.dispose();
   }
@@ -51,7 +57,7 @@ class _CardSheenState extends State<CardSheen>
       child: Stack(
         children: [
           widget.child,
-          if (widget.enabled)
+          if (widget.enabled && !MediaQuery.disableAnimationsOf(context))
             Positioned.fill(
               child: IgnorePointer(
                 child: AnimatedBuilder(

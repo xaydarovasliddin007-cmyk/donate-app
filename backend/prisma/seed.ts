@@ -65,6 +65,11 @@ async function main() {
     update: {},
     create: { code: 'RESELLCODES', name: 'ReSellCodes', type: 'TOPUP', isActive: false, healthStatus: 'UNKNOWN' },
   });
+  await prisma.provider.upsert({
+    where: { code: 'G2BULK' },
+    update: {},
+    create: { code: 'G2BULK', name: 'G2Bulk', type: 'TOPUP', isActive: false, healthStatus: 'UNKNOWN' },
+  });
   const fazercardsProvider = await prisma.provider.upsert({
     where: { code: 'FAZERCARDS' },
     update: { isActive: true, healthStatus: 'HEALTHY', lastCheckedAt: new Date() },
@@ -339,7 +344,7 @@ async function main() {
         realTier('MLBB_565_x2', '565 (500+65) Diamonds x2', 96_000, 'mobile_legends_global:500_65_diamonds_first_top_up_bonus'),
         realTier('MLBB_WEEKLY_ELITE', 'Weekly Elite Pack', 11_000, 'mobile_legends_global:weekly_elite_pack'),
         realTier('MLBB_MONTHLY_ELITE', 'Monthly Elite Pack', 51_000, 'mobile_legends_global:monthly_elite_pack'),
-        realTier('MLBB_WEEKLY_PASS', 'Weekly Pass', 18_600, 'mobile_legends_global:weekly_pass', undefined, 'mobilelegends:13'),
+        realTier('MLBB_WEEKLY_PASS', 'Weekly Pass', 18_400, 'mobile_legends_global:weekly_pass', undefined, 'mobilelegends:13'),
         realTier('MLBB_TWILIGHT_PASS', 'Twilight Pass', 105_000, 'mobile_legends_global:twilight_pass'),
         realTier('MLBB_86', '86 (78+8) Diamonds', 15_500, 'mobile_legends_global:78_8_diamonds', undefined, 'mobilelegends:14'),
         realTier('MLBB_172', '172 (156+16) Diamonds', 29_800, 'mobile_legends_global:156_16_diamonds', undefined, 'mobilelegends:15'),

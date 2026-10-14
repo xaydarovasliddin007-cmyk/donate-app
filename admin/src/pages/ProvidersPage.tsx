@@ -19,6 +19,7 @@ export function ProvidersPage() {
   const [confirmingDeactivate, setConfirmingDeactivate] = useState<Provider | null>(null);
   const [syncing, setSyncing] = useState(false);
   const [syncingRsc, setSyncingRsc] = useState(false);
+  const [syncingG2, setSyncingG2] = useState(false);
 
   async function syncCatalog() {
     setSyncing(true);
@@ -50,6 +51,21 @@ export function ProvidersPage() {
     }
   }
 
+  async function syncG2BulkPrices() {
+    setSyncingG2(true);
+    try {
+      const result = await api.post<{ mapped: number; unmatched: number; offerCount: number; usdUzsRate: number }>(
+        '/admin/system/sync-g2bulk-prices',
+      );
+      showSuccess(`G2Bulk: ${result.mapped} PUBG paketining eng arzon varianti yangilandi ($1 = ${result.usdUzsRate.toLocaleString('uz-UZ')} so'm). Yangi SKUlarni mahsulot ulanishlarida tekshiring.`);
+      reload();
+    } catch (err) {
+      showError(err instanceof ApiError ? err.message : 'G2Bulk narxlarini olishda xatolik');
+    } finally {
+      setSyncingG2(false);
+    }
+  }
+
   function successRateLabel(rate: number | null): string {
     if (rate === null) return t('providers.noAttempts');
     return `${(rate * 100).toFixed(1)}%`;
@@ -76,6 +92,9 @@ export function ProvidersPage() {
           <p className="muted">{t('providers.blurb')}</p>
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          <button className="btn btn-secondary" onClick={syncG2BulkPrices} disabled={syncingG2}>
+            {syncingG2 ? 'PUBG narxlari olinmoqda…' : 'G2Bulk PUBG narxlarini tekshirish'}
+          </button>
           <button className="btn btn-secondary" onClick={syncReSellCodesPrices} disabled={syncingRsc}>
             {syncingRsc ? 'Narxlar olinmoqda…' : 'ReSellCodes narxlarini tekshirish'}
           </button>

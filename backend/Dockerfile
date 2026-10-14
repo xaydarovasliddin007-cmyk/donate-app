@@ -1,4 +1,4 @@
-FROM node:20-slim
+FROM node:24-bookworm-slim
 
 # argon2 has no prebuilt binary for this platform, so node-gyp needs to
 # compile it from source at install time.

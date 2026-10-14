@@ -152,3 +152,10 @@ export function LogoutIcon(props: IconProps) {
     </svg>
   );
 }
+
+export function ArrowRightIcon(props: IconProps) {
+  return <svg {...base} {...props}>
+    <path d="M4.5 12h15" />
+    <path d="m13 5.5 6.5 6.5-6.5 6.5" />
+  </svg>;
+}

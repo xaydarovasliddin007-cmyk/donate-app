@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/branding/brand_mark.dart';
 import '../../../core/errors/failure.dart';
 import '../../../core/localization/locale_controller.dart';
+import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../application/auth_controller.dart';
@@ -90,18 +91,27 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     try {
       final success = await ref
           .read(authControllerProvider.notifier)
-          .signInWithGoogle();
-      if (success && mounted) context.pop();
+          .signInWithGoogle(linkToCurrentAccount: true);
+      if (success && mounted) context.go('/home');
     } catch (error) {
       final failure = Failure.from(error);
       if (!mounted) return;
-      final isDevError = error.toString().contains('10') ||
-          error.toString().contains('DEVELOPER_ERROR');
+      final googleDetails = error is ApiException ? error.details : error;
+      final isDevError =
+          googleDetails.toString().contains('clientConfigurationError') ||
+          googleDetails.toString().contains('providerConfigurationError') ||
+          googleDetails.toString().contains('DEVELOPER_ERROR');
       setState(() {
-        if (failure.code == 'GOOGLE_NOT_CONFIGURED') {
+        if (failure.code == 'GOOGLE_NOT_CONFIGURED' ||
+            failure.code == 'SERVICE_UNAVAILABLE') {
           _googleErrorMessage = l10n.authGoogleUnavailableMessage;
+        } else if (failure.code == 'CONFLICT') {
+          _googleErrorMessage = l10n.authGoogleLinkConflict;
+        } else if (failure.code == 'GOOGLE_CLIENT_MISCONFIGURED') {
+          _googleErrorMessage = l10n.authGoogleClientMisconfiguredMessage;
         } else if (isDevError) {
-          _googleErrorMessage = Localizations.localeOf(context).languageCode == 'ru'
+          _googleErrorMessage =
+              Localizations.localeOf(context).languageCode == 'ru'
               ? 'Ошибка Google Play (SHA-1 не привязан в Google Cloud Console). Войдите по Email или продолжите как гость.'
               : 'Google Play xatosi (Google Cloud Console\'da SHA-1 ulanmagan). Email orqali kiring yoki Mehmon rejimida davom eting.';
         } else {
@@ -129,9 +139,17 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               const Center(child: BrandMark(size: 52)),
               const SizedBox(height: AppSpacing.xl),
               GoogleAuthButton(
-                label: l10n.authContinueWithGoogle,
+                label: l10n.authSaveAccountWithGoogle,
                 loading: _googleSubmitting,
                 onPressed: _busy ? null : _submitGoogle,
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                l10n.authSaveAccountWithGoogleMessage,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
               ),
               if (_googleErrorMessage != null) ...[
                 const SizedBox(height: AppSpacing.sm),

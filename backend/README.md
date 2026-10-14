@@ -144,14 +144,27 @@ spend on purchases, but there is no P2P transfer, withdrawal, or cash-out anywhe
   `applyLedgerEntry()`, always require a `reason`, and are always audit-logged
   (`writeAuditLog`) — there is no endpoint that writes `wallets.balance_minor` directly.
 
+### Shared website, app and Telegram account
+
+The browser storefront (`superapp/`, served at `/webapp/`) supports email login,
+registration, password recovery and logout. A guest or Telegram customer can save
+the current account by requesting an email code and posting the code and password
+to authenticated `POST /api/v1/auth/account/complete`. This keeps the same public
+ID, wallet, orders and Telegram identity; the verified email/password then works
+in the mobile app and browser. Existing registered accounts use normal login.
+This does not merge two pre-existing accounts or their balances.
+
 ## API surface
 
 ```
 GET    /health                              liveness, never touches the DB
 GET    /ready                                readiness, 503 if DB unreachable
 
-POST   /api/v1/auth/register|login|refresh|logout
+POST   /api/v1/auth/register/request-code|register/complete
+POST   /api/v1/auth/account/complete
+POST   /api/v1/auth/login|refresh|logout
 POST   /api/v1/auth/google                   real Google ID token verification, see below
+POST   /api/v1/auth/google/link              auth required — link Google to current account, preserving its wallet and orders
 GET    /api/v1/auth/me
 GET    /api/v1/auth/sessions                  auth required — active device/session list
 DELETE /api/v1/auth/sessions/:id              auth required — revoke one session
@@ -265,6 +278,13 @@ To set this up from scratch on a new machine/project:
 4. Run the Flutter app with `--dart-define=GOOGLE_SERVER_CLIENT_ID=<same Web client ID>`.
 5. Under Audience → Test users, add every Google account that needs to sign in while the app
    is unverified/in Testing status — sign-in fails silently past the account picker otherwise.
+
+For the website, add its production origin (and any local development origin you use) to
+**Authorized JavaScript origins** on the same Web client. The site reads this public client ID
+from `/api/v1/app/config`; the backend still verifies every Google ID token against it.
+The isolated local preview runs at `http://localhost:4001`, so add that exact origin when
+testing Google sign-in locally. Google rejects the preview if it is opened as `127.0.0.1` or
+another host that is not listed on this OAuth client.
 
 Both the Web and Android client IDs must exist in the same GCP project for Android's native
 Google Sign-In flow to hand back a token this backend can verify.
@@ -400,14 +420,49 @@ ReSellCodes API v1 is wired as an optional server-side provider. Configure `RSC_
 as a backend/Render secret, and set `RSC_USD_UZS_RATE` to the effective UZS paid per USD when
 funding the supplier wallet (including the actual exchange spread; do not use a guessed rate).
 The admin Providers page has a separate **ReSellCodes narxlarini tekshirish** action. It only
-reads the account-specific top-up catalog and stores exact supported SKU matches as disabled
-provider mappings. Review product, game region, required account fields, and the converted cost
+reads the account-specific top-up catalog and stores exact supported SKU matches. New or changed
+SKUs are disabled; price refreshes preserve reviewed activation settings. Supported automatic
+channels are PUBG Auto, Mobile Legends Global and Free Fire CIS (the unsegmented Free Fire
+catalogue serves CIS). Manual channels and ambiguous denominations/regions are excluded.
+Large MLBB names such as `9288 (7740+1548) Diamonds` match the same delivered quantity.
+Review product, game region, required account fields, and the converted cost
 before enabling the provider or any individual mapping. This action never places an order.
 
 Do not use the RSC supplier for a paid order until its catalog is synced and the matching
 disabled mappings are reviewed. Provider order creation charges the RSC balance immediately;
 there is no live-order smoke test in this setup flow. The adapter treats ambiguous network
 results as pending to avoid an accidental second purchase.
+
+## G2Bulk PUBG setup and cheapest routing
+
+The optional G2Bulk REST v1 adapter supports direct Global PUBG UC delivery. Its public
+catalogue is read live, including discounted large packages; prices are never copied from
+the research report. China, Japan, Korea, Taiwan and Vietnam are excluded by the supplier.
+API reference: https://api.g2bulk.com/docs.
+
+1. Create your own G2Bulk account/API key via the official site/API-key link and fund its wallet.
+2. Set `G2BULK_API_KEY` as a backend secret and `G2BULK_USD_UZS_RATE` to the effective UZS
+   paid per USD, including funding fees/spread. Restart the backend after configuration.
+3. In admin Providers, use **G2Bulk PUBG narxlarini tekshirish**. It verifies a configured
+   key with a read-only account request, confirms required player fields and maps only exact
+   quantities to existing Global PUBG products. It chooses the cheapest G2Bulk SKU for each
+   quantity. A catalogue preview without a key is also possible once the funding rate is set.
+4. Review and enable the new product mappings and provider. Refreshing the same SKU keeps
+   its activation; changing/disappearing SKUs are disabled for review. Sync does not buy credits.
+
+Enabled, configured suppliers are already sorted by UZS cost across providers. Keep both
+ReSellCodes and G2Bulk mappings to route each package through the lower funded cost; a lower
+USD quote alone does not guarantee a lower UZS cost when their funding rates differ.
+G2Bulk rechecks its current price and wallet before purchase and rejects price increases
+before submission so fulfillment can try the next supplier. Accepted orders carry our UUID
+as the idempotency key; a timeout, unknown response or post-acceptance failure never triggers
+another purchase automatically. Status polling uses documented, authenticated game order
+history (up to 1,000 recent orders) because the docs omit the dedicated status request schema.
+Missing or unfamiliar statuses stay pending for reconciliation. No unsigned webhook is used.
+
+Without the G2Bulk key/rate, the adapter is not registered and cannot be activated. No live
+purchase has been performed by setup or tests; a funded account and a controlled delivery
+check are still needed before treating it as verified in production.
 
 ## Card-transfer auto top-up setup
 

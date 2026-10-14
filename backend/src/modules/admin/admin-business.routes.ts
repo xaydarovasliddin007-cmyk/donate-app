@@ -428,4 +428,9 @@ export async function adminBusinessRoutes(app: FastifyInstance) {
     { preHandler: requireAdminRole('SUPER_ADMIN', 'ADMIN') },
     async (request) => adminService.syncReSellCodesPricesAdmin(ctx, request.currentAdmin!.id),
   );
+  app.post(
+    '/system/sync-g2bulk-prices',
+    { preHandler: requireAdminRole('SUPER_ADMIN', 'ADMIN') },
+    async (request) => adminService.syncG2BulkPricesAdmin(ctx, request.currentAdmin!.id),
+  );
 }

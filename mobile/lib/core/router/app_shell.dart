@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../l10n/generated/app_localizations.dart';
+import '../branding/brand_icon.dart';
 import '../notifications/notification_watcher.dart';
 import '../widgets/app_bottom_nav.dart';
 
@@ -38,21 +39,25 @@ class AppShell extends ConsumerWidget {
             icon: Icons.home_outlined,
             selectedIcon: Icons.home_rounded,
             label: l10n.navHome,
+            brandSymbol: BrandSymbol.home,
           ),
           AppNavItem(
             icon: Icons.sports_esports_outlined,
             selectedIcon: Icons.sports_esports_rounded,
             label: l10n.navGames,
+            brandSymbol: BrandSymbol.catalog,
           ),
           AppNavItem(
             icon: Icons.receipt_long_outlined,
             selectedIcon: Icons.receipt_long_rounded,
             label: l10n.navOrders,
+            brandSymbol: BrandSymbol.orders,
           ),
           AppNavItem(
             icon: Icons.person_outline_rounded,
             selectedIcon: Icons.person_rounded,
             label: l10n.navProfile,
+            brandSymbol: BrandSymbol.profile,
           ),
         ],
       ),

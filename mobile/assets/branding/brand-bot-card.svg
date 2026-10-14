@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+<rect width="1200" height="630" fill="#0A0D15"/>
+<path d="M860-50 510 680M1120-50 770 680M1380-50 1030 680" stroke="#15243B" stroke-width="100"/>
+<path d="M0 530h1200" stroke="#26354A"/>
+<g transform="translate(64 128) scale(2.7)">
+  <rect width="128" height="128" rx="32" fill="#0A0D15"/>
+  <rect x=".5" y=".5" width="127" height="127" rx="31.5" stroke="#26354A"/>
+  <path d="M54 25h25c24 0 39 16 39 38s-15 38-39 38h-8V84h8c14 0 22-8 22-21s-8-21-22-21H54V25Z" fill="#387BFF"/>
+  <path d="M19 32h17v41a15 15 0 0 0 30 0V55h17v18a32 32 0 0 1-64 0V32Z" fill="#F5F8FF"/>
+  <path d="M54 25h25c8 0 15 2 21 5l-9 13a27 27 0 0 0-12-1H54V25Z" fill="#46DCEF"/>
+</g>
+<text x="466" y="266" font-family="Arial,sans-serif" font-weight="800" font-size="85" letter-spacing="-3" fill="#F5F8FF">UZ<tspan fill="#46DCEF">DONATE</tspan></text>
+<text x="471" y="328" font-family="Arial,sans-serif" font-size="28" fill="#B5C3D7">O'yiningiz bilan birga.</text>
+<rect x="471" y="369" width="164" height="4" rx="2" fill="#387BFF"/>
+<text x="64" y="586" font-family="Arial,sans-serif" font-weight="600" font-size="22" fill="#B5C3D7">Mobile Legends</text>
+<circle cx="272" cy="579" r="3" fill="#46DCEF"/>
+<text x="295" y="586" font-family="Arial,sans-serif" font-weight="600" font-size="22" fill="#B5C3D7">PUBG Mobile</text>
+<circle cx="474" cy="579" r="3" fill="#46DCEF"/>
+<text x="497" y="586" font-family="Arial,sans-serif" font-weight="600" font-size="22" fill="#B5C3D7">Free Fire</text>
+<text x="1136" y="586" text-anchor="end" font-family="Arial,sans-serif" font-weight="600" font-size="18" fill="#46DCEF">O'YINLAR / PAKETLAR / OBUNALAR</text>
+</svg>

@@ -4,6 +4,7 @@ import { api } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import { useLocale } from '../i18n/LocaleContext';
 import { LanguageSwitcher } from './LanguageSwitcher';
+import { BrandMark } from './BrandMark';
 import {
   AdminsIcon,
   AuditIcon,
@@ -98,13 +99,13 @@ export function Layout() {
       {navOpen && <div className="sidebar-scrim" onClick={() => setNavOpen(false)} />}
 
       <aside className={`sidebar${navOpen ? ' open' : ''}`}>
-        <div className="brand">
-          <span className="brand-mark">U</span>
+        <NavLink className="brand" to="/" onClick={() => setNavOpen(false)}>
+          <BrandMark className="brand-mark" />
           <span>
-            UZDONATE
+            <span className="brand-wordmark">UZ<span>DONATE</span></span>
             <small>{t('nav.tagline')}</small>
           </span>
-        </div>
+        </NavLink>
         <nav onClick={() => setNavOpen(false)}>
           {navItems.map((item) => (
             <NavLink
@@ -113,7 +114,7 @@ export function Layout() {
               end={item.end}
               className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
             >
-              <span className="nav-icon">{item.icon}</span>
+              <span className="nav-icon" aria-hidden="true">{item.icon}</span>
               {t(item.labelKey)}
               {item.to === '/topups' && pendingTopUps > 0 && (
                 <span className="nav-badge">{pendingTopUps > 99 ? '99+' : pendingTopUps}</span>

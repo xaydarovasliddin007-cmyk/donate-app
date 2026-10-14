@@ -13,6 +13,7 @@
 **/build
 **/*.log
 backend/artifacts
+artifacts
 backend/test
 mobile/.flutter-plugins*
 mobile/android/.gradle

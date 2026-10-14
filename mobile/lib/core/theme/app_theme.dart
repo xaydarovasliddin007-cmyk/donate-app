@@ -13,7 +13,7 @@ abstract final class AppTheme {
     final colorScheme = ColorScheme.fromSeed(
       seedColor: AppColors.brandPrimary,
       brightness: brightness,
-      primary: isDark ? AppColors.brandPrimaryDark : AppColors.brandPrimary,
+      primary: isDark ? AppColors.brandPrimaryDark : AppColors.brandAction,
       secondary: isDark ? AppColors.brandAccentDark : AppColors.brandAccent,
       tertiary: AppColors.brandWarm,
       error: AppColors.danger,
@@ -34,13 +34,15 @@ abstract final class AppTheme {
           ? AppColors.darkBackground
           : AppColors.lightBackground,
       visualDensity: VisualDensity.adaptivePlatformDensity,
-      splashFactory: InkSparkle.splashFactory,
+      splashFactory: InkRipple.splashFactory,
+      iconTheme: IconThemeData(color: colorScheme.onSurface, size: 22),
 
       appBarTheme: AppBarTheme(
         backgroundColor: isDark
             ? AppColors.darkBackground
             : AppColors.lightBackground,
         foregroundColor: colorScheme.onSurface,
+        toolbarHeight: 64,
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: false,
@@ -102,7 +104,7 @@ abstract final class AppTheme {
         filled: true,
         fillColor: isDark
             ? AppColors.surfaceCardDark
-            : colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+            : AppColors.surfaceCardLight,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.md,
           vertical: AppSpacing.md,

@@ -1,24 +1,29 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../branding/brand_icon.dart';
 import '../theme/app_motion.dart';
 import '../theme/app_spacing.dart';
+import '../theme/reduce_motion_controller.dart';
 
 class AppNavItem {
   const AppNavItem({
     required this.icon,
     required this.selectedIcon,
     required this.label,
+    this.brandSymbol,
   });
 
   final IconData icon;
   final IconData selectedIcon;
   final String label;
+  final BrandSymbol? brandSymbol;
 }
 
 /// A custom, floating pill-shaped bottom navigation bar with a sliding
 /// gradient indicator and an animated icon/label state per tab —
 /// deliberately not the stock [NavigationBar] look, per the product's
 /// "must not feel like a generic Flutter template" requirement.
-class AppBottomNav extends StatelessWidget {
+class AppBottomNav extends ConsumerWidget {
   const AppBottomNav({
     super.key,
     required this.items,
@@ -31,10 +36,13 @@ class AppBottomNav extends StatelessWidget {
   final ValueChanged<int> onTap;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     final isDark = theme.brightness == Brightness.dark;
+    final reduceMotion =
+        ref.watch(reduceMotionProvider) ||
+        MediaQuery.disableAnimationsOf(context);
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(
@@ -46,11 +54,11 @@ class AppBottomNav extends StatelessWidget {
       child: SafeArea(
         top: false,
         child: Container(
-          height: 64,
+          height:
+              68 +
+              (MediaQuery.textScalerOf(context).scale(11) - 11).clamp(0, 16),
           decoration: BoxDecoration(
-            color: isDark
-                ? const Color(0xEE181A22)
-                : const Color(0xF7FFFFFF),
+            color: isDark ? const Color(0xF5121925) : const Color(0xF7FFFFFF),
             borderRadius: BorderRadius.circular(AppRadius.pill),
             border: Border.all(
               color: isDark
@@ -74,7 +82,7 @@ class AppBottomNav extends StatelessWidget {
           child: Stack(
             children: [
               AnimatedAlign(
-                duration: AppMotion.medium,
+                duration: reduceMotion ? Duration.zero : AppMotion.medium,
                 curve: AppMotion.emphasized,
                 alignment: Alignment(
                   items.length == 1
@@ -94,13 +102,19 @@ class AppBottomNav extends StatelessWidget {
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [
-                            scheme.primary.withValues(alpha: isDark ? 0.22 : 0.15),
-                            scheme.secondary.withValues(alpha: isDark ? 0.16 : 0.10),
+                            scheme.primary.withValues(
+                              alpha: isDark ? 0.22 : 0.15,
+                            ),
+                            scheme.secondary.withValues(
+                              alpha: isDark ? 0.16 : 0.10,
+                            ),
                           ],
                         ),
                         borderRadius: BorderRadius.circular(AppRadius.pill),
                         border: Border.all(
-                          color: scheme.primary.withValues(alpha: isDark ? 0.35 : 0.25),
+                          color: scheme.primary.withValues(
+                            alpha: isDark ? 0.35 : 0.25,
+                          ),
                           width: 1,
                         ),
                       ),
@@ -115,6 +129,7 @@ class AppBottomNav extends StatelessWidget {
                       child: _NavItemButton(
                         item: items[i],
                         selected: i == currentIndex,
+                        reduceMotion: reduceMotion,
                         onTap: () => onTap(i),
                       ),
                     ),
@@ -133,11 +148,13 @@ class _NavItemButton extends StatelessWidget {
     required this.item,
     required this.selected,
     required this.onTap,
+    required this.reduceMotion,
   });
 
   final AppNavItem item;
   final bool selected;
   final VoidCallback onTap;
+  final bool reduceMotion;
 
   @override
   Widget build(BuildContext context) {
@@ -156,22 +173,35 @@ class _NavItemButton extends StatelessWidget {
           children: [
             AnimatedScale(
               scale: selected ? 1.08 : 1.0,
-              duration: AppMotion.micro,
+              duration: reduceMotion ? Duration.zero : AppMotion.micro,
               curve: Curves.easeOut,
-              child: Icon(
-                selected ? item.selectedIcon : item.icon,
-                color: color,
-                size: 24,
-              ),
+              child: item.brandSymbol != null
+                  ? BrandIcon(
+                      item.brandSymbol!,
+                      color: color,
+                      selected: selected,
+                    )
+                  : Icon(
+                      selected ? item.selectedIcon : item.icon,
+                      color: color,
+                      size: 24,
+                    ),
             ),
             const SizedBox(height: 3),
             AnimatedDefaultTextStyle(
-              duration: AppMotion.micro,
+              duration: reduceMotion ? Duration.zero : AppMotion.micro,
               style: Theme.of(context).textTheme.labelSmall!.copyWith(
                 color: color,
                 fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
               ),
-              child: Text(item.label),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: Text(
+                  item.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
             ),
           ],
         ),

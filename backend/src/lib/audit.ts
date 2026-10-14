@@ -9,7 +9,7 @@ interface WriteAuditLogParams {
 }
 
 /** Records a sensitive admin action. Never skip this for writes that touch money, access, or content visible to customers. */
-export function writeAuditLog(prisma: PrismaClient, params: WriteAuditLogParams) {
+export function writeAuditLog(prisma: Pick<PrismaClient, 'auditLog'>, params: WriteAuditLogParams) {
   return prisma.auditLog.create({
     data: {
       actorType: 'ADMIN',

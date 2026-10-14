@@ -249,6 +249,25 @@ class AppLocalizationsUz extends AppLocalizations {
   String get authContinueWithGoogle => 'Google orqali davom etish';
 
   @override
+  String get authSaveAccountWithGoogle => 'Google bilan hisobni saqlash';
+
+  @override
+  String get authSaveAccountWithGoogleMessage =>
+      'Google shu mehmon hisobiga ulanadi. Balans va buyurtmalar saqlanadi.';
+
+  @override
+  String get authGoogleLinkConflict =>
+      'Bu Google hisobini joriy hisobga ulab bo‘lmadi. Shu hisobdagi emailga tegishli Google’ni tanlang.';
+
+  @override
+  String get authGoogleAccountConflict =>
+      'Bu Google hisobi boshqa hisobga ulangan yoki email mos emas.';
+
+  @override
+  String get authGoogleClientMisconfiguredMessage =>
+      'Google sozlamasi noto‘g‘ri. Google Cloud’da OAuth Client ID va ilovaning SHA-1 barmoq izini tekshiring.';
+
+  @override
   String get authOrDivider => 'yoki';
 
   @override

@@ -1,9 +1,11 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useId, useRef, type ReactNode } from 'react';
 import { X } from 'lucide-react';
 import { telegram } from '../services/telegram';
 
 export function Sheet({ title, onClose, onBack, children, busy = false, className = '' }: { title: string; onClose: () => void; onBack?: () => void; children: ReactNode; busy?: boolean; className?: string }) {
   const dialog = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
+  const closeLabel = document.documentElement.lang === 'ru' ? 'Закрыть' : 'Yopish';
   const close = useRef(onClose);
   close.current = onClose;
   useEffect(() => {
@@ -20,13 +22,13 @@ export function Sheet({ title, onClose, onBack, children, busy = false, classNam
     button?.show(); button?.onClick(back);
     return () => { button?.offClick(back); button?.hide(); };
   }, [busy, onBack]);
-  return <dialog ref={dialog} className={`sheet ${className}`} aria-label={title}
+  return <dialog ref={dialog} className={`sheet ${className}`} aria-labelledby={titleId}
     onCancel={(event) => { event.preventDefault(); if (!busy) onClose(); }}
     onClick={(event) => { if (event.target === event.currentTarget && !busy) {
       const rect = event.currentTarget.getBoundingClientRect();
       if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) onClose();
     } }}>
-    <header className="sheet-header"><h2>{title}</h2><button className="icon-button" title="Yopish" aria-label="Yopish" disabled={busy} onClick={onClose}><X size={21}/></button></header>
+    <header className="sheet-header"><h2 id={titleId}>{title}</h2><button className="icon-button" title={closeLabel} aria-label={closeLabel} disabled={busy} onClick={onClose}><X size={21}/></button></header>
     {children}
   </dialog>;
 }

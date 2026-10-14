@@ -22,6 +22,7 @@ export function errorText(error: unknown) {
   return "Internet aloqasini tekshiring va qayta urinib ko'ring.";
 }
 function save(next: Session) {
+  if (session?.user.id !== next.user.id) refreshPromise = null;
   session = next;
   try { sessionStorage.setItem(key, JSON.stringify(next)); } catch { /* Keep the in-memory session. */ }
   return next;
@@ -59,14 +60,47 @@ export async function signIn(locale: 'uz' | 'ru' = 'uz'): Promise<Session> {
 export async function login(email: string, password: string) {
   return save(await raw<Session>('/auth/login', { email, password }));
 }
+export async function googleSignIn(idToken: string, locale: 'uz' | 'ru', linkToCurrentAccount: boolean) {
+  const endpoint = linkToCurrentAccount ? '/auth/google/link' : '/auth/google';
+  const result = linkToCurrentAccount
+    ? await api<Session>(endpoint, { idToken, locale })
+    : await raw<Session>(endpoint, { idToken, locale });
+  return save(result);
+}
+export async function completeAccount(email: string, code: string, password: string) {
+  return save(await api<Session>('/auth/account/complete', { email, code, password }));
+}
+export async function resetPassword(email: string, code: string, newPassword: string) {
+  return save(await raw<Session>('/auth/password/reset', { email, code, newPassword }));
+}
+export async function logout() {
+  const current = session;
+  if (current?.refreshToken) await raw('/auth/logout', { refreshToken: current.refreshToken });
+  if (session !== current) return;
+  session = null;
+  refreshPromise = null;
+  try { sessionStorage.removeItem(key); } catch { /* Clear the in-memory session regardless. */ }
+}
 export async function api<T>(path: string, body?: unknown, auth = true): Promise<T> {
   if (auth && !session) await signIn();
-  try { return await raw<T>(path, body, auth ? session?.accessToken : undefined); }
+  const current = session;
+  try {
+    const result = await raw<T>(path, body, auth ? current?.accessToken : undefined);
+    if (auth && session?.user.id !== current?.user.id) throw new ApiError(409, 'ACCOUNT_CHANGED', 'Hisob o‘zgardi. Qayta urinib ko‘ring.');
+    return result;
+  }
   catch (error) {
-    if (!(error instanceof ApiError) || error.status !== 401 || !auth || !session?.refreshToken) throw error;
-    if (!refreshPromise) refreshPromise = raw<Session>('/auth/refresh', { refreshToken: session.refreshToken })
-      .then(save).finally(() => { refreshPromise = null; });
+    if (!(error instanceof ApiError) || error.status !== 401 || !auth || !current?.refreshToken || session !== current) throw error;
+    if (!refreshPromise) {
+      const pending = raw<Session>('/auth/refresh', { refreshToken: current.refreshToken })
+        .then((next) => {
+          if (session !== current) throw new ApiError(409, 'ACCOUNT_CHANGED', 'Hisob o‘zgardi. Qayta urinib ko‘ring.');
+          return save(next);
+        }).finally(() => { if (refreshPromise === pending) refreshPromise = null; });
+      refreshPromise = pending;
+    }
     await refreshPromise;
+    if (session?.user.id !== current.user.id) throw new ApiError(409, 'ACCOUNT_CHANGED', 'Hisob o‘zgardi. Qayta urinib ko‘ring.');
     return raw<T>(path, body, session?.accessToken);
   }
 }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/branding/brand_icon.dart';
+import '../../../../core/branding/brand_mark.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_motion.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -32,7 +34,9 @@ class _WalletBalanceCardState extends ConsumerState<WalletBalanceCard> {
     final gradient = isDark
         ? AppColors.heroGradientDark
         : AppColors.heroGradientLight;
-    final reduceMotion = ref.watch(reduceMotionProvider);
+    final reduceMotion =
+        ref.watch(reduceMotionProvider) ||
+        MediaQuery.disableAnimationsOf(context);
 
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: 1),
@@ -52,8 +56,8 @@ class _WalletBalanceCardState extends ConsumerState<WalletBalanceCard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            AspectRatio(
-              aspectRatio: 2.4,
+            ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 172),
               child: DecoratedBox(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(AppRadius.xl),
@@ -69,7 +73,7 @@ class _WalletBalanceCardState extends ConsumerState<WalletBalanceCard> {
                   borderRadius: BorderRadius.circular(AppRadius.xl),
                   enabled: !reduceMotion,
                   child: Container(
-                    padding: const EdgeInsets.all(AppSpacing.lg),
+                    padding: const EdgeInsets.all(AppSpacing.md + 4),
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.topLeft,
@@ -82,17 +86,15 @@ class _WalletBalanceCardState extends ConsumerState<WalletBalanceCard> {
                       ),
                     ),
                     child: Column(
+                      mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
                           children: [
-                            Text(
-                              'UZDONATE',
-                              style: theme.textTheme.labelLarge?.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 0,
-                              ),
+                            const BrandMark(
+                              size: 26,
+                              showWordmark: true,
+                              wordmarkColor: Colors.white,
                             ),
                             const Spacer(),
                             InkWell(
@@ -113,7 +115,7 @@ class _WalletBalanceCardState extends ConsumerState<WalletBalanceCard> {
                             ),
                           ],
                         ),
-                        const Spacer(),
+                        const SizedBox(height: AppSpacing.lg),
                         Text(
                           l10n.walletBalanceLabel,
                           style: theme.textTheme.labelSmall?.copyWith(
@@ -121,45 +123,54 @@ class _WalletBalanceCardState extends ConsumerState<WalletBalanceCard> {
                           ),
                         ),
                         const SizedBox(height: 2),
-                        AnimatedSwitcher(
-                          duration: AppMotion.fast,
-                          child: _hidden
-                              ? Text(
-                                  '••••••',
-                                  key: const ValueKey('hidden'),
-                                  style: theme.textTheme.titleLarge
-                                      ?.copyWith(
-                                        fontWeight: FontWeight.w800,
-                                        color: Colors.white,
-                                      ),
-                                )
-                              : walletAsync.when(
-                                  loading: () => SkeletonBox(
-                                    key: const ValueKey('loading'),
-                                    width: 110,
-                                    height: 20,
-                                    borderRadius: BorderRadius.circular(
-                                      AppRadius.sm,
-                                    ),
-                                  ),
-                                  error: (_, _) => Text(
-                                    '—',
-                                    key: const ValueKey('error'),
-                                    style: theme.textTheme.titleLarge
-                                        ?.copyWith(color: Colors.white),
-                                  ),
-                                  data: (wallet) => AnimatedBalance(
-                                    key: const ValueKey('visible'),
-                                    amountMinor: wallet.balanceMinor,
-                                    currency: wallet.currency,
-                                    localeName: localeName,
-                                    style: theme.textTheme.titleLarge
-                                        ?.copyWith(
-                                          fontWeight: FontWeight.w800,
-                                          color: Colors.white,
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: AnimatedSwitcher(
+                              duration: reduceMotion
+                                  ? Duration.zero
+                                  : AppMotion.fast,
+                              child: _hidden
+                                  ? Text(
+                                      '••••••',
+                                      key: const ValueKey('hidden'),
+                                      style: theme.textTheme.headlineSmall
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w800,
+                                            color: Colors.white,
+                                          ),
+                                    )
+                                  : walletAsync.when(
+                                      loading: () => SkeletonBox(
+                                        key: const ValueKey('loading'),
+                                        width: 110,
+                                        height: 20,
+                                        borderRadius: BorderRadius.circular(
+                                          AppRadius.sm,
                                         ),
-                                  ),
-                                ),
+                                      ),
+                                      error: (_, _) => Text(
+                                        '—',
+                                        key: const ValueKey('error'),
+                                        style: theme.textTheme.headlineSmall
+                                            ?.copyWith(color: Colors.white),
+                                      ),
+                                      data: (wallet) => AnimatedBalance(
+                                        key: const ValueKey('visible'),
+                                        amountMinor: wallet.balanceMinor,
+                                        currency: wallet.currency,
+                                        localeName: localeName,
+                                        style: theme.textTheme.headlineSmall
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.w800,
+                                              color: Colors.white,
+                                            ),
+                                      ),
+                                    ),
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -172,7 +183,7 @@ class _WalletBalanceCardState extends ConsumerState<WalletBalanceCard> {
               children: [
                 Expanded(
                   child: _QuickActionPill(
-                    icon: Icons.add_rounded,
+                    icon: BrandSymbol.add,
                     label: l10n.walletTopUpShortButton,
                     filled: true,
                     onTap: () => context.push('/wallet/topup'),
@@ -185,7 +196,7 @@ class _WalletBalanceCardState extends ConsumerState<WalletBalanceCard> {
                 const SizedBox(width: AppSpacing.sm),
                 Expanded(
                   child: _QuickActionPill(
-                    icon: Icons.history_rounded,
+                    icon: BrandSymbol.history,
                     label: l10n.walletHistoryButton,
                     filled: false,
                     onTap: () => context.push('/wallet/history'),
@@ -208,7 +219,7 @@ class _QuickActionPill extends StatelessWidget {
     required this.filled,
   });
 
-  final IconData icon;
+  final BrandSymbol icon;
   final String label;
   final VoidCallback onTap;
   final bool filled;
@@ -252,11 +263,11 @@ class _QuickActionPill extends StatelessWidget {
               : null,
         ),
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 10),
+          padding: const EdgeInsets.symmetric(vertical: 13, horizontal: 10),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
+              BrandIcon(
                 icon,
                 size: 16,
                 color: filled ? Colors.white : theme.colorScheme.onSurface,

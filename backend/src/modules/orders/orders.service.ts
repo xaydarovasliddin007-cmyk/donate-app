@@ -528,6 +528,7 @@ async function runFulfillmentAttempt(
       // comment on CreateTopupParams.
       gameServerCode: order.serverId ?? undefined,
       referenceId: order.id,
+      expectedCostMinor: providerProduct.costMinor ?? undefined,
     });
   } catch (error) {
     result = {
@@ -555,10 +556,11 @@ async function runFulfillmentAttempt(
     },
   });
 
-  if (attemptStatus !== 'FAILED' && providerProduct.costMinor != null) {
+  const supplierCost = result.costMinor ?? providerProduct.costMinor;
+  if (attemptStatus !== 'FAILED' && supplierCost != null) {
     await ctx.prisma.orderItem.updateMany({
       where: { orderId: order.id },
-      data: { costMinorSnapshot: providerProduct.costMinor },
+      data: { costMinorSnapshot: supplierCost },
     });
   }
 

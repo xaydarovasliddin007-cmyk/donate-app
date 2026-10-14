@@ -41,6 +41,8 @@ export interface CreateTopupParams {
   gameServerCode?: string;
   /** Our order ID — passed through so the provider-side transaction can be traced back to us. */
   referenceId: string;
+  /** Last synced supplier cost; adapters may reject a price increase before buying. */
+  expectedCostMinor?: number;
 }
 
 export interface CreateTopupResult {
@@ -51,6 +53,8 @@ export interface CreateTopupResult {
   reason?: string;
   /** True only when the provider definitively rejected the order before delivery. */
   canFallback?: boolean;
+  /** Fresh normalized supplier cost, when confirmed by the adapter. */
+  costMinor?: number;
   raw?: unknown;
 }
 

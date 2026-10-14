@@ -1,4 +1,4 @@
-FROM node:20-slim AS build
+FROM node:24-bookworm-slim AS build
 
 # argon2 may need a local toolchain when a matching prebuilt binary is not available.
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -12,7 +12,7 @@ RUN npm --prefix backend ci --include=dev \
     && npm --prefix backend run prisma:generate \
     && npm --prefix backend run build:release
 
-FROM node:20-slim AS runtime
+FROM node:24-bookworm-slim AS runtime
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates python3 make g++ \

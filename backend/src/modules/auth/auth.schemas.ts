@@ -45,7 +45,7 @@ export const passwordResetSchema = z.object({
 });
 
 export const googleAuthSchema = z.object({
-  // The raw Google ID token (JWT) from the Flutter google_sign_in flow —
+  // The raw Google ID token (JWT) from Google Identity Services or Flutter —
   // never trusted as-is, always re-verified server-side against Google.
   idToken: z.string().min(1),
   locale: z.enum(['uz', 'ru', 'en']).default('uz'),

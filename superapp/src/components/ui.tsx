@@ -6,6 +6,9 @@ import { tr, type Locale } from '../i18n';
 export const money = (minor: number, currency = 'UZS', locale: Locale = 'uz') => `${(minor / 100).toLocaleString(locale === 'ru' ? 'ru-RU' : 'uz-UZ', { maximumFractionDigits: 2 })} ${currency === 'UZS' ? (locale === 'ru' ? 'сум' : "so'm") : locale === 'ru' ? 'Звёзд' : 'Stars'}`;
 export const date = (iso: string, locale: Locale = 'uz') => new Date(iso).toLocaleString(locale === 'ru' ? 'ru-RU' : 'uz-UZ', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 export const statuses: Record<Order['status'], string> = { PENDING: "To'lov kutilmoqda", PAID: "To'langan", PROCESSING: 'Bajarilmoqda', COMPLETED: 'Bajarildi', FAILED: 'Bajarilmadi', CANCELLED: 'Bekor qilindi', REFUNDED: 'Qaytarildi' };
+export function CatalogSkeleton() {
+  return <div className="catalog-skeleton" aria-hidden="true"><div className="skeleton skeleton-cover"/><div className="skeleton-copy"><i className="skeleton skeleton-line"/><i className="skeleton skeleton-line"/></div></div>;
+}
 export function ErrorBox({ message, retry, locale = 'uz' }: { message: string; retry?: () => void; locale?: Locale }) {
   return <div className="error-box" role="alert"><AlertCircle size={20}/><span>{tr(locale, message)}</span>{retry && <button className="icon-button" title={tr(locale, 'Qayta urinish')} aria-label={tr(locale, 'Qayta urinish')} onClick={retry}><RefreshCw size={18}/></button>}</div>;
 }

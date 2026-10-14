@@ -41,7 +41,10 @@ class _StaggeredEntranceState extends ConsumerState<StaggeredEntrance> {
 
   @override
   Widget build(BuildContext context) {
-    final reduceMotion = ref.watch(reduceMotionProvider);
+    final reduceMotion =
+        ref.watch(reduceMotionProvider) ||
+        MediaQuery.disableAnimationsOf(context);
+    if (reduceMotion) return widget.child;
     final duration = reduceMotion ? Duration.zero : AppMotion.fast;
     return AnimatedOpacity(
       opacity: _visible ? 1 : 0,

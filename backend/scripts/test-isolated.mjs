@@ -1,6 +1,6 @@
 import EmbeddedPostgres from 'embedded-postgres';
 import { randomBytes } from 'node:crypto';
-import { execSync, spawn } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
@@ -26,15 +26,20 @@ const env = { ...process.env, NODE_ENV: 'test', LOG_LEVEL: 'error',
 // dotenv must not load real notification/provider credentials into isolated tests.
 delete env.TELEGRAM_ADMIN_CHAT_ID;
 delete env.SMTP_HOST;
+const backendDir = path.join(root, 'backend');
+function runInstalled(relativeCli, args) {
+  execFileSync(process.execPath, [path.join(backendDir, 'node_modules', relativeCli), ...args],
+    { cwd: backendDir, env, stdio: 'inherit' });
+}
 try {
   await pg.initialise(); await pg.start(); await pg.createDatabase('donate_test');
   console.log(`Isolated PostgreSQL started on 127.0.0.1:${port}`);
-  execSync('npx prisma migrate deploy', { cwd: path.join(root, 'backend'), env, stdio: 'inherit' });
-  execSync('npm run prisma:seed', { cwd: path.join(root, 'backend'), env, stdio: 'inherit' });
+  runInstalled('prisma/build/index.js', ['migrate', 'deploy']);
+  runInstalled('tsx/dist/cli.mjs', ['prisma/seed.ts']);
   if (preview) {
-    console.log('LOCAL TEST PREVIEW: http://127.0.0.1:4001/webapp/ and /admin/ (not production)');
+    console.log('LOCAL TEST PREVIEW: http://localhost:4001/webapp/ and /admin/ (not production)');
     const child = spawn(process.execPath, ['dist/server.js'], { cwd: path.join(root, 'backend'), env, stdio: 'inherit' });
     await new Promise((resolve, reject) => { child.on('error', reject); child.on('exit', (code) => code ? reject(new Error(`Preview exited ${code}`)) : resolve()); });
-  } else execSync('npm test', { cwd: path.join(root, 'backend'), env, stdio: 'inherit' });
+  } else runInstalled('vitest/vitest.mjs', ['run']);
 } catch (error) { console.error(error instanceof Error ? error.message.replaceAll(password, '[redacted]') : 'Tests failed'); process.exitCode = 1; }
 finally { const exitCode = process.exitCode ?? 0; await pg.stop(); process.exit(exitCode); }

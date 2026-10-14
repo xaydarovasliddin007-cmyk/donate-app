@@ -96,7 +96,7 @@ async function mockStore(page: Page, tg = false, busyTopup = false, insufficient
           {
             id: 'product-3',
             name: 'Weekly Pass',
-            amountMinor: 1860000,
+            amountMinor: 1840000,
             currency: 'UZS',
           },
           {
@@ -265,6 +265,9 @@ test('banner keeps one matching slide through repeated rotations and manual sele
   await page.clock.install();
   await mockStore(page);
   await page.goto('/');
+  // Smooth scrolling needs real animation frames; this test deliberately
+  // controls the clock to exercise many rotations in seconds.
+  await page.addStyleTag({ content: 'html { scroll-behavior: auto !important; }' });
   await expect(page.locator('.game-card')).toHaveCount(3);
   await page.clock.fastForward(2000);
   await expect(page.locator('.launch-screen')).toHaveCount(0);
@@ -283,6 +286,8 @@ test('banner keeps one matching slide through repeated rotations and manual sele
     await page.clock.fastForward(4500);
   }
 
+  await banner.scrollIntoViewIfNeeded();
+  await page.clock.runFor(500);
   await banner.getByRole('button', { name: 'Free Fire', exact: true }).click();
   await page.clock.fastForward(18000);
   await expect(banner.locator('.game-banner__slide')).toHaveAttribute('data-game-id', 'game-3');
@@ -402,7 +407,9 @@ test('bankomat top-up sends a receipt for admin review', async ({ page }) => {
   await expect(page.getByText('Chek adminga yuborildi.')).toBeVisible();
   await expect(page.getByText('Admin tasdiqlashi yoki rad etishi bilan balans holati yangilanadi.')).toBeVisible();
   expect(sent.find((item) => item.path === '/topups/reserve')?.body).toMatchObject({ type: 'PAYNET_TERMINAL', channel: 'BANKOMAT' });
-  expect(sent.find((item) => item.path === '/topups/topup-1/receipt')?.body).toMatchObject({ fileName: 'chek.png', mimeType: 'image/png' });
+  const receipt = sent.find((item) => item.path === '/topups/topup-1/receipt')?.body;
+  expect(receipt).toMatchObject({ fileName: 'chek.jpg', mimeType: 'image/jpeg' });
+  expect(Buffer.from(String(receipt?.dataBase64), 'base64').subarray(0, 2)).toEqual(Buffer.from([0xff, 0xd8]));
 });
 test('checkout validates player and zone, pays and shows server order', async ({ page }, info) => {
   const sent = await mockStore(page);
@@ -514,4 +521,193 @@ test('failed catalog request has a working retry', async ({ page }) => {
   await expect(page.getByRole('alert')).toBeVisible();
   await page.getByRole('button', { name: 'Qayta urinish' }).click();
   await expect(page.locator('.game-card')).toHaveCount(3);
+});
+
+function registeredSession() {
+  return { accessToken: 'registered-token', refreshToken: 'registered-refresh', user: {
+    id: 'registered-user', publicId: 'UZD-SAVED123', displayName: 'Website user',
+    email: 'player@example.com', isGuest: false, hasTelegramAccount: false,
+  } };
+}
+
+async function openWebsiteLogin(page: Page) {
+  if (await page.locator('.header-login').isVisible()) await page.locator('.header-login').click();
+  else {
+    await page.getByRole('button', { name: 'Profil', exact: true }).filter({ visible: true }).last().click();
+    await page.getByRole('button', { name: 'Mavjud hisobga kirish', exact: true }).click();
+  }
+}
+
+test('a guest can save the current account using an email code and then sign out', async ({ page }) => {
+  await mockStore(page);
+  let completed: Record<string, unknown> | undefined;
+  await page.route('**/auth/register/request-code', (route) => route.fulfill({ status: 204 }));
+  await page.route('**/auth/account/complete', (route) => {
+    completed = route.request().postDataJSON();
+    return route.fulfill({ json: registeredSession() });
+  });
+  await page.route('**/auth/logout', (route) => route.fulfill({ status: 204 }));
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Hisobni saqlash', exact: true }).click();
+  await page.getByLabel('Ismingiz', { exact: true }).fill('Website user');
+  await page.getByLabel('Email', { exact: true }).fill('player@example.com');
+  await page.getByRole('button', { name: 'Kod yuborish', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('6 xonali kod');
+  await page.getByLabel('Tasdiqlash kodi', { exact: true }).fill('123456');
+  await page.getByLabel('Yangi parol', { exact: true }).fill('SecurePassword42!');
+  await noOverflow(page);
+  await page.screenshot({ path: `../artifacts/auth-${test.info().project.name}.png` });
+  await page.locator('.sheet').getByRole('button', { name: 'Hisobni saqlash', exact: true }).click();
+  await expect(page.locator('.sheet')).toHaveCount(0);
+  await expect(page.locator('.store-heading h1')).toHaveText('Website user');
+  expect(completed).toEqual({ email: 'player@example.com', code: '123456', password: 'SecurePassword42!' });
+  await page.getByRole('button', { name: 'Profil', exact: true }).filter({ visible: true }).last().click();
+  await page.getByRole('button', { name: 'Hisobdan chiqish', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Mavjud hisobga kirish', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Hisobdan chiqish', exact: true })).toHaveCount(0);
+});
+
+test('password recovery verifies an email code and returns to the registered account', async ({ page }) => {
+  await mockStore(page);
+  let reset: Record<string, unknown> | undefined;
+  await page.route('**/auth/password/reset-request', (route) => route.fulfill({ status: 204 }));
+  await page.route('**/auth/password/reset', (route) => {
+    reset = route.request().postDataJSON();
+    return route.fulfill({ json: registeredSession() });
+  });
+  await page.goto('/');
+  await openWebsiteLogin(page);
+  await page.getByRole('button', { name: 'Parolni unutdingizmi?', exact: true }).click();
+  await page.getByLabel('Email', { exact: true }).fill('player@example.com');
+  await page.getByRole('button', { name: 'Kod yuborish', exact: true }).click();
+  await page.getByLabel('Tasdiqlash kodi', { exact: true }).fill('654321');
+  await page.getByLabel('Yangi parol', { exact: true }).fill('UpdatedPassword42!');
+  await page.getByRole('button', { name: 'Parolni yangilash', exact: true }).click();
+  await page.getByRole('button', { name: 'Asosiy', exact: true }).filter({ visible: true }).click();
+  await expect(page.locator('.store-heading h1')).toHaveText('Website user');
+  expect(reset).toEqual({ email: 'player@example.com', code: '654321', newPassword: 'UpdatedPassword42!' });
+});
+
+test('switching accounts ignores wallet responses still arriving for the old account', async ({ page }) => {
+  await mockStore(page);
+  let releaseOldWallet!: () => void;
+  let oldWalletRequested!: () => void;
+  const requested = new Promise<void>((resolve) => { oldWalletRequested = resolve; });
+  const released = new Promise<void>((resolve) => { releaseOldWallet = resolve; });
+  await page.route('**/api/v1/wallet', async (route) => {
+    if (route.request().headers().authorization === 'Bearer registered-token') {
+      await route.fulfill({ json: { balanceMinor: 7_000_000, currency: 'UZS' } });
+    } else {
+      oldWalletRequested(); await released;
+      await route.fulfill({ json: { balanceMinor: 5_000_000, currency: 'UZS' } });
+    }
+  });
+  await page.route('**/auth/login', (route) => route.fulfill({ json: registeredSession() }));
+  await page.goto('/');
+  await requested;
+  await openWebsiteLogin(page);
+  await page.getByLabel('Email', { exact: true }).fill('player@example.com');
+  await page.getByLabel('Parol', { exact: true }).fill('SecurePassword42!');
+  await page.locator('.sheet').getByRole('button', { name: 'Kirish', exact: true }).click();
+  await page.getByRole('button', { name: 'Asosiy', exact: true }).filter({ visible: true }).click();
+  await expect(page.locator('.wallet-summary')).toContainText("70 000 so'm");
+  releaseOldWallet();
+  await expect(page.locator('.wallet-summary')).toContainText("70 000 so'm");
+  await expect(page.locator('.store-heading h1')).toHaveText('Website user');
+});
+
+test('reduced motion keeps the storefront usable and keyboard sheet focus returns to its trigger', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await mockStore(page, true);
+  await page.goto('/');
+  await expect(page.locator('.launch-screen')).toHaveCount(0);
+  const card = page.locator('.game-card').first();
+  await expect(card).toBeVisible();
+  await expect(page.locator('.tab-view')).toHaveCSS('animation-name', 'none');
+  const initialSlide = await page.locator('.game-banner__slide').getAttribute('data-game-id');
+  await page.waitForTimeout(4700);
+  expect(await page.locator('.game-banner__slide').getAttribute('data-game-id')).toBe(initialSlide);
+  await card.focus();
+  await page.keyboard.press('Enter');
+  const dialog = page.getByRole('dialog', { name: 'Mobile Legends: Bang Bang' });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole('button', { name: 'Yopish', exact: true })).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
+  await expect(card).toBeFocused();
+  await noOverflow(page);
+});
+
+test('empty states, translated dialog controls and light theme remain readable', async ({ page }, info) => {
+  await mockStore(page, true);
+  await page.goto('/');
+  await expect(page.locator('.launch-screen')).toHaveCount(0);
+  await page.screenshot({ path: `../artifacts/brand-refresh/storefront-dark-${info.project.name}.png`, fullPage: true, animations: 'disabled' });
+  await page.locator('.wallet-action').click();
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await page.screenshot({ path: `../artifacts/brand-refresh/wallet-dark-${info.project.name}.png`, animations: 'disabled' });
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: 'Buyurtmalar', exact: true }).filter({ visible: true }).last().click();
+  await expect(page.getByRole('heading', { name: "Hozircha buyurtmalar yo'q" })).toBeVisible();
+  await noOverflow(page);
+  await page.screenshot({ path: `../artifacts/brand-refresh/empty-orders-${info.project.name}.png`, animations: 'disabled' });
+  await page.getByRole('button', { name: 'Русский язык' }).click();
+  await page.getByRole('button', { name: 'Сменить тему' }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  await page.getByRole('button', { name: 'Главная', exact: true }).filter({ visible: true }).last().click();
+  await page.screenshot({ path: `../artifacts/brand-refresh/storefront-light-${info.project.name}.png`, fullPage: true, animations: 'disabled' });
+  await page.locator('.wallet-action').click();
+  const dialog = page.getByRole('dialog', { name: 'Пополнить баланс' });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole('button', { name: 'Закрыть', exact: true })).toBeVisible();
+  await expect(dialog).toContainText('Выберите удобный способ и следуйте инструкциям.');
+  if (info.project.name !== 'desktop') {
+    const contrast = await dialog.locator('.wallet-bottom-nav .nav-wallet.active').evaluate((element) => {
+      const style = getComputedStyle(element);
+      const luminance = (value: string) => {
+        const context = document.createElement('canvas').getContext('2d')!;
+        context.fillStyle = value;
+        context.fillRect(0, 0, 1, 1);
+        const channels = Array.from(context.getImageData(0, 0, 1, 1).data).slice(0, 3).map((channel) => {
+          const c = channel / 255;
+          return c <= .04045 ? c / 12.92 : ((c + .055) / 1.055) ** 2.4;
+        });
+        return channels[0] * .2126 + channels[1] * .7152 + channels[2] * .0722;
+      };
+      const a = luminance(style.color), b = luminance(style.backgroundColor);
+      return (Math.max(a, b) + .05) / (Math.min(a, b) + .05);
+    });
+    expect(contrast).toBeGreaterThanOrEqual(4.5);
+  }
+  await noOverflow(page);
+  await page.screenshot({ path: `../artifacts/brand-refresh/wallet-light-${info.project.name}.png`, animations: 'disabled' });
+});
+
+test('catalog loading is announced and primary actions have readable contrast', async ({ page }) => {
+  await mockStore(page);
+  let releaseCatalog!: () => void;
+  const released = new Promise<void>((resolve) => { releaseCatalog = resolve; });
+  await page.route('**/api/v1/games', async (route) => {
+    await released;
+    await route.fulfill({ json: { games } });
+  });
+  await page.goto('/');
+  await expect(page.getByRole('status', { name: 'Katalog yuklanmoqda' })).toBeVisible();
+  await noOverflow(page);
+  releaseCatalog();
+  await expect(page.locator('.game-card')).toHaveCount(3);
+  const contrast = await page.locator('.wallet-action').evaluate((element) => {
+    const style = getComputedStyle(element);
+    const luminance = (value: string) => {
+      const channels = value.match(/[\d.]+/g)!.slice(0, 3).map(Number).map((channel) => {
+        const c = channel / 255;
+        return c <= .04045 ? c / 12.92 : ((c + .055) / 1.055) ** 2.4;
+      });
+      return channels[0] * .2126 + channels[1] * .7152 + channels[2] * .0722;
+    };
+    const foreground = luminance(style.color);
+    const background = luminance(style.backgroundColor);
+    return (Math.max(foreground, background) + .05) / (Math.min(foreground, background) + .05);
+  });
+  expect(contrast).toBeGreaterThanOrEqual(4.5);
 });

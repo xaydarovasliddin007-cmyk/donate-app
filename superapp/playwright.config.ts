@@ -8,5 +8,5 @@ export default defineConfig({
     { name: 'mobile', use: { ...devices['iPhone 13'], defaultBrowserType: 'chromium', channel: 'msedge' } },
     { name: 'small-mobile', use: { viewport: { width: 320, height: 740 }, isMobile: true } },
   ],
-  webServer: { command: 'npm run dev -- --host 127.0.0.1 --port 3001 --strictPort', url: 'http://127.0.0.1:3001', reuseExistingServer: !process.env.CI },
+  webServer: { command: 'node ../scripts/prepare-superapp.mjs && node node_modules/vite/bin/vite.js --host 127.0.0.1 --port 3001 --strictPort', url: 'http://127.0.0.1:3001', reuseExistingServer: !process.env.CI },
 });

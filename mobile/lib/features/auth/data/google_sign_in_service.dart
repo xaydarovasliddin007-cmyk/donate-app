@@ -51,6 +51,10 @@ class GoogleSignInService {
       print(
         'GoogleSignInService: failed code=${e.code} description=${e.description} details=${e.details}',
       );
+      if (e.code == GoogleSignInExceptionCode.clientConfigurationError ||
+          e.code == GoogleSignInExceptionCode.providerConfigurationError) {
+        throw ApiException.googleClientMisconfigured(e);
+      }
       throw ApiException.googleSignInFailed(e);
     } catch (e) {
       // Anything that ISN'T a GoogleSignInException — e.g. a raw

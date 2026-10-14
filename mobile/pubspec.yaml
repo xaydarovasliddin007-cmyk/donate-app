@@ -1,7 +1,7 @@
 name: donate_app
 description: "UZDONATE — fast, premium gaming top-up platform."
 publish_to: 'none'
-version: 0.1.0+1
+version: 0.2.0+2
 
 environment:
   sdk: ^3.12.2
@@ -41,20 +41,8 @@ flutter:
     - assets/icons/
     - assets/payment_logos/
 
-# The actual app icon (home screen + Play Store listing). The original
-# version just stretched the plain BrandMark (flat rounded square + white
-# bolt) into every density — legible but generic, easy to mistake for a
-# stock utility-app icon next to real competitors on a home screen. This
-# is a custom mark instead: a faceted diamond (the universal "in-game
-# currency" symbol every top-up competitor leans on) with the same bolt
-# from BrandMark struck through it in gold (this app's speed/instant
-# angle), on the brand's real hero gradient (brandPrimary->brandAccent)
-# with a glossy highlight and a warm corner glow for depth. Generated at
-# assets/branding/app_icon_{bg,fg,full}.png via a one-off PowerShell/GDI+
-# script (not checked in — only the resulting PNGs are committed), same
-# technique used for the in-catalog currency icons. Run `dart run
-# flutter_launcher_icons` after changing this — it's a generation step,
-# not something that runs automatically on build.
+# Shared UD monogram in ink, azure and ice cyan, matching the web and bot.
+# Regenerate native launcher assets after updating the source artwork.
 flutter_launcher_icons:
   android: true
   ios: false
@@ -63,23 +51,16 @@ flutter_launcher_icons:
   adaptive_icon_foreground: "assets/branding/app_icon_fg.png"
   min_sdk_android: 21
 
-# Native (pre-Flutter-engine) splash — this is what's actually on screen for
-# most of cold start, since it's shown by the OS before the Flutter engine
-# has even loaded. `splash_logo.png` mirrors BrandMark's gradient+bolt mark
-# exactly (same colors, same path geometry) so there's no visual seam when
-# Flutter's first frame (with the real animated BrandMark) takes over.
+# The native splash and Flutter BrandMark use the same shared UD artwork.
 flutter_native_splash:
-  color: "#FFFFFF"
-  color_dark: "#0F1115"
+  color: "#F5F8FF"
+  color_dark: "#0A0D15"
   image: assets/branding/splash_logo.png
   image_dark: assets/branding/splash_logo.png
   android_12:
-    color: "#FFFFFF"
-    color_dark: "#0F1115"
+    color: "#F5F8FF"
+    color_dark: "#0A0D15"
     image: assets/branding/splash_logo.png
     image_dark: assets/branding/splash_logo.png
-    # Android 12+ constrains the icon to a masked safe zone — keep it modest
-    # relative to the canvas (our mark already only fills the center ~47%)
-    # rather than fighting the OS clip.
-    icon_background_color: "#FFFFFF"
-    icon_background_color_dark: "#0F1115"
+    icon_background_color: "#F5F8FF"
+    icon_background_color_dark: "#0A0D15"

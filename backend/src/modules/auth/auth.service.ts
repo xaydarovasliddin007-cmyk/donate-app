@@ -184,6 +184,7 @@ export async function completeRegistration(
   ctx: AuthContext,
   input: RegisterCompleteInput,
   meta: { userAgent?: string; ipAddress?: string },
+  upgradeUserId?: string,
 ) {
   const pending = await ctx.prisma.pendingRegistration.findUnique({ where: { email: input.email } });
   if (!pending || pending.expiresAt < new Date() || pending.codeHash !== hashVerificationCode(input.code)) {
@@ -196,6 +197,25 @@ export async function completeRegistration(
   ]);
 
   const user = await ctx.prisma.$transaction(async (tx) => {
+    if (upgradeUserId) {
+      const existing = await tx.user.findUnique({ where: { id: upgradeUserId } });
+      if (!existing || existing.status !== 'ACTIVE') throw new UnauthorizedError('This account is not active');
+      if (existing.passwordHash || existing.googleId || (existing.email && !existing.email.endsWith('@guest.uzdonate.uz'))) {
+        throw new ConflictError('This account already has an email. Sign in with your existing account.');
+      }
+      // Attach verified credentials to the current guest/Telegram account.
+      // Keep its wallet, orders, public ID and Telegram identity intact.
+      const updated = await tx.user.updateMany({
+        where: { id: existing.id, status: 'ACTIVE', email: existing.email, passwordHash: null, googleId: null },
+        data: {
+          email: pending.email, passwordHash, emailVerifiedAt: new Date(),
+          displayName: pending.displayName ?? existing.displayName, locale: pending.locale,
+        },
+      });
+      if (updated.count !== 1) throw new ConflictError('Account changed. Please try again.');
+      await tx.pendingRegistration.delete({ where: { email: pending.email } });
+      return tx.user.findUniqueOrThrow({ where: { id: existing.id } });
+    }
     const created = await tx.user.create({
       data: {
         publicId,
@@ -212,6 +232,11 @@ export async function completeRegistration(
     });
     await tx.pendingRegistration.delete({ where: { email: pending.email } });
     return created;
+  }).catch((err: unknown) => {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+      throw new ConflictError('An account with this email already exists');
+    }
+    throw err;
   });
 
   const tokens = await issueTokenPair(ctx, user, meta);
@@ -340,20 +365,17 @@ export async function googleAuth(
   meta: { userAgent?: string; ipAddress?: string },
 ) {
   const identity = await verifyGoogleIdToken(input.idToken);
+  if (!identity.emailVerified) {
+    throw new UnauthorizedError('Google must verify this email address');
+  }
 
   // 1) Already-linked Google account -> straightforward login.
   let user = await ctx.prisma.user.findUnique({ where: { googleId: identity.googleId } });
 
   if (!user) {
     // 2) No account linked to this Google ID yet. Only link to an existing
-    // email/password account when Google itself has verified that email —
-    // otherwise someone who merely knows another person's email address
-    // could hijack their account by signing in with that email via Google
-    // elsewhere. An unverified match always creates a fresh account instead
-    // of linking to it.
-    const existingByEmail = identity.emailVerified
-      ? await ctx.prisma.user.findUnique({ where: { email: identity.email } })
-      : null;
+    // email/password account only after Google has verified that email.
+    const existingByEmail = await ctx.prisma.user.findUnique({ where: { email: identity.email } });
 
     try {
       if (existingByEmail) {
@@ -400,6 +422,78 @@ export async function googleAuth(
 
   const tokens = await issueTokenPair(ctx, user, meta);
   return { user: toPublicUser(user), ...tokens };
+}
+
+/** Link a verified Google identity to the already-authenticated account.
+ * This is the save-account flow for guest/Telegram users: it upgrades the
+ * current row in place so the wallet, orders, public ID, and Telegram ID stay
+ * attached to the same account. */
+export async function linkGoogleAccount(
+  ctx: AuthContext,
+  userId: string,
+  input: GoogleAuthInput,
+  meta: { userAgent?: string; ipAddress?: string },
+) {
+  const identity = await verifyGoogleIdToken(input.idToken);
+  if (!identity.emailVerified) {
+    throw new UnauthorizedError('Google must verify this email address');
+  }
+
+  const user = await ctx.prisma.user.findUnique({ where: { id: userId } });
+  if (!user || user.status !== 'ACTIVE') throw new UnauthorizedError('This account is not active');
+
+  // Never silently merge accounts. Google may only be attached when its
+  // verified email matches this account, or when this account is still a
+  // guest with an internal placeholder email.
+  const isGuestEmail = Boolean(user.email?.endsWith('@guest.uzdonate.uz'));
+  if (user.email && !isGuestEmail && user.email !== identity.email) {
+    throw new ConflictError('Use a Google account with the same email as this account');
+  }
+  if (user.googleId && user.googleId !== identity.googleId) {
+    throw new ConflictError('This account is already linked to a different Google account');
+  }
+
+  const [googleOwner, emailOwner] = await Promise.all([
+    ctx.prisma.user.findUnique({ where: { googleId: identity.googleId } }),
+    ctx.prisma.user.findUnique({ where: { email: identity.email } }),
+  ]);
+  if (googleOwner && googleOwner.id !== user.id) {
+    throw new ConflictError('This Google account is already linked to another account');
+  }
+  if (emailOwner && emailOwner.id !== user.id) {
+    throw new ConflictError('This Google email belongs to another account');
+  }
+
+  let linkedUser = user;
+  if (!user.googleId) {
+    try {
+      const updated = await ctx.prisma.user.updateMany({
+        where: { id: user.id, status: 'ACTIVE', email: user.email, googleId: null },
+        data: {
+          googleId: identity.googleId,
+          email: isGuestEmail || !user.email ? identity.email : user.email,
+          emailVerifiedAt: new Date(),
+          displayName: user.displayName ?? identity.name,
+          avatarUrl: user.avatarUrl ?? identity.avatarUrl,
+        },
+      });
+      if (updated.count !== 1) {
+        const latest = await ctx.prisma.user.findUnique({ where: { id: user.id } });
+        if (latest?.googleId !== identity.googleId) throw new ConflictError('Account changed. Please try again.');
+        linkedUser = latest;
+      } else {
+        linkedUser = await ctx.prisma.user.findUniqueOrThrow({ where: { id: user.id } });
+      }
+    } catch (err) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        throw new ConflictError('This Google account or email belongs to another account');
+      }
+      throw err;
+    }
+  }
+
+  const tokens = await issueTokenPair(ctx, linkedUser, meta);
+  return { user: toPublicUser(linkedUser), ...tokens };
 }
 
 /**

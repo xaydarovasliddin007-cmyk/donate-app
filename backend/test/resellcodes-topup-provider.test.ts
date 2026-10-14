@@ -52,6 +52,30 @@ describe('ReSellCodesTopupProvider', () => {
     ]);
   });
 
+  it('requires an account server ID when the supplier category requires it', async () => {
+    const provider = new ReSellCodesTopupProvider('test-key', 13_000);
+    await expect(provider.validatePlayer({
+      providerProductCode: 'mlbb_global:weekly_pass:player_id:zone_id', playerId: '123456',
+    })).resolves.toEqual({ valid: false, reason: 'Server ID is required' });
+    await expect(provider.validatePlayer({
+      providerProductCode: 'mlbb_global:weekly_pass:player_id:zone_id', playerId: '123456', serverId: '1234',
+    })).resolves.toEqual({ valid: true });
+    await expect(provider.validatePlayer({
+      providerProductCode: 'mlbb_global:weekly_pass:player_id:username', playerId: '123456', serverId: '1234',
+    })).resolves.toEqual({ valid: false, reason: 'Unsupported required account field: username' });
+  });
+
+  it('does not submit an order if a required server ID is missing', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    const provider = new ReSellCodesTopupProvider('test-key', 13_000);
+
+    await expect(provider.createTopup({
+      providerProductCode: 'mlbb_global:weekly_pass:player_id:zone_id', playerId: '123456', referenceId: 'order-44',
+    })).resolves.toMatchObject({ success: false, status: 'FAILED', canFallback: true, reason: 'Server ID is required' });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it('does not fallback on ambiguous server or transport failures', async () => {
     const serverFailure = vi.fn().mockResolvedValue(json({ message: 'try again' }, 500));
     vi.stubGlobal('fetch', serverFailure);

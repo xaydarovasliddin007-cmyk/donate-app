@@ -7,6 +7,7 @@ import { FazerCardsTopupProvider } from './fazercards/fazercards-topup-provider.
 import { MooGoldTopupProvider } from './moogold/moogold-topup-provider.js';
 import { SmileOneTopupProvider } from './smileone/smileone-topup-provider.js';
 import { ReSellCodesTopupProvider } from './resellcodes/resellcodes-topup-provider.js';
+import { G2BulkTopupProvider } from './g2bulk/g2bulk-topup-provider.js';
 import { MockPaymentProvider } from './mock/mock-payment-provider.js';
 import { MockTopupProvider } from './mock/mock-topup-provider.js';
 import { PaymeProvider } from './payme/payme-provider.js';
@@ -58,6 +59,9 @@ if (env.SMILEONE_UID && env.SMILEONE_EMAIL && env.SMILEONE_API_KEY) {
 }
 if (env.RSC_API_KEY && env.RSC_USD_UZS_RATE) {
   topupAdapters.RESELLCODES = new ReSellCodesTopupProvider(env.RSC_API_KEY, env.RSC_USD_UZS_RATE);
+}
+if (env.G2BULK_API_KEY && env.G2BULK_USD_UZS_RATE) {
+  topupAdapters.G2BULK = new G2BulkTopupProvider(env.G2BULK_API_KEY, env.G2BULK_USD_UZS_RATE);
 }
 
 export function isTopupProviderConfigured(code: string): boolean {

@@ -1,17 +1,19 @@
-import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
-import { ArrowRight, ArrowUpRight, Bell, CheckCircle2, ChevronRight, Clock3, Copy, Gamepad2, Headphones, Home, LoaderCircle, Moon, Package, Plus, RefreshCw, Search, ShieldCheck, Sun, UserRound, Wallet as WalletIcon, X } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { ArrowRight, ArrowUpRight, Bell, CheckCircle2, ChevronRight, Clock3, Copy, Gamepad2, Headphones, Home, LoaderCircle, LogOut, Moon, Package, Plus, RefreshCw, Search, ShieldCheck, Sun, UserRound, Wallet as WalletIcon, X } from 'lucide-react';
 import type { AppConfig, AppNotification, Game, Order, SavedGame, Session, TopUp, User, Wallet } from './types';
-import { api, errorText, login, signIn } from './services/api';
+import { api, errorText, logout, signIn } from './services/api';
 import { haptic, inTelegram, openTelegram, telegram } from './services/telegram';
 import { Checkout } from './components/Checkout';
 import { WalletSheet } from './components/WalletSheet';
 import { Sheet } from './components/Sheet';
+import { AuthSheet } from './components/AuthSheet';
 import { GameBanner } from './components/GameBanner';
-import { date, ErrorBox, GameCard, money, statuses } from './components/ui';
+import { BrandMark } from './components/BrandMark';
+import { CatalogSkeleton, date, ErrorBox, GameCard, money, statuses } from './components/ui';
 import { tr, type Locale } from './i18n';
 
 type Tab = 'shop' | 'games' | 'orders' | 'profile';
-const defaultConfig: AppConfig = { supportUrl: 'https://t.me/The_Anonimous_uzb', telegramBotUrl: 'https://t.me/uzdonate1bot', telegramPaymentsEnabled: false };
+const defaultConfig: AppConfig = { supportUrl: 'https://t.me/The_Anonimous_uzb', telegramBotUrl: 'https://t.me/uzdonate1bot', telegramPaymentsEnabled: false, googleClientId: null };
 
 export default function App() {
   const [locale, setLocale] = useState<Locale>(() => {
@@ -46,17 +48,23 @@ export default function App() {
   const [order, setOrder] = useState<Order | null>(null);
   const [showWallet, setShowWallet] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
-  const [showIntro, setShowIntro] = useState(true);
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+  const [loggingOut, setLoggingOut] = useState(false);
+  const [showIntro, setShowIntro] = useState(() => !window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   const [avatarFailed, setAvatarFailed] = useState(false);
   const [theme, setTheme] = useState(() => {
     try { return localStorage.getItem('uzdonate_theme') || 'dark'; } catch { return 'dark'; }
   });
-  const accountLoading = useRef(false);
+  const accountVersion = useRef(0);
+  const accountRequest = useRef<{ version: number } | null>(null);
+  const localeRef = useRef(locale);
+  localeRef.current = locale;
   const tg = inTelegram();
 
   const refreshAccount = useCallback(async () => {
-    if (accountLoading.current) return;
-    accountLoading.current = true; setRefreshing(true);
+    if (accountRequest.current?.version === accountVersion.current) return;
+    const request = { version: accountVersion.current };
+    accountRequest.current = request; setRefreshing(true);
     try {
       const result = await Promise.all([
         api<{ orders: Order[] }>('/orders?limit=50'),
@@ -65,9 +73,10 @@ export default function App() {
         api<{ savedGames: SavedGame[] }>('/saved-games').catch(() => ({ savedGames: [] })),
         api<{ notifications: AppNotification[]; unreadCount: number }>('/notifications?limit=30').catch(() => ({ notifications: [], unreadCount: 0 })),
       ]);
+      if (request.version !== accountVersion.current) return;
       setOrders(result[0].orders); setWallet(result[1]); setTopups(result[2].topUps); setSavedGames(result[3].savedGames); setNotifications(result[4].notifications); setUnreadNotifications(result[4].unreadCount); setAccountError('');
-    } catch (err) { setAccountError(errorText(err)); }
-    finally { accountLoading.current = false; setRefreshing(false); }
+    } catch (err) { if (request.version === accountVersion.current) setAccountError(errorText(err)); }
+    finally { if (accountRequest.current === request) { accountRequest.current = null; setRefreshing(false); } }
   }, []);
   const loadCatalog = useCallback(async () => {
     setLoading(true); setCatalogError('');
@@ -76,24 +85,26 @@ export default function App() {
     finally { setLoading(false); }
   }, []);
   const authenticate = useCallback(async () => {
+    const version = accountVersion.current;
     setAccountError('');
-    try { const session = await signIn(locale); setUser(session.user); await refreshAccount(); }
-    catch (err) { setAccountError(errorText(err)); }
-  }, [refreshAccount, locale]);
+    try { const session = await signIn(localeRef.current); if (version !== accountVersion.current) return; setUser(session.user); await refreshAccount(); }
+    catch (err) { if (version === accountVersion.current) setAccountError(errorText(err)); }
+  }, [refreshAccount]);
   useEffect(() => {
     telegram()?.ready(); telegram()?.expand();
     void loadCatalog(); void authenticate();
     api<AppConfig>('/app/config', undefined, false).then(setConfig).catch(() => {});
   }, [loadCatalog, authenticate]);
   useEffect(() => {
-    const timer = window.setTimeout(() => setShowIntro(false), 1350);
+    const timer = window.setTimeout(() => setShowIntro(false), 760);
     return () => window.clearTimeout(timer);
   }, []);
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
     try { localStorage.setItem('uzdonate_theme', theme); } catch { /* Optional preference. */ }
-    telegram()?.setHeaderColor(theme === 'dark' ? '#070912' : '#f3f5fa');
-    telegram()?.setBackgroundColor(theme === 'dark' ? '#070912' : '#f3f5fa');
+    telegram()?.setHeaderColor(theme === 'dark' ? '#0a0d15' : '#f3f6fb');
+    telegram()?.setBackgroundColor(theme === 'dark' ? '#0a0d15' : '#f3f6fb');
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'dark' ? '#0a0d15' : '#f3f6fb');
   }, [theme]);
   useEffect(() => {
     try { localStorage.setItem('uzdonate_locale', locale); } catch { /* Optional preference. */ }
@@ -110,6 +121,23 @@ export default function App() {
   useEffect(() => setAvatarFailed(false), [user?.avatarUrl]);
 
   function navigate(next: Tab) { setTab(next); haptic(); window.scrollTo({ top: 0, behavior: 'instant' }); }
+  function openAuth(mode: 'login' | 'register') { setAuthMode(mode); setShowLogin(true); }
+  function clearAccount() {
+    accountVersion.current += 1;
+    setUser(null); setWallet(null); setOrders([]); setTopups([]); setSavedGames([]);
+    setNotifications([]); setUnreadNotifications(0); setAccountError('');
+    setOrder(null); setGame(null); setQuickProfile(null); setShowWallet(false); setShowNotifications(false);
+  }
+  function acceptSession(session: Session) {
+    clearAccount(); setUser(session.user); setShowLogin(false); void refreshAccount();
+  }
+  async function signOut() {
+    if (loggingOut) return;
+    setLoggingOut(true); setAccountError('');
+    try { await logout(); clearAccount(); await authenticate(); }
+    catch (err) { setAccountError(errorText(err)); }
+    finally { setLoggingOut(false); }
+  }
   function openGame(selected: Game, profile: SavedGame | null = null) { setQuickProfile(profile); setGame(selected); haptic(); }
   async function markNotificationRead(item: AppNotification) {
     if (item.readAt) return;
@@ -139,10 +167,11 @@ export default function App() {
 
   return <><div className={`app-shell ${showIntro ? 'app-preparing' : 'app-ready'}`}>
     <header className="app-header"><div className="header-inner">
-      <button className="brand" onClick={() => navigate('shop')} aria-label="UZDONATE bosh sahifa"><img src="assets-store/brand.png" alt=""/><span>UZDONATE<span className="brand-dot">.</span></span></button>
+      <button className="brand" onClick={() => navigate('shop')} aria-label={locale === 'ru' ? 'UZDONATE — главная' : 'UZDONATE bosh sahifa'}><BrandMark/><span>UZDONATE<span className="brand-dot">.</span></span></button>
       <nav className="desktop-nav" aria-label={t('Asosiy bo\'limlar')}>{navigation.map(({ id, icon: Icon, label }) => <button key={id} aria-current={tab === id ? 'page' : undefined} className={tab === id ? 'active' : ''} onClick={() => navigate(id)}><Icon size={18}/>{label}</button>)}</nav>
       <div className="header-actions"><button className="locale-toggle" aria-label={locale === 'uz' ? 'Русский язык' : "O'zbek tili"} onClick={() => setLocale(locale === 'uz' ? 'ru' : 'uz')}>{locale === 'uz' ? 'RU' : 'UZ'}</button><button className="icon-button" title={t(theme === 'dark' ? "Yorug' mavzu" : "Qorong'i mavzu")} aria-label={t('Mavzuni almashtirish')} onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>{theme === 'dark' ? <Sun size={20}/> : <Moon size={20}/>}</button>
       {user && <button className="icon-button notification-trigger" title={t('Bildirishnomalar')} aria-label={`${t('Bildirishnomalar')}${unreadNotifications ? `, ${unreadNotifications}` : ''}`} onClick={() => setShowNotifications(true)}><Bell size={20}/>{unreadNotifications > 0 && <i>{unreadNotifications > 9 ? '9+' : unreadNotifications}</i>}</button>}
+      {!tg && user?.isGuest && <button className="button secondary header-login" onClick={() => openAuth('login')}>{t('Kirish')}</button>}
       <button className="avatar" title={t('Profil')} aria-label={t('Profil')} onClick={() => navigate('profile')}>{user?.avatarUrl && !avatarFailed ? <img src={user.avatarUrl} alt="" onError={() => setAvatarFailed(true)}/> : user?.displayName?.slice(0, 1).toUpperCase() || <UserRound size={19}/>}</button></div>
     </div></header>
 
@@ -154,8 +183,9 @@ export default function App() {
           <div className="welcome-row">
             <div><span className="eyebrow">{t('Xush kelibsiz')}</span><h1>{user?.displayName || t('UZDONATE foydalanuvchisi')}</h1></div>
           </div>
-          <div className="wallet-summary"><WalletIcon size={25}/><div><span>{locale === 'ru' ? 'БАЛАНС' : 'BALANS'}</span><strong>{wallet ? money(wallet.balanceMinor, wallet.currency, locale) : '...'}</strong></div><button className="wallet-action" onClick={() => setShowWallet(true)}><Plus size={17}/> {t("To'ldirish")}</button></div>
+          <div className="wallet-summary"><span className="wallet-symbol" aria-hidden="true"><WalletIcon size={23}/></span><div><span>{locale === 'ru' ? 'БАЛАНС' : 'BALANS'}</span><strong>{wallet ? money(wallet.balanceMinor, wallet.currency, locale) : '—'}</strong></div><button className="wallet-action" onClick={() => setShowWallet(true)}><Plus size={17}/> {t("To'ldirish")}</button></div>
         </section>
+        {user?.isGuest && <div className="account-prompt"><div><strong>{t('Hisobingizni saqlang')}</strong><p>{t('Emailni tasdiqlang va balans hamda buyurtmalaringizga boshqa qurilmadan ham kiring.')}</p></div><button className="button secondary" onClick={() => openAuth('register')}>{t('Hisobni saqlash')}<ArrowRight size={17}/></button></div>}
         {accountError && <ErrorBox message={accountError} retry={() => void authenticate()} locale={locale}/>}
         {activeOrders.length > 0 && <button className="activity-strip" onClick={() => navigate('orders')}><Clock3 size={18}/><span>{activeOrders.length} {t('ta buyurtmangiz jarayonda')}</span><ArrowRight size={18}/></button>}
         <section className="quick-actions" aria-label={t('Tezkor amallar')}>
@@ -166,7 +196,7 @@ export default function App() {
         {savedGames.some((profile) => profile.game.isPurchasable) && <section className="saved-games-section"><div className="catalog-toolbar"><div><span className="eyebrow accent-text">{t('SAQLANGAN O\'YINLAR')}</span><h2>{t('Mening o\'yinlarim')}</h2></div></div><div className="saved-games-list">{savedGames.filter((profile) => profile.game.isPurchasable).map((profile) => <button className="saved-game-row" key={profile.id} onClick={() => openGame(profile.game, profile)}>{profile.game.logoUrl ? <img className="saved-game-logo" src={profile.game.logoUrl} alt=""/> : <span className="saved-game-logo saved-game-fallback"><Gamepad2 size={22}/></span>}<span className="saved-game-details"><strong>{profile.game.name}</strong><small>{t('Player ID')}: {profile.playerId}{profile.zoneId ? ` · ${t('Zone ID')}: ${profile.zoneId}` : ''}</small><span>{t('Tezkor xarid')} <ArrowRight size={15}/></span></span></button>)}</div></section>}
         <section id="catalog" className="home-catalog" aria-label="Mashhur o'yinlar">
           <div className="catalog-toolbar"><div><span className="eyebrow accent-text">{t('KATALOG')}</span><h2>{t("Mashhur o'yinlar")}</h2></div><button className="catalog-all" onClick={showCatalog}>{t('Barchasi')} <ArrowRight size={17}/></button></div>
-          {catalogError ? <ErrorBox message={catalogError} retry={() => void loadCatalog()} locale={locale}/> : loading ? <div className="games-grid" aria-label={t('Katalog yuklanmoqda')} aria-busy="true">{Array.from({ length: 8 }, (_, i) => <div key={i} className="game-skeleton skeleton"/>)}</div> : <div className="games-grid">{games.filter((item) => item.isPurchasable).slice(0, 8).map((item) => <GameCard key={item.id} game={item} locale={locale} onSelect={(selected) => { haptic(); setGame(selected); }}/>)}</div>}
+          {catalogError ? <ErrorBox message={catalogError} retry={() => void loadCatalog()} locale={locale}/> : loading ? <div className="games-grid" role="status" aria-label={t('Katalog yuklanmoqda')} aria-busy="true">{Array.from({ length: 8 }, (_, i) => <CatalogSkeleton key={i}/>)}</div> : games.some((item) => item.isPurchasable) ? <div className="games-grid">{games.filter((item) => item.isPurchasable).slice(0, 8).map((item) => <GameCard key={item.id} game={item} locale={locale} onSelect={(selected) => { haptic(); setGame(selected); }}/>)}</div> : <div className="empty-state"><Gamepad2 size={32}/><h3>{t("O'yin topilmadi")}</h3><p>{t('Boshqa nom yoki kategoriyani tanlang.')}</p><button className="button secondary" onClick={showCatalog}>{t("Barcha o'yinlar")}<ArrowRight size={17}/></button></div>}
         </section>
         <section className="support-band"><div><Headphones size={25}/><div><h3>{t('Yordam kerakmi?')}</h3><p>{t("Buyurtma yoki to'lov bo'yicha bizga yozing.")}</p></div></div><button className="button secondary" onClick={() => openTelegram(config.supportUrl)}>{t("Bog'lanish")} <ArrowUpRight size={17}/></button></section>
       </>}
@@ -177,7 +207,7 @@ export default function App() {
           <label className="search-field games-search"><Search size={19}/><input aria-label={t("O'yin qidirish")} placeholder={t("O'yin qidirish")} value={query} onChange={(event) => setQuery(event.target.value)}/>{query && <button className="icon-button small" title={t('Qidiruvni tozalash')} aria-label={t('Qidiruvni tozalash')} onClick={() => setQuery('')}><X size={16}/></button>}</label>
           <div className="catalog-filters"><div className="category-strip" aria-label={t('Kategoriyalar')}><button className={`chip ${category === 'all' ? 'active' : ''}`} aria-pressed={category === 'all'} onClick={() => setCategory('all')}>{t('Barchasi')}</button>{categories.map((item) => <button key={item} className={`chip ${category === item ? 'active' : ''}`} aria-pressed={category === item} onClick={() => setCategory(item)}>{t(item)}</button>)}</div></div>
           <div className="catalog-meta"><span>{loading ? t('Katalog yuklanmoqda') : locale === 'ru' ? `${filtered.length} результатов` : `${filtered.length} ta natija`}</span><label className="toggle-label"><input type="checkbox" checked={onlyAvailable} onChange={(event) => setOnlyAvailable(event.target.checked)}/>{t('Faqat mavjudlar')}</label></div>
-          {catalogError ? <ErrorBox message={catalogError} retry={() => void loadCatalog()} locale={locale}/> : loading ? <div className="games-grid all-games-grid" aria-label={t('Katalog yuklanmoqda')} aria-busy="true">{Array.from({ length: 8 }, (_, i) => <div key={i} className="game-skeleton skeleton"/>)}</div> : filtered.length ? <div className="games-grid all-games-grid">{filtered.map((item) => <GameCard key={item.id} game={item} locale={locale} onSelect={(selected) => { haptic(); setGame(selected); }}/>)}</div> : <div className="empty-state"><Search size={35}/><h3>{t("O'yin topilmadi")}</h3><p>{t('Boshqa nom yoki kategoriyani tanlang.')}</p><button className="button secondary" onClick={() => { setQuery(''); setCategory('all'); setOnlyAvailable(false); }}>{t('Filtrlarni tozalash')}</button></div>}
+          {catalogError ? <ErrorBox message={catalogError} retry={() => void loadCatalog()} locale={locale}/> : loading ? <div className="games-grid all-games-grid" role="status" aria-label={t('Katalog yuklanmoqda')} aria-busy="true">{Array.from({ length: 8 }, (_, i) => <CatalogSkeleton key={i}/>)}</div> : filtered.length ? <div className="games-grid all-games-grid">{filtered.map((item) => <GameCard key={item.id} game={item} locale={locale} onSelect={(selected) => { haptic(); setGame(selected); }}/>)}</div> : <div className="empty-state"><Search size={35}/><h3>{t("O'yin topilmadi")}</h3><p>{t('Boshqa nom yoki kategoriyani tanlang.')}</p><button className="button secondary" onClick={() => { setQuery(''); setCategory('all'); setOnlyAvailable(false); }}>{t('Filtrlarni tozalash')}</button></div>}
         </section>
       </>}
 
@@ -195,7 +225,9 @@ export default function App() {
         <section className="profile-wallet"><div><WalletIcon size={23}/><span>{t('Mening balansim')}</span></div><strong>{wallet ? money(wallet.balanceMinor, wallet.currency) : '...'}</strong><button className="button primary" disabled={!user} onClick={() => setShowWallet(true)}><Plus size={18}/>{t("Balansni to'ldirish")}</button></section>
         <div className="profile-links">
           <button onClick={() => navigate('orders')}><Package size={21}/><span>{t('Buyurtmalarim')}</span><span className="muted">{orders.length}</span><ChevronRight size={18}/></button>
-          {!tg && <button onClick={() => setShowLogin(true)}><UserRound size={21}/><span>{t(user?.isGuest ? 'Mavjud hisobga kirish' : 'Boshqa hisobga kirish')}</span><ChevronRight size={18}/></button>}
+          {user && (user.isGuest || !user.email) && <button onClick={() => openAuth('register')}><ShieldCheck size={21}/><span>{t('Hisobni saqlash')}</span><ChevronRight size={18}/></button>}
+          {!tg && <button onClick={() => openAuth('login')}><UserRound size={21}/><span>{t(user?.isGuest ? 'Mavjud hisobga kirish' : 'Boshqa hisobga kirish')}</span><ChevronRight size={18}/></button>}
+          {!tg && user && !user.isGuest && <button disabled={loggingOut} onClick={signOut}><LogOut size={21}/><span>{t('Hisobdan chiqish')}</span>{loggingOut ? <LoaderCircle size={18} className="spin"/> : <ChevronRight size={18}/>}</button>}
           <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}><Moon size={21}/><span>{t("Tashqi ko'rinish")}</span><span className="muted">{t(theme === 'dark' ? "Qorong'i" : "Yorug'")}</span><ChevronRight size={18}/></button>
           <button onClick={() => openTelegram(config.supportUrl)}><Headphones size={21}/><span>{t('Yordam xizmati')}</span><ArrowUpRight size={18}/></button>
           <a href="terms.html" target="_blank" rel="noreferrer"><ShieldCheck size={21}/><span>{t('Foydalanish shartlari')}</span><ArrowUpRight size={18}/></a>
@@ -248,19 +280,19 @@ export default function App() {
       />
     )}
     {showLogin && (
-      <LoginSheet
+      <AuthSheet
         locale={locale}
+        initialMode={authMode}
+        allowRegister={Boolean(user && (user.isGuest || !user.email))}
+        linkOnly={tg}
+        googleClientId={config.googleClientId}
         onClose={() => setShowLogin(false)}
-        onLogin={(session) => {
-          setUser(session.user);
-          setShowLogin(false);
-          void refreshAccount();
-        }}
+        onLogin={acceptSession}
       />
     )}
     {showNotifications && <Sheet title={t('Bildirishnomalar')} onClose={() => setShowNotifications(false)} className="notifications-sheet"><div className="notification-toolbar">{unreadNotifications > 0 && <button className="button secondary" onClick={markAllNotificationsRead}><CheckCircle2 size={17}/>{t("Hammasini o'qildi qilish")}</button>}</div>{notifications.length === 0 ? <div className="notification-empty"><Bell size={25}/><p>{t("Hozircha bildirishnomalar yo'q")}</p></div> : <div className="notification-list">{notifications.map((item) => <button key={item.id} className={`notification-row ${item.readAt ? '' : 'unread'}`} onClick={async () => { await markNotificationRead(item); openNotification(item); }}><span className="notification-symbol"><Bell size={17}/></span><span className="notification-copy"><strong>{notificationTitle(item.type, item.title, locale)}</strong><span>{notificationBody(item.type, item.body, locale)}</span><small>{date(item.createdAt, locale)}</small></span>{!item.readAt && <i aria-label={t('Yangi')}/>}</button>)}</div>}</Sheet>}
     {order && <OrderSheet order={orders.find((item) => item.id === order.id) || order} onClose={() => setOrder(null)} onUpdated={refreshAccount} supportUrl={config.supportUrl} locale={locale}/>}
-  </div>{showIntro && <div className="launch-screen" aria-hidden="true"><div className="launch-mark"><img src="assets-store/brand.png" alt=""/><i/></div><strong>UZDONATE<span>.</span></strong><small>PLAY. TOP UP. WIN.</small></div>}</>;
+  </div>{showIntro && <div className="launch-screen" aria-hidden="true"><div className="launch-mark"><BrandMark/></div><strong>UZDONATE<span>.</span></strong><small>{t("O'yiningiz bilan birga.")}</small></div>}</>;
 }
 
 function notificationTitle(type: string, fallback: string, locale: Locale) {
@@ -274,17 +306,6 @@ function notificationBody(type: string, fallback: string, locale: Locale) {
   if (type === 'TOPUP_SUCCESS') return locale === 'ru' ? 'Средства уже доступны на вашем балансе.' : 'Mablag‘ balansingizda foydalanishga tayyor.';
   if (type === 'REFUND') return locale === 'ru' ? 'Проверьте историю операций в профиле.' : 'Amaliyotlar tarixini profilingizdan tekshiring.';
   return fallback;
-}
-
-function LoginSheet({ onClose, onLogin, locale }: { onClose: () => void; onLogin: (session: Session) => void; locale: Locale }) {
-  const t = (text: string) => tr(locale, text);
-  const [email, setEmail] = useState(''); const [password, setPassword] = useState('');
-  const [busy, setBusy] = useState(false); const [error, setError] = useState('');
-  async function submit(event: FormEvent) {
-    event.preventDefault(); if (busy) return; setBusy(true); setError('');
-    try { onLogin(await login(email.trim(), password)); } catch (err) { setError(errorText(err)); } finally { setBusy(false); }
-  }
-  return <Sheet title={t('Hisobga kirish')} onClose={onClose} busy={busy}><form className="checkout-form" onSubmit={submit}><label>{t('Email')}<input type="email" autoComplete="email" autoFocus required value={email} onChange={(event) => setEmail(event.target.value)}/></label><label>{t('Parol')}<input type="password" autoComplete="current-password" required value={password} onChange={(event) => setPassword(event.target.value)}/></label>{error && <ErrorBox message={t(error)}/>}<button className="button primary" disabled={busy}>{busy ? <LoaderCircle size={18} className="spin"/> : <ArrowRight size={18}/>} {t('Kirish')}</button></form></Sheet>;
 }
 
 function OrderSheet({ order, onClose, onUpdated, supportUrl, locale }: { order: Order; onClose: () => void; onUpdated: () => void; supportUrl: string; locale: Locale }) {

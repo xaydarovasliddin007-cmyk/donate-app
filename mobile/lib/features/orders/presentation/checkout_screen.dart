@@ -3,10 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/branding/brand_icon.dart';
 import '../../../core/errors/failure.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_motion.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/reduce_motion_controller.dart';
 import '../../../core/utils/idempotency_key.dart';
 import '../../../core/utils/money_formatter.dart';
 import '../../../core/widgets/pressable_scale.dart';
@@ -135,13 +137,16 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
     final localeName = Localizations.localeOf(context).toString();
     final theme = Theme.of(context);
     final walletAsync = ref.watch(walletProvider);
+    final reduceMotion =
+        ref.watch(reduceMotionProvider) ||
+        MediaQuery.disableAnimationsOf(context);
 
     return Scaffold(
       appBar: AppBar(title: Text(l10n.checkoutTitle)),
       body: SafeArea(
         child: TweenAnimationBuilder<double>(
           tween: Tween(begin: 0, end: 1),
-          duration: AppMotion.entrance,
+          duration: reduceMotion ? Duration.zero : AppMotion.entrance,
           curve: AppMotion.standard,
           builder: (context, t, child) => Opacity(
             opacity: t,
@@ -210,6 +215,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                     index: index,
                     child: _PaymentMethodTile(
                       icon: entry.$2,
+                      brandSymbol: entry.$1 == _PaymentMethod.wallet
+                          ? BrandSymbol.wallet
+                          : null,
                       title: entry.$3,
                       subtitle: entry.$4,
                       selected: _method == entry.$1,
@@ -435,17 +443,19 @@ class _OrderSummaryCard extends StatelessWidget {
   }
 }
 
-class _PaymentMethodTile extends StatelessWidget {
+class _PaymentMethodTile extends ConsumerWidget {
   const _PaymentMethodTile({
     required this.icon,
     required this.title,
     required this.subtitle,
     required this.selected,
     required this.onTap,
+    this.brandSymbol,
     this.enabled = true,
   });
 
   final IconData icon;
+  final BrandSymbol? brandSymbol;
   final String title;
   final String? subtitle;
   final bool selected;
@@ -458,10 +468,15 @@ class _PaymentMethodTile extends StatelessWidget {
   final bool enabled;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final duration =
+        ref.watch(reduceMotionProvider) ||
+            MediaQuery.disableAnimationsOf(context)
+        ? Duration.zero
+        : AppMotion.fast;
     final gradient = isDark
         ? AppColors.heroGradientDark
         : AppColors.heroGradientLight;
@@ -469,10 +484,10 @@ class _PaymentMethodTile extends StatelessWidget {
     return PressableScale(
       onTap: enabled ? onTap : null,
       child: AnimatedOpacity(
-        duration: AppMotion.fast,
+        duration: duration,
         opacity: enabled ? 1 : 0.5,
         child: AnimatedContainer(
-          duration: AppMotion.fast,
+          duration: duration,
           padding: const EdgeInsets.all(AppSpacing.md),
           decoration: BoxDecoration(
             color: selected
@@ -498,7 +513,7 @@ class _PaymentMethodTile extends StatelessWidget {
           child: Row(
             children: [
               AnimatedContainer(
-                duration: AppMotion.fast,
+                duration: duration,
                 width: 36,
                 height: 36,
                 alignment: Alignment.center,
@@ -511,13 +526,21 @@ class _PaymentMethodTile extends StatelessWidget {
                         ),
                   borderRadius: BorderRadius.circular(AppRadius.sm),
                 ),
-                child: Icon(
-                  icon,
-                  size: 18,
-                  color: selected
-                      ? Colors.white
-                      : theme.colorScheme.onSurfaceVariant,
-                ),
+                child: brandSymbol != null
+                    ? BrandIcon(
+                        brandSymbol!,
+                        size: 18,
+                        color: selected
+                            ? Colors.white
+                            : theme.colorScheme.onSurfaceVariant,
+                      )
+                    : Icon(
+                        icon,
+                        size: 18,
+                        color: selected
+                            ? Colors.white
+                            : theme.colorScheme.onSurfaceVariant,
+                      ),
               ),
               const SizedBox(width: AppSpacing.sm),
               Expanded(
@@ -541,7 +564,7 @@ class _PaymentMethodTile extends StatelessWidget {
               const SizedBox(width: AppSpacing.sm),
               if (enabled)
                 AnimatedSwitcher(
-                  duration: AppMotion.fast,
+                  duration: duration,
                   child: selected
                       ? Icon(
                           Icons.check_circle_rounded,
@@ -596,12 +619,15 @@ class _SummaryRow extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
+          Flexible(
+            child: Text(
+              label,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
           ),
+          const SizedBox(width: AppSpacing.sm),
           Flexible(
             child: Text(
               value,

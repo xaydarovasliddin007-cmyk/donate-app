@@ -114,6 +114,9 @@ const envSchema = z.object({
   // Integer UZS per USD, based on the effective rate used to fund the account.
   RSC_USD_UZS_RATE: z.coerce.number().int().positive().optional(),
 
+  G2BULK_API_KEY: z.string().trim().min(1).optional(),
+  G2BULK_USD_UZS_RATE: z.coerce.number().int().positive().optional(),
+
   // Optional: shared secret the Telegram bank-notification listener script
   // (scripts/humo-listener.ts) must send on every request to
   // POST /webhooks/humo-transaction. Without it, that endpoint refuses all

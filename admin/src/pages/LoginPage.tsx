@@ -3,6 +3,8 @@ import { Navigate } from 'react-router-dom';
 import { useAuth, isApiError } from '../auth/AuthContext';
 import { useLocale } from '../i18n/LocaleContext';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
+import { BrandMark } from '../components/BrandMark';
+import { ArrowRightIcon, AuditIcon, CardIcon, OrdersIcon } from '../components/icons';
 
 export function LoginPage() {
   const { admin, login } = useAuth();
@@ -31,18 +33,22 @@ export function LoginPage() {
     <div className="login-page">
       <LanguageSwitcher className="login-lang-switch" />
       <div className="login-showcase" aria-hidden="true">
-        <div className="login-showcase-mark">U</div>
+        <BrandMark className="login-showcase-mark" />
+        <span className="login-eyebrow">{t('nav.tagline')}</span>
         <h2>{t('login.showcaseTitle')}</h2>
         <p>{t('login.showcaseBlurb')}</p>
         <ul className="login-showcase-points">
-          <li>{t('login.point1')}</li>
-          <li>{t('login.point2')}</li>
-          <li>{t('login.point3')}</li>
+          <li><span className="login-point-icon"><CardIcon /></span><span>{t('login.point1')}</span></li>
+          <li><span className="login-point-icon"><OrdersIcon /></span><span>{t('login.point2')}</span></li>
+          <li><span className="login-point-icon"><AuditIcon /></span><span>{t('login.point3')}</span></li>
         </ul>
       </div>
       <div className="login-panel">
-        <form className="login-card" onSubmit={handleSubmit}>
-          <div className="login-card-mark">U</div>
+        <form className="login-card" onSubmit={handleSubmit} aria-busy={submitting}>
+          <div className="login-card-brand">
+            <BrandMark className="login-card-mark" />
+            <span><span className="brand-wordmark">UZ<span>DONATE</span></span><small>{t('nav.tagline')}</small></span>
+          </div>
           <h1>{t('login.title')}</h1>
           <p className="muted login-subtitle">{t('login.subtitle')}</p>
           <label>
@@ -54,6 +60,7 @@ export function LoginPage() {
               placeholder="you@uzdonate.com"
               required
               autoFocus
+              autoComplete="username"
             />
           </label>
           <label>
@@ -64,11 +71,14 @@ export function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
               required
+              autoComplete="current-password"
             />
           </label>
-          {error && <div className="form-error">{error}</div>}
+          {error && <div className="form-error" role="alert">{error}</div>}
           <button className="btn btn-primary btn-block" type="submit" disabled={submitting}>
+            {submitting && <span className="spinner" aria-hidden="true" />}
             {submitting ? t('login.signingIn') : t('login.signIn')}
+            {!submitting && <ArrowRightIcon width={17} height={17} aria-hidden="true" />}
           </button>
         </form>
       </div>

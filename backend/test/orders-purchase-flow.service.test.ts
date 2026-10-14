@@ -260,6 +260,23 @@ describe('order purchase pipeline (live DB)', () => {
     expect(item.costMinorSnapshot).toBe(10_000_00);
   });
 
+  it('passes the synced cost guard and snapshots a fresher supplier quote', async () => {
+    const user = await makeUser();
+    const adapter = getTopupProvider('DEV_MOCK_TOPUP_BACKUP');
+    const create = vi.spyOn(adapter, 'createTopup').mockResolvedValue({
+      success: true, status: 'SUCCESS', providerTransactionId: 'fresh-quote', costMinor: 9_000_00,
+    });
+    try {
+      const order = await createRawPendingOrder(user.id, 'fresh-cost-route', 50_000_00);
+      createdOrderIds.push(order.id);
+      await fulfillPaidOrder(ctx, order.id);
+      expect(create).toHaveBeenCalledWith(expect.objectContaining({ expectedCostMinor: 10_000_00, referenceId: order.id }));
+      expect((await prisma.orderItem.findFirstOrThrow({ where: { orderId: order.id } })).costMinorSnapshot).toBe(9_000_00);
+    } finally {
+      create.mockRestore();
+    }
+  });
+
   it('falls back to the next-cheapest provider after a definitive rejection', async () => {
     const user = await makeUser();
     const primary = await prisma.provider.findUniqueOrThrow({ where: { code: 'DEV_MOCK_TOPUP' } });

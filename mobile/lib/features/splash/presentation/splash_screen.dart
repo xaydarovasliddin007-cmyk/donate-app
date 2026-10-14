@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import '../../../core/branding/app_branding.dart';
 import '../../../core/branding/brand_mark.dart';
 import '../../../core/storage/preferences_provider.dart';
+import '../../../core/theme/app_motion.dart';
+import '../../../core/theme/reduce_motion_controller.dart';
 import '../../auth/application/auth_controller.dart';
 
 /// Bridges the gap between the native splash (gone after Flutter's first
@@ -49,11 +51,14 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final reduceMotion =
+        ref.watch(reduceMotionProvider) ||
+        MediaQuery.disableAnimationsOf(context);
     return Scaffold(
       body: Center(
         child: TweenAnimationBuilder<double>(
           tween: Tween(begin: 0, end: 1),
-          duration: const Duration(milliseconds: 420),
+          duration: reduceMotion ? Duration.zero : AppMotion.entrance,
           curve: Curves.easeOutCubic,
           builder: (context, t, child) {
             return Opacity(

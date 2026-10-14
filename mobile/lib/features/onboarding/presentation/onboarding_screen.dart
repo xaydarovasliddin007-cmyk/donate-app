@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/branding/brand_icon.dart';
 import '../../../core/branding/brand_mark.dart';
 import '../../../core/storage/preferences_provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_motion.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/reduce_motion_controller.dart';
 import '../../../l10n/generated/app_localizations.dart';
 
 /// A single welcome screen, not a language/theme wizard — the app already
@@ -20,14 +22,17 @@ class OnboardingScreen extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final reduceMotion =
+        ref.watch(reduceMotionProvider) ||
+        MediaQuery.disableAnimationsOf(context);
     final gradient = isDark
         ? AppColors.heroGradientDark
         : AppColors.heroGradientLight;
 
     final features = [
-      (Icons.bolt_rounded, l10n.onboardingFeatureInstant),
-      (Icons.shield_rounded, l10n.onboardingFeatureSecure),
-      (Icons.sports_esports_rounded, l10n.onboardingFeatureCatalog),
+      (BrandSymbol.spark, l10n.onboardingFeatureInstant),
+      (BrandSymbol.shield, l10n.onboardingFeatureSecure),
+      (BrandSymbol.catalog, l10n.onboardingFeatureCatalog),
     ];
 
     return Scaffold(
@@ -69,7 +74,9 @@ class OnboardingScreen extends ConsumerWidget {
                           Center(
                             child: TweenAnimationBuilder<double>(
                               tween: Tween(begin: 0, end: 1),
-                              duration: AppMotion.entrance,
+                              duration: reduceMotion
+                                  ? Duration.zero
+                                  : AppMotion.entrance,
                               curve: AppMotion.standard,
                               builder: (context, t, child) => Opacity(
                                 opacity: t,
@@ -111,24 +118,26 @@ class OnboardingScreen extends ConsumerWidget {
                                     height: 28,
                                     alignment: Alignment.center,
                                     decoration: BoxDecoration(
-                                      color: gradient.first.withValues(
-                                        alpha: 0.14,
-                                      ),
+                                      color: theme.colorScheme.primary
+                                          .withValues(alpha: 0.14),
                                       borderRadius: BorderRadius.circular(
                                         AppRadius.sm,
                                       ),
                                     ),
-                                    child: Icon(
+                                    child: BrandIcon(
                                       f.$1,
                                       size: 16,
-                                      color: gradient.first,
+                                      color: theme.colorScheme.primary,
                                     ),
                                   ),
                                   const SizedBox(width: AppSpacing.sm),
-                                  Text(
-                                    f.$2,
-                                    style: theme.textTheme.bodyMedium?.copyWith(
-                                      fontWeight: FontWeight.w600,
+                                  Flexible(
+                                    child: Text(
+                                      f.$2,
+                                      style: theme.textTheme.bodyMedium
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w600,
+                                          ),
                                     ),
                                   ),
                                 ],
@@ -149,7 +158,7 @@ class OnboardingScreen extends ConsumerWidget {
                             ),
                             child: FilledButton(
                               style: FilledButton.styleFrom(
-                                backgroundColor: gradient.first,
+                                backgroundColor: theme.colorScheme.primary,
                                 padding: const EdgeInsets.symmetric(
                                   vertical: AppSpacing.md,
                                 ),
