@@ -38,9 +38,11 @@ class _PressableScaleState extends ConsumerState<PressableScale> {
       onTapUp: (_) => _setPressed(false),
       onTapCancel: () => _setPressed(false),
       child: AnimatedScale(
-        scale: _pressed && !reduceMotion ? 0.98 : 1.0,
-        duration: reduceMotion ? Duration.zero : AppMotion.micro,
-        curve: Curves.easeOut,
+        scale: _pressed && !reduceMotion ? 0.965 : 1.0,
+        duration: reduceMotion
+            ? Duration.zero
+            : (_pressed ? AppMotion.pressDown : AppMotion.pressRelease),
+        curve: _pressed ? AppMotion.standard : Curves.easeOutBack,
         child: widget.child,
       ),
     );

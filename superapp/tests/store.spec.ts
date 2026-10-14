@@ -244,7 +244,8 @@ test('catalog filters, light mode and responsive layout', async ({ page }, info)
     fullPage: true,
   });
   await page.getByRole('button', { name: "O'yinlar", exact: true }).filter({ visible: true }).click();
-  await expect(page.locator('.tab-view')).toHaveCSS('animation-name', 'tab-enter');
+  await expect(page.getByRole('heading', { name: "O'yinni tanlang" })).toBeVisible();
+  await expect(page.locator('.tab-view')).toHaveCSS('opacity', '1');
   await expect(page.locator('.game-card')).toHaveCount(4);
   await page.getByLabel("O'yin qidirish").fill('PUBG');
   await expect(page.locator('.game-card')).toHaveCount(1);
@@ -312,6 +313,11 @@ test('wallet top-up chooses the payment method before amount', async ({ page }, 
   await expect(page.getByRole('heading', { name: "To'lov usulini tanlang" })).toBeVisible();
   await expect(page.locator('.wallet-balance-card')).toBeVisible();
   await expect(page.locator('.topup-progress > div')).toHaveCount(3);
+  await page.locator('.wallet-sheet').evaluate(async (dialog) => {
+    const entrance = dialog.getAnimations({ subtree: true }).filter((animation) =>
+      Number.isFinite(animation.effect?.getComputedTiming().endTime));
+    await Promise.all(entrance.map((animation) => animation.finished.catch(() => {})));
+  });
   await page.screenshot({
     path: `../artifacts/wallet-${info.project.name}.png`,
     fullPage: true,
@@ -621,6 +627,7 @@ test('reduced motion keeps the storefront usable and keyboard sheet focus return
   await mockStore(page, true);
   await page.goto('/');
   await expect(page.locator('.launch-screen')).toHaveCount(0);
+  await expect(page.locator('.app-shell[inert]')).toHaveCount(0);
   const card = page.locator('.game-card').first();
   await expect(card).toBeVisible();
   await expect(page.locator('.tab-view')).toHaveCSS('animation-name', 'none');
@@ -710,4 +717,75 @@ test('catalog loading is announced and primary actions have readable contrast', 
     return (Math.max(foreground, background) + .05) / (Math.min(foreground, background) + .05);
   });
   expect(contrast).toBeGreaterThanOrEqual(4.5);
+});
+
+test('normal motion intro finishes and releases keyboard navigation and game sheets', async ({ page }, info) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await mockStore(page, true);
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('.launch-screen')).toBeVisible();
+  await expect(page.locator('.app-shell[inert]')).toHaveCount(1);
+  await page.keyboard.press('Tab');
+  expect(await page.locator('.app-shell').evaluate((element) => element.contains(document.activeElement))).toBe(false);
+  await page.waitForTimeout(650);
+  await page.screenshot({ path: `../artifacts/brand-refresh/intro-orbit-${info.project.name}.png` });
+  await page.screenshot({ path: `../artifacts/brand-refresh/intro-settled-${info.project.name}.png`, animations: 'disabled' });
+  await expect(page.locator('.launch-screen')).toHaveCount(0, { timeout: 5000 });
+  await expect(page.locator('.app-shell[inert]')).toHaveCount(0);
+  await expect(page.locator('.wallet-summary')).toContainText("50 000 so'm");
+  await page.screenshot({ path: `../artifacts/brand-refresh/intro-complete-${info.project.name}.png`, animations: 'disabled' });
+  await page.getByRole('button', { name: "O'yinlar", exact: true }).filter({ visible: true }).last().click();
+  await expect(page.getByRole('heading', { name: "O'yinni tanlang" })).toBeVisible();
+  const card = page.locator('.game-card').first();
+  await card.focus();
+  await page.keyboard.press('Enter');
+  const dialog = page.getByRole('dialog', { name: 'Mobile Legends: Bang Bang' });
+  await expect(dialog).toBeVisible();
+  await page.screenshot({ path: `../artifacts/brand-refresh/navigation-sheet-${info.project.name}.png`, animations: 'disabled' });
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0);
+  await expect(card).toBeFocused();
+  await noOverflow(page);
+});
+
+test('turning on reduced motion during the intro immediately makes the app interactive', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await mockStore(page, true);
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('.launch-screen')).toBeVisible();
+  await expect(page.locator('.app-shell[inert]')).toHaveCount(1);
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await expect(page.locator('.launch-screen')).toHaveCount(0, { timeout: 1000 });
+  await expect(page.locator('.app-shell[inert]')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Buyurtmalar', exact: true }).filter({ visible: true }).last().click();
+  await expect(page.getByRole('heading', { name: 'Xaridlar tarixi' })).toBeVisible();
+  const shop = page.getByRole('button', { name: "Do'konga o'tish" });
+  await shop.focus();
+  await expect(shop).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.wallet-summary')).toBeVisible();
+  await expect(page.locator('.launch-screen')).toHaveCount(0);
+  await noOverflow(page);
+});
+
+test('focused banner selection reveals its new copy while decorative artwork stays still', async ({ page }, info) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await mockStore(page, true);
+  await page.goto('/');
+  await expect(page.locator('.launch-screen')).toHaveCount(0);
+  const banner = page.locator('.game-banner');
+  await banner.scrollIntoViewIfNeeded();
+  const selector = banner.getByRole('button', { name: 'Free Fire', exact: true });
+  await selector.focus();
+  await page.keyboard.press('Enter');
+  await expect(selector).toBeFocused();
+  await expect(banner.locator('.game-banner__title')).toHaveText('Free Fire');
+  await expect(banner.locator('.game-banner__slide')).toHaveCSS('opacity', '1', { timeout: 2000 });
+  for (const content of ['.game-banner__title', '.game-banner__description', '.game-banner__cta']) {
+    await expect(banner.locator(content)).toHaveCSS('opacity', '1', { timeout: 2000 });
+  }
+  await expect(banner.locator('.game-banner__art')).toHaveCSS('animation-play-state', 'paused');
+  await expect(selector).toBeFocused();
+  await noOverflow(page);
+  await page.screenshot({ path: `../artifacts/brand-refresh/banner-focused-${info.project.name}.png`, animations: 'disabled' });
 });

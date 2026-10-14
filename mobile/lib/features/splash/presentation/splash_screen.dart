@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/branding/app_branding.dart';
-import '../../../core/branding/brand_mark.dart';
+import '../../../core/branding/brand_entrance.dart';
 import '../../../core/storage/preferences_provider.dart';
-import '../../../core/theme/app_motion.dart';
 import '../../../core/theme/reduce_motion_controller.dart';
 import '../../auth/application/auth_controller.dart';
 
@@ -33,14 +31,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     super.initState();
     // Start auth hydration in the background — do NOT await it.
     ref.read(authControllerProvider);
-    _proceed();
   }
 
-  Future<void> _proceed() async {
-    // Purely cosmetic — just long enough for the logo entrance to read.
-    // Reading the onboarding flag is synchronous (SharedPreferences is
-    // already loaded before runApp), so nothing else gates this.
-    await Future.delayed(const Duration(milliseconds: 480));
+  void _proceed() {
     if (!mounted) return;
 
     final hasCompletedOnboarding = ref
@@ -55,33 +48,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
         ref.watch(reduceMotionProvider) ||
         MediaQuery.disableAnimationsOf(context);
     return Scaffold(
-      body: Center(
-        child: TweenAnimationBuilder<double>(
-          tween: Tween(begin: 0, end: 1),
-          duration: reduceMotion ? Duration.zero : AppMotion.entrance,
-          curve: Curves.easeOutCubic,
-          builder: (context, t, child) {
-            return Opacity(
-              opacity: t,
-              child: Transform.scale(scale: 0.9 + (0.1 * t), child: child),
-            );
-          },
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const BrandMark(size: 88),
-              const SizedBox(height: 16),
-              Text(
-                AppBranding.appName,
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1.2,
-                ),
-              ),
-            ],
-          ),
-        ),
+      body: SafeArea(
+        child: BrandEntrance(reduceMotion: reduceMotion, onComplete: _proceed),
       ),
     );
   }

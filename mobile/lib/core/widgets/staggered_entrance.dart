@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../theme/app_motion.dart';
@@ -22,21 +23,40 @@ class StaggeredEntrance extends ConsumerStatefulWidget {
   ConsumerState<StaggeredEntrance> createState() => _StaggeredEntranceState();
 }
 
-class _StaggeredEntranceState extends ConsumerState<StaggeredEntrance> {
-  bool _visible = false;
+class _StaggeredEntranceState extends ConsumerState<StaggeredEntrance>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  Timer? _startTimer;
 
   @override
   void initState() {
     super.initState();
-    final reduceMotion = ref.read(reduceMotionProvider);
-    if (reduceMotion) {
-      _visible = true;
-      return;
+    _controller = AnimationController(
+      vsync: this,
+      duration: AppMotion.sectionEntrance,
+    );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (ref.read(reduceMotionProvider) ||
+        MediaQuery.disableAnimationsOf(context)) {
+      _startTimer?.cancel();
+      _controller.value = 1;
+    } else if (_startTimer == null && _controller.value == 0) {
+      final delayMs = (widget.index * 36).clamp(0, 220);
+      _startTimer = Timer(Duration(milliseconds: delayMs), () {
+        if (mounted) _controller.forward();
+      });
     }
-    final delayMs = (widget.index * 18).clamp(0, 140);
-    Future.delayed(Duration(milliseconds: delayMs), () {
-      if (mounted) setState(() => _visible = true);
-    });
+  }
+
+  @override
+  void dispose() {
+    _startTimer?.cancel();
+    _controller.dispose();
+    super.dispose();
   }
 
   @override
@@ -44,18 +64,25 @@ class _StaggeredEntranceState extends ConsumerState<StaggeredEntrance> {
     final reduceMotion =
         ref.watch(reduceMotionProvider) ||
         MediaQuery.disableAnimationsOf(context);
-    if (reduceMotion) return widget.child;
-    final duration = reduceMotion ? Duration.zero : AppMotion.fast;
-    return AnimatedOpacity(
-      opacity: _visible ? 1 : 0,
-      duration: duration,
-      curve: AppMotion.standard,
-      child: AnimatedSlide(
-        offset: _visible ? Offset.zero : const Offset(0, 0.05),
-        duration: duration,
-        curve: AppMotion.standard,
-        child: widget.child,
-      ),
+    return AnimatedBuilder(
+      animation: _controller,
+      child: widget.child,
+      builder: (context, child) {
+        final t = reduceMotion
+            ? 1.0
+            : AppMotion.emphasized.transform(_controller.value);
+        return Opacity(
+          opacity: t,
+          child: Transform.translate(
+            offset: Offset(0, 18 * (1 - t)),
+            child: Transform.scale(
+              scale: 0.97 + 0.03 * t,
+              alignment: Alignment.topCenter,
+              child: child,
+            ),
+          ),
+        );
+      },
     );
   }
 }

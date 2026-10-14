@@ -6,10 +6,10 @@ Status recorded on 14 October 2026. This is a private staging deployment. Domain
 
 The local release command `node scripts/build-release.mjs` completed successfully. It built the admin panel, customer superapp, and backend, then copied frontend assets into `backend/public`.
 
-- Admin JavaScript: `index-BpVJumvx.js`
-- Admin CSS: `index-DMKnpwCE.css`
-- Superapp JavaScript: `index-Cv5gkPpk.js`
-- Superapp CSS: `index-GcqE6F0_.css`
+- Admin JavaScript: `index-BqWfjjdE.js`
+- Admin CSS: `index-BRoZ7cbL.css`
+- Superapp JavaScript: `index-DGAJeTNO.js`
+- Superapp CSS: `index-CU0w4NsB.css`
 
 The compiled backend, public assets, Prisma files, package manifest, and lockfile were uploaded. Local `.env` files were not uploaded. No database migrations or seeds were run for this deployment.
 
@@ -47,7 +47,7 @@ These addresses are local previews. No public domain or HTTPS endpoint has been 
 
 ## Deployment verification
 
-Release `20261014-113722` is installed at `/opt/uzdonate/releases/20261014-113722`; `current` points to that release. The `uzdonate.service` unit is enabled and running, with zero restarts observed after startup. Native password hashing and the Linux Prisma client were checked on the VPS.
+Release `20261014-125352` is installed at `/opt/uzdonate/releases/20261014-125352`; `current` points to that release. It contains the 0.2.1 cinematic storefront motion update. The `uzdonate.service` unit is enabled and running. Native password hashing and the Linux Prisma client were checked on the VPS during initial setup; the unchanged Linux dependencies were reused for this update.
 
 The VPS returned HTTP 200 for `/health`, `/ready`, `/webapp/`, `/admin/`, `/api/v1/app/config`, `/api/v1/games`, and both release JavaScript bundles. The catalog returned 17 games. Google client configuration is present and Telegram integration is disabled in staging. The listener was confirmed bound only to `127.0.0.1:4002`; existing nginx and both UzPost services remained active.
 

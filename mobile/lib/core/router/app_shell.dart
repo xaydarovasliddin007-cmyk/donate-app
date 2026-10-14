@@ -6,6 +6,7 @@ import '../../l10n/generated/app_localizations.dart';
 import '../branding/brand_icon.dart';
 import '../notifications/notification_watcher.dart';
 import '../widgets/app_bottom_nav.dart';
+import '../widgets/page_motion.dart';
 
 /// Bottom-nav shell for the four primary destinations. Each branch keeps
 /// its own navigation stack/scroll position via [StatefulShellRoute] —
@@ -24,7 +25,10 @@ class AppShell extends ConsumerWidget {
     ref.watch(notificationWatcherProvider);
 
     return Scaffold(
-      body: navigationShell,
+      body: TabReveal(
+        index: navigationShell.currentIndex,
+        child: navigationShell,
+      ),
       bottomNavigationBar: AppBottomNav(
         currentIndex: navigationShell.currentIndex,
         onTap: (index) {

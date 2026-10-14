@@ -23,6 +23,8 @@ import '../../features/splash/presentation/splash_screen.dart';
 import '../../features/topup/presentation/topup_screen.dart';
 import '../../features/wallet/presentation/wallet_history_screen.dart';
 import '../theme/app_motion.dart';
+import '../theme/reduce_motion_controller.dart';
+import '../widgets/page_motion.dart';
 import 'app_shell.dart';
 
 abstract final class AppRoutes {
@@ -39,27 +41,29 @@ abstract final class AppRoutes {
   static const profile = '/profile';
 }
 
-/// A subtle fade + upward-slide push transition, used for every route pushed
-/// on top of the bottom-nav shell — the shell's own tab switches stay
-/// instant (no transition), only "going somewhere new" animates.
-CustomTransitionPage<void> _fadeSlidePage(GoRouterState state, Widget child) {
+/// Page pushes share the same soft depth and lift as the card entrances.
+CustomTransitionPage<void> _fadeSlidePage(
+  BuildContext context,
+  GoRouterState state,
+  Widget child,
+) {
+  final reduceMotion =
+      ProviderScope.containerOf(
+        context,
+        listen: false,
+      ).read(reduceMotionProvider) ||
+      MediaQuery.disableAnimationsOf(context);
   return CustomTransitionPage<void>(
     key: state.pageKey,
     child: child,
-    transitionDuration: AppMotion.medium,
-    reverseTransitionDuration: AppMotion.medium,
+    transitionDuration: reduceMotion ? Duration.zero : AppMotion.route,
+    reverseTransitionDuration: reduceMotion ? Duration.zero : AppMotion.medium,
     transitionsBuilder: (context, animation, secondaryAnimation, child) {
-      final curved = CurvedAnimation(
-        parent: animation,
-        curve: AppMotion.standard,
-      );
-      return FadeTransition(
-        opacity: curved,
-        child: SlideTransition(
-          position: Tween<Offset>(
-            begin: const Offset(0, 0.04),
-            end: Offset.zero,
-          ).animate(curved),
+      return Consumer(
+        builder: (context, ref, _) => BrandPageTransition(
+          animation: animation,
+          secondaryAnimation: secondaryAnimation,
+          reduceMotion: ref.watch(reduceMotionProvider),
           child: child,
         ),
       );
@@ -82,18 +86,19 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.login,
         pageBuilder: (context, state) =>
-            _fadeSlidePage(state, const LoginScreen()),
+            _fadeSlidePage(context, state, const LoginScreen()),
       ),
       GoRoute(
         path: AppRoutes.register,
         pageBuilder: (context, state) =>
-            _fadeSlidePage(state, const RegisterScreen()),
+            _fadeSlidePage(context, state, const RegisterScreen()),
       ),
       GoRoute(
         path: AppRoutes.registerComplete,
         pageBuilder: (context, state) {
           final extra = state.extra! as Map<String, Object?>;
           return _fadeSlidePage(
+            context,
             state,
             CompleteRegistrationScreen(
               email: extra['email']! as String,
@@ -105,11 +110,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.forgotPassword,
         pageBuilder: (context, state) =>
-            _fadeSlidePage(state, const ForgotPasswordScreen()),
+            _fadeSlidePage(context, state, const ForgotPasswordScreen()),
       ),
       GoRoute(
         path: AppRoutes.resetPassword,
         pageBuilder: (context, state) => _fadeSlidePage(
+          context,
           state,
           ResetPasswordScreen(email: state.extra! as String),
         ),
@@ -118,6 +124,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/games/:gameId',
         pageBuilder: (context, state) => _fadeSlidePage(
+          context,
           state,
           GameDetailsScreen(gameId: state.pathParameters['gameId']!),
         ),
@@ -127,6 +134,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state) {
           final extra = state.extra! as Map<String, Object?>;
           return _fadeSlidePage(
+            context,
             state,
             PurchaseFlowScreen(
               game: extra['game']! as Game,
@@ -142,6 +150,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state) {
           final extra = state.extra! as Map<String, Object?>;
           return _fadeSlidePage(
+            context,
             state,
             CheckoutScreen(
               game: extra['game']! as Game,
@@ -155,6 +164,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/orders/:orderId',
         pageBuilder: (context, state) => _fadeSlidePage(
+          context,
           state,
           OrderStatusScreen(orderId: state.pathParameters['orderId']!),
         ),
@@ -162,22 +172,22 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/wallet/topup',
         pageBuilder: (context, state) =>
-            _fadeSlidePage(state, const TopupScreen()),
+            _fadeSlidePage(context, state, const TopupScreen()),
       ),
       GoRoute(
         path: '/wallet/history',
         pageBuilder: (context, state) =>
-            _fadeSlidePage(state, const WalletHistoryScreen()),
+            _fadeSlidePage(context, state, const WalletHistoryScreen()),
       ),
       GoRoute(
         path: '/security',
         pageBuilder: (context, state) =>
-            _fadeSlidePage(state, const SecurityCenterScreen()),
+            _fadeSlidePage(context, state, const SecurityCenterScreen()),
       ),
       GoRoute(
         path: '/notifications',
         pageBuilder: (context, state) =>
-            _fadeSlidePage(state, const NotificationsScreen()),
+            _fadeSlidePage(context, state, const NotificationsScreen()),
       ),
 
       StatefulShellRoute.indexedStack(

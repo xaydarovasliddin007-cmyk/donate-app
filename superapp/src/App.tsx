@@ -9,6 +9,7 @@ import { Sheet } from './components/Sheet';
 import { AuthSheet } from './components/AuthSheet';
 import { GameBanner } from './components/GameBanner';
 import { BrandMark } from './components/BrandMark';
+import { BrandLaunch, useBrandLaunch } from './components/BrandLaunch';
 import { CatalogSkeleton, date, ErrorBox, GameCard, money, statuses } from './components/ui';
 import { tr, type Locale } from './i18n';
 
@@ -50,7 +51,7 @@ export default function App() {
   const [showLogin, setShowLogin] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [loggingOut, setLoggingOut] = useState(false);
-  const [showIntro, setShowIntro] = useState(() => !window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const { showIntro, revealing, appReady } = useBrandLaunch();
   const [avatarFailed, setAvatarFailed] = useState(false);
   const [theme, setTheme] = useState(() => {
     try { return localStorage.getItem('uzdonate_theme') || 'dark'; } catch { return 'dark'; }
@@ -95,10 +96,6 @@ export default function App() {
     void loadCatalog(); void authenticate();
     api<AppConfig>('/app/config', undefined, false).then(setConfig).catch(() => {});
   }, [loadCatalog, authenticate]);
-  useEffect(() => {
-    const timer = window.setTimeout(() => setShowIntro(false), 760);
-    return () => window.clearTimeout(timer);
-  }, []);
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
     try { localStorage.setItem('uzdonate_theme', theme); } catch { /* Optional preference. */ }
@@ -165,7 +162,7 @@ export default function App() {
   const filteredOrders = orderFilter === 'all' ? orders : orderFilter === 'active' ? activeOrders : orders.filter((item) => !['PENDING', 'PAID', 'PROCESSING'].includes(item.status));
   const navigation = [{ id: 'shop' as const, icon: Home, label: t('Asosiy') }, { id: 'games' as const, icon: Gamepad2, label: t("O'yinlar") }, { id: 'orders' as const, icon: Package, label: t('Buyurtmalar') }, { id: 'profile' as const, icon: UserRound, label: t('Profil') }];
 
-  return <><div className={`app-shell ${showIntro ? 'app-preparing' : 'app-ready'}`}>
+  return <><div className={`app-shell ${appReady ? 'app-ready' : 'app-preparing'}`} {...(showIntro ? { inert: '' } : {})} aria-hidden={showIntro || undefined}>
     <header className="app-header"><div className="header-inner">
       <button className="brand" onClick={() => navigate('shop')} aria-label={locale === 'ru' ? 'UZDONATE — главная' : 'UZDONATE bosh sahifa'}><BrandMark/><span>UZDONATE<span className="brand-dot">.</span></span></button>
       <nav className="desktop-nav" aria-label={t('Asosiy bo\'limlar')}>{navigation.map(({ id, icon: Icon, label }) => <button key={id} aria-current={tab === id ? 'page' : undefined} className={tab === id ? 'active' : ''} onClick={() => navigate(id)}><Icon size={18}/>{label}</button>)}</nav>
@@ -292,7 +289,7 @@ export default function App() {
     )}
     {showNotifications && <Sheet title={t('Bildirishnomalar')} onClose={() => setShowNotifications(false)} className="notifications-sheet"><div className="notification-toolbar">{unreadNotifications > 0 && <button className="button secondary" onClick={markAllNotificationsRead}><CheckCircle2 size={17}/>{t("Hammasini o'qildi qilish")}</button>}</div>{notifications.length === 0 ? <div className="notification-empty"><Bell size={25}/><p>{t("Hozircha bildirishnomalar yo'q")}</p></div> : <div className="notification-list">{notifications.map((item) => <button key={item.id} className={`notification-row ${item.readAt ? '' : 'unread'}`} onClick={async () => { await markNotificationRead(item); openNotification(item); }}><span className="notification-symbol"><Bell size={17}/></span><span className="notification-copy"><strong>{notificationTitle(item.type, item.title, locale)}</strong><span>{notificationBody(item.type, item.body, locale)}</span><small>{date(item.createdAt, locale)}</small></span>{!item.readAt && <i aria-label={t('Yangi')}/>}</button>)}</div>}</Sheet>}
     {order && <OrderSheet order={orders.find((item) => item.id === order.id) || order} onClose={() => setOrder(null)} onUpdated={refreshAccount} supportUrl={config.supportUrl} locale={locale}/>}
-  </div>{showIntro && <div className="launch-screen" aria-hidden="true"><div className="launch-mark"><BrandMark/></div><strong>UZDONATE<span>.</span></strong><small>{t("O'yiningiz bilan birga.")}</small></div>}</>;
+  </div>{showIntro && <BrandLaunch revealing={revealing} tagline={t("O'yiningiz bilan birga.")}/>}</>;
 }
 
 function notificationTitle(type: string, fallback: string, locale: Locale) {

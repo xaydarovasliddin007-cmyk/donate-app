@@ -49,7 +49,7 @@ export function GameBanner({ games, locale, active = true, onSelect }: {
   if (!game) return null;
   const title = game.slug === 'mobile-legends' ? 'Mobile Legends' : game.name;
 
-  return <section className="game-banner" aria-label={t("Mashhur o'yinlar")}
+  return <section className="game-banner" aria-label={t("Mashhur o'yinlar")} data-motion={active && canRotate && !hovered && !focused ? 'playing' : 'paused'}
     onPointerEnter={(event) => { if (event.pointerType === 'mouse') setHovered(true); }}
     onPointerLeave={() => setHovered(false)}
     onFocusCapture={() => setFocused(true)}

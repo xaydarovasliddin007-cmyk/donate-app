@@ -13,7 +13,9 @@ Use neutral layered surfaces and clear text contrast. Keep game artwork recogniz
 
 ## Motion
 
-Use short transitions for taps, selection, sheets and page entrances. Animate opacity and transforms, and honor reduced-motion settings. Avoid constant pulsing, spinning decoration and delayed access to the catalog. Loading indicators should communicate work in progress.
+The launch signature is a finite cinematic sequence: azure/cyan light bloom, orbit arcs around the UD mark, a staggered wordmark reveal and a soft handoff into the storefront. Keep the complete entrance under two seconds and start data loading immediately in parallel. Reduced-motion users enter directly, including when they change the system preference during the sequence.
+
+Carry the same spring rhythm through card entrances, navigation icons, button presses and sheet transitions. Hover light sweeps and artwork lift add depth on pointer devices. Use opacity and transforms for movement; avoid perpetual decorative loops or replaying the launch on internal navigation. Loading indicators communicate actual work in progress.
 
 ## Exports
 
