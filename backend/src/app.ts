@@ -92,6 +92,9 @@ export async function buildApp() {
   app.addHook('onSend', async (request, reply) => {
     if (request.url.startsWith('/webapp/')) {
       reply.removeHeader('x-frame-options');
+      // Google Identity's popup must retain its opener when FedCM is unavailable.
+      reply.header('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+      reply.header('Referrer-Policy', 'strict-origin-when-cross-origin');
       reply.header('Content-Security-Policy', "frame-ancestors 'self' https://web.telegram.org https://*.telegram.org https://telegram.org");
       const pathname = request.url.split('?')[0] ?? '';
       if (pathname === '/webapp/' || !path.extname(pathname)) {

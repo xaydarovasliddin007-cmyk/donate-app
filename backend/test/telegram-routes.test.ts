@@ -118,4 +118,11 @@ describe('Telegram endpoint boundaries', () => {
     expect(response.headers['cache-control']).toBe('no-store, no-cache, must-revalidate, proxy-revalidate');
     expect(response.headers.pragma).toBe('no-cache');
   });
+  it('allows Google authentication popups for the webapp while isolating the API', async () => {
+    const webapp = await app.inject('/webapp/');
+    const api = await app.inject('/api/v1/app/config');
+    expect(webapp.headers['cross-origin-opener-policy']).toBe('same-origin-allow-popups');
+    expect(webapp.headers['referrer-policy']).toBe('strict-origin-when-cross-origin');
+    expect(api.headers['cross-origin-opener-policy']).toBe('same-origin');
+  });
 });
