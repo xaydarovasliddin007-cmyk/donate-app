@@ -206,6 +206,8 @@ export interface TopUpRequestAdmin {
   // against the SMS bot" apart from "review this against the receipt
   // number in userReference" — null only for requests older than this field.
   type: ReceivingMethodType | null;
+  channel?: 'HUMO' | 'UZCARD' | 'BANKOMAT' | null;
+  receipt?: { fileName: string; mimeType: string; createdAt: string; deliveryStatus: string } | null;
   amountMinor: number;
   currency: string;
   status: TopUpRequestStatus;

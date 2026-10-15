@@ -12,16 +12,16 @@ const MAX_RECEIPT_BYTES = 5 * 1024 * 1024;
 async function prepareReceiptImage(file: File): Promise<File> {
   if (file.size > 25 * 1024 * 1024) throw new Error('too-large');
 
-  let bitmap: ImageBitmap | HTMLImageElement;
+  let bitmap: ImageBitmap | HTMLImageElement | undefined;
   let release = () => {};
   if (typeof createImageBitmap === 'function') {
-    bitmap = await createImageBitmap(file);
-  } else {
+    try { bitmap = await createImageBitmap(file); } catch { /* Some Telegram webviews need the image element decoder. */ }
+  }
+  if (!bitmap) {
     const url = URL.createObjectURL(file);
     const image = new Image();
-    image.src = url;
     try {
-      await image.decode();
+      await new Promise<void>((resolve, reject) => { image.onload = () => resolve(); image.onerror = () => reject(new Error('image-decode-failed')); image.src = url; });
       bitmap = image;
       release = () => URL.revokeObjectURL(url);
     } catch (error) {
@@ -36,6 +36,7 @@ async function prepareReceiptImage(file: File): Promise<File> {
     canvas.height = Math.max(1, Math.round(bitmap.height * scale));
     const context = canvas.getContext('2d');
     if (!context) throw new Error('canvas-unavailable');
+    context.fillStyle = '#ffffff'; context.fillRect(0, 0, canvas.width, canvas.height);
     context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
 
     for (const quality of [0.9, 0.84, 0.78, 0.7]) {
@@ -43,7 +44,7 @@ async function prepareReceiptImage(file: File): Promise<File> {
         canvas.toBlob((value) => value ? resolve(value) : reject(new Error('encode-failed')), 'image/jpeg', quality);
       });
       if (blob.size <= MAX_RECEIPT_BYTES) {
-        const baseName = file.name.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9._-]/g, '_') || 'receipt';
+        const baseName = file.name.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 110) || 'receipt';
         return new File([blob], `${baseName}.jpg`, { type: 'image/jpeg', lastModified: Date.now() });
       }
     }
@@ -73,6 +74,8 @@ export function WalletSheet({ wallet, onClose, onUpdated, onNavigate, locale }: 
   const [copied, setCopied] = useState<{ type: 'card' | 'amount'; id?: string } | null>(null);
   const lock = useRef(false);
   const amountConflictRef = useRef<HTMLDivElement>(null);
+  const errorRef = useRef<HTMLDivElement>(null);
+  useEffect(() => { if (error) { errorRef.current?.focus(); errorRef.current?.scrollIntoView({ block: 'nearest' }); } }, [error]);
   const [revision, setRevision] = useState(0);
   const [now, setNow] = useState(Date.now());
   useEffect(() => {
@@ -166,7 +169,7 @@ export function WalletSheet({ wallet, onClose, onUpdated, onNavigate, locale }: 
     } catch { setError(locale === 'ru' ? 'Не удалось скопировать. Выделите текст и скопируйте вручную.' : "Karta raqamini belgilab nusxalang."); }
   }
   const remaining = request?.expiresAt ? Math.max(0, Math.ceil((new Date(request.expiresAt).getTime() - now) / 1000)) : 0;
-  const receiptSubmitted = confirmed || Boolean(request?.userConfirmedPaidAt);
+  const receiptSubmitted = confirmed || Boolean(request?.receipt) || /^Telegram chek #\d+$/.test(request?.userReference ?? '');
   const topupStage = request ? 3 : selectedChannel ? 2 : 1;
   const methodInfo: Record<TopUpOption['id'], { description: string; icon?: typeof CreditCard; asset?: string }> = {
     HUMO: { description: "Avtomatik tasdiqlanadi", asset: "payment/humo.png" },
@@ -176,7 +179,7 @@ export function WalletSheet({ wallet, onClose, onUpdated, onNavigate, locale }: 
   return <Sheet title={t("Balansni to'ldirish")} onClose={onClose} busy={busy} className="wallet-sheet">
     <div className="checkout-form">
       <section className="wallet-balance-card"><span>{locale === 'ru' ? 'БАЛАНС' : 'BALANS'}</span><strong>{balance ? money(balance.balanceMinor, balance.currency, locale) : '...'}</strong><WalletCards size={38}/></section>
-      {error && <ErrorBox message={error} retry={() => setRevision((r) => r + 1)} locale={locale}/>}
+      {error && <div ref={errorRef} tabIndex={-1}><ErrorBox message={error} retry={() => setRevision((r) => r + 1)} locale={locale}/></div>}
       <div className={`topup-progress stage-${topupStage}`} aria-label={locale === 'ru' ? 'Этап пополнения' : "To'ldirish bosqichlari"}>
         {[t('Usul'), t('Summa'), t("To'lov")].map((step, index) => <div className={index + 1 <= topupStage ? 'complete' : ''} key={step}><span>{index + 1 <= topupStage ? <Check size={13}/> : index + 1}</span><small>{step}</small></div>)}
       </div>
@@ -185,11 +188,11 @@ export function WalletSheet({ wallet, onClose, onUpdated, onNavigate, locale }: 
         {request.type === 'QR_CODE' ? <div className="qr-methods">{requestMethods.map((method) => method.qrPayload && <div className="qr-method" key={method.id}><GeneratedQr payload={method.qrPayload}/><strong>{method.cardHolderName}</strong><span>{method.bankName || t('QR orqali to‘lov')}</span></div>)}</div> : <div className="bank-methods">{requestMethods.map((method) => <div className="bank-details" key={method.id}>{request.channel === 'BANKOMAT' ? <img className="bank-card-logo bank-atm-logo" src="payment/atm.png" alt="BANKOMAT"/> : <img className="bank-card-logo" src={request.channel === 'UZCARD' ? 'payment/uzcard.png' : 'payment/humo.png'} alt={request.channel || 'HUMO'}/>}<div><span>{method.bankName || (request.type === 'PAYNET_TERMINAL' ? t('Bankomat uchun karta') : t('Qabul qiluvchi karta'))}</span><strong>{method.cardNumber}</strong><span>{method.cardHolderName}</span></div>{method.cardNumber && <button className={`icon-button copy-control ${copied?.type === 'card' && copied.id === method.id ? 'copied' : ''}`} aria-label={locale === 'ru' ? 'Скопировать номер карты' : t('Karta raqamini nusxalash')} title={copied?.type === 'card' && copied.id === method.id ? t('Nusxalandi') : t('Nusxalash')} onClick={() => void copyValue(method.cardNumber!, 'card', method.id)}>{copied?.type === 'card' && copied.id === method.id ? <Check size={18}/> : <Copy size={18}/>}<span>{copied?.type === 'card' && copied.id === method.id ? t('Nusxalandi') : t('Nusxalash')}</span></button>}</div>)}</div>}
         <p className="notice">{request.type === 'PAYNET_TERMINAL' ? t("Bankomatda aynan ko'rsatilgan summani o'tkazing va chekni rasmga olib yuklang.") : t("Aynan ko'rsatilgan summani o'tkazing. Bank xabari kelishi bilan balans avtomatik yangilanadi.")}</p>
         {request.expiresAt && <p className="muted">{t('Qolgan vaqt:')} {Math.floor(remaining / 60)}:{String(remaining % 60).padStart(2, '0')}</p>}
-        {request.type === 'PAYNET_TERMINAL' ? receiptSubmitted ? <div className="notice success"><LoaderCircle className="spin" size={20}/><div><strong>{t('Chek adminga yuborildi.')}</strong><br/><span>{t('Admin tasdiqlashi yoki rad etishi bilan balans holati yangilanadi.')}</span></div></div> : <form className="stack compact" onSubmit={submitReceipt}><label className="receipt-upload"><input type="file" accept="image/*" disabled={preparingReceipt} onChange={(event) => { void chooseReceipt(event.target.files?.[0] || null); }}/>{receiptPreview ? <img src={receiptPreview} alt={t('Yuklangan chek')}/> : <span><ImageUp size={28}/><strong>{preparingReceipt ? (locale === 'ru' ? 'Подготовка фото…' : 'Rasm tayyorlanmoqda…') : t('Chek screenshotini yuklang')}</strong><small>{t('JPG, PNG yoki WEBP · 5 MB gacha')}</small></span>}</label><button className="button primary" disabled={busy || preparingReceipt || !receiptFile}>{busy ? <LoaderCircle className="spin" size={18}/> : <ImageUp size={18}/>} {t('Chekni yuborish')}</button></form> : <div className="notice success"><LoaderCircle className="spin" size={20}/><div><strong>{t('Avtomatik tekshirilmoqda')}</strong><br/><span>{t("Ilovani yopmang. To'lov aniqlanganda balans o'zi yangilanadi.")}</span></div></div>}
+        {request.type === 'PAYNET_TERMINAL' ? receiptSubmitted ? <div className="notice success"><LoaderCircle className="spin" size={20}/><div><strong>{t('Chek qabul qilindi.')}</strong><br/><span>{t('Admin tasdiqlashi yoki rad etishi bilan balans holati yangilanadi.')}</span></div></div> : <form className="stack compact" onSubmit={submitReceipt}><label className="receipt-upload"><input type="file" accept="image/*" disabled={preparingReceipt} onChange={(event) => { void chooseReceipt(event.target.files?.[0] || null); }}/>{receiptPreview ? <img src={receiptPreview} alt={t('Yuklangan chek')}/> : <span><ImageUp size={28}/><strong>{preparingReceipt ? (locale === 'ru' ? 'Подготовка фото…' : 'Rasm tayyorlanmoqda…') : t('Chek screenshotini yuklang')}</strong><small>{t('JPG, PNG yoki WEBP · 5 MB gacha')}</small></span>}</label><button className="button primary" disabled={busy || preparingReceipt || !receiptFile}>{busy ? <LoaderCircle className="spin" size={18}/> : <ImageUp size={18}/>} {t('Chekni yuborish')}</button></form> : <div className="notice success"><LoaderCircle className="spin" size={20}/><div><strong>{t('Avtomatik tekshirilmoqda')}</strong><br/><span>{t("Ilovani yopmang. To'lov aniqlanganda balans o'zi yangilanadi.")}</span></div></div>}
         {remaining === 0 && !receiptSubmitted && request.type === 'PAYNET_TERMINAL' && <p className="notice" role="status">{t('Rezerv muddati tugadi, lekin bankomat chekini tekshiruvga yuborishingiz mumkin.')}</p>}
         {remaining === 0 && !receiptSubmitted && request.type !== 'PAYNET_TERMINAL' && <p role="status">{t("Muddat tugadi. To'lov qilgan bo'lsangiz, yordam xizmatiga buyurtma raqamini yuboring.")}</p>}
         <small className="muted">{t("So'rov:")} {request.id}</small>
-      </> : !selectedChannel ? <section className="topup-step"><div className="topup-step-heading"><span className="topup-step-symbol"><CreditCard size={20}/></span><div><span className="eyebrow accent-text">{t('1-QADAM')}</span><h3>{t("To'lov usulini tanlang")}</h3><p>{t("Qulay usulni tanlang va ko‘rsatmalarga amal qiling.")}</p></div></div>{loading ? <div className="payment-method-list" aria-label={t('To‘lov usullari yuklanmoqda')} aria-busy="true">{[0, 1, 2].map((item) => <div className="payment-method-skeleton" key={item}><span className="skeleton"/><div><i className="skeleton"/><i className="skeleton"/></div></div>)}</div> : options.length ? <div className="payment-method-list">{options.map((option) => { const info = methodInfo[option.id]; const Icon = info.icon; return <button key={option.id} disabled={!option.available} onClick={() => setSelectedChannel(option.id)}><span>{info.asset ? <img src={info.asset} alt=""/> : Icon ? <Icon size={26}/> : null}</span><div><strong>{option.label}</strong><small>{option.available ? t(info.description) : t('Hozircha sozlanmagan')}</small><i className={`method-status ${option.mode === 'AUTO' ? 'automatic' : 'manual'}`}><b/>{option.mode === 'AUTO' ? t('Avtomatik') : t('Admin tasdiqlaydi')}</i></div><ChevronRight className="method-check" size={19}/></button>; })}</div> : !error && <div className="payment-empty"><CreditCard size={21}/><span>{t("To'lov usullari hozircha mavjud emas.")}</span></div>}<div className="topup-minimum"><span>{t("Minimal summa: 1 000 so'm")}</span><button onClick={() => setShowGuide((value) => !value)}>{t('Qanday ishlaydi?')} <ChevronRight size={15}/></button></div><button className="topup-guide-link" onClick={() => setShowGuide((value) => !value)}><span><HelpCircle size={22}/></span><div><strong>{t("Balansni qanday to'ldirish mumkin?")}</strong><small>{t("Bosqichma-bosqich qo'llanma")}</small></div><ChevronRight size={18}/></button>{showGuide && <ol className="topup-guide"><li>{t('HUMO va UZCARD mavjud HUMO kartalari orqali avtomatik tekshiriladi.')}</li><li>{t('Bankomat chekini screenshot qilib yuklang.')}</li><li>{t('Screenshot Telegram orqali adminga boradi.')}</li></ol>}</section> : <form className="stack" onSubmit={reserve}>
+      </> : !selectedChannel ? <section className="topup-step"><div className="topup-step-heading"><span className="topup-step-symbol"><CreditCard size={20}/></span><div><span className="eyebrow accent-text">{t('1-QADAM')}</span><h3>{t("To'lov usulini tanlang")}</h3><p>{t("Qulay usulni tanlang va ko‘rsatmalarga amal qiling.")}</p></div></div>{loading ? <div className="payment-method-list" aria-label={t('To‘lov usullari yuklanmoqda')} aria-busy="true">{[0, 1, 2].map((item) => <div className="payment-method-skeleton" key={item}><span className="skeleton"/><div><i className="skeleton"/><i className="skeleton"/></div></div>)}</div> : options.length ? <div className="payment-method-list">{options.map((option) => { const info = methodInfo[option.id]; const Icon = info.icon; return <button key={option.id} disabled={!option.available} onClick={() => setSelectedChannel(option.id)}><span>{info.asset ? <img src={info.asset} alt=""/> : Icon ? <Icon size={26}/> : null}</span><div><strong>{option.label}</strong><small>{option.available ? t(info.description) : t('Hozircha sozlanmagan')}</small><i className={`method-status ${option.mode === 'AUTO' ? 'automatic' : 'manual'}`}><b/>{option.mode === 'AUTO' ? t('Avtomatik') : t('Admin tasdiqlaydi')}</i></div><ChevronRight className="method-check" size={19}/></button>; })}</div> : !error && <div className="payment-empty"><CreditCard size={21}/><span>{t("To'lov usullari hozircha mavjud emas.")}</span></div>}<div className="topup-minimum"><span>{t("Minimal summa: 1 000 so'm")}</span><button onClick={() => setShowGuide((value) => !value)}>{t('Qanday ishlaydi?')} <ChevronRight size={15}/></button></div><button className="topup-guide-link" onClick={() => setShowGuide((value) => !value)}><span><HelpCircle size={22}/></span><div><strong>{t("Balansni qanday to'ldirish mumkin?")}</strong><small>{t("Bosqichma-bosqich qo'llanma")}</small></div><ChevronRight size={18}/></button>{showGuide && <ol className="topup-guide"><li>{t('HUMO va UZCARD mavjud HUMO kartalari orqali avtomatik tekshiriladi.')}</li><li>{t('Bankomat chekini screenshot qilib yuklang.')}</li><li>{t('Chek adminga tekshirish uchun yuboriladi.')}</li></ol>}</section> : <form className="stack" onSubmit={reserve}>
         <button className="topup-back" type="button" onClick={() => setSelectedChannel(null)}><ArrowLeft size={17}/> {t("To'lov usullari")}</button>
         <div><span className="eyebrow accent-text">{t('2-QADAM')}</span><h3>{t('Summani kiriting')}</h3></div>
         {selectedChannel && <div className="selected-payment-method">{(() => { const option = options.find((item) => item.id === selectedChannel); if (!option) return null; const info = methodInfo[option.id]; const InfoIcon = info.icon; return <>{info.asset ? <img src={info.asset} alt=""/> : InfoIcon ? <InfoIcon size={21}/> : null}<span>{option.label}</span><CheckCircle2 size={18}/></>; })()}</div>}

@@ -38,6 +38,7 @@ const updateSchema = z.object({
 });
 const topUpReviewUpdateSchema = z.object({
   update_id: z.number().int(),
+  message: z.object({ from: telegramUser.optional(), chat: z.object({ id: z.number().int(), type: z.string() }), text: z.string().optional() }).optional(),
   callback_query: z.object({
     id: z.string().min(1),
     from: telegramUser,
@@ -157,6 +158,11 @@ export async function telegramRoutes(app: FastifyInstance) {
   }, async (request, reply) => {
     const parsed = topUpReviewUpdateSchema.safeParse(request.body);
     if (!parsed.success) return reply.status(400).send({ error: { code: 'INVALID_UPDATE', message: 'Invalid Telegram update' } });
+    const setupMessage = parsed.data.message;
+    if (setupMessage?.from && setupMessage.chat.type === 'private' && setupMessage.from.id === setupMessage.chat.id && /^\/(start|id)(?:@\w+)?(?:\s|$)/i.test(setupMessage.text ?? '')) {
+      await topUpReviewBotApi('sendMessage', { chat_id: setupMessage.chat.id, parse_mode: 'HTML', text: `UZDONATE cheklarni tekshirish boti.\n\nSizning Chat ID: <code>${setupMessage.chat.id}</code>\n\nCheklarni shu hisobga olish uchun ushbu IDni UZDONATE administratoriga bering. Bu xabar sizga to‘lovlarni tasdiqlash huquqini bermaydi.` });
+      return { ok: true };
+    }
     const callback = parsed.data.callback_query;
     if (!callback) return { ok: true };
 

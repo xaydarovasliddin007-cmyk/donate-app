@@ -153,6 +153,8 @@ async function mockStore(page: Page, tg = false, busyTopup = false, insufficient
         channel: body.channel,
         status: 'PENDING',
         expiresAt: new Date(Date.now() + (expiredTopup ? -1000 : 420000)).toISOString(),
+        userReference: expiredTopup ? 'Legacy terminal reference without a screenshot' : null,
+        userConfirmedPaidAt: expiredTopup ? new Date().toISOString() : null,
         receivingMethods: [
           {
             id: 'method-1',
@@ -412,7 +414,7 @@ test('bankomat top-up sends a receipt for admin review', async ({ page }) => {
     buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', 'base64'),
   });
   await page.getByRole('button', { name: 'Chekni yuborish' }).click();
-  await expect(page.getByText('Chek adminga yuborildi.')).toBeVisible();
+  await expect(page.getByText('Chek qabul qilindi.')).toBeVisible();
   await expect(page.getByText('Admin tasdiqlashi yoki rad etishi bilan balans holati yangilanadi.')).toBeVisible();
   expect(sent.find((item) => item.path === '/topups/reserve')?.body).toMatchObject({ type: 'PAYNET_TERMINAL', channel: 'BANKOMAT' });
   const receipt = sent.find((item) => item.path === '/topups/topup-1/receipt')?.body;

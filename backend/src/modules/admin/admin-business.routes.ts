@@ -17,6 +17,7 @@ import {
   adminListTopUpsQuerySchema,
   adminRefundOrderSchema,
   adminRejectTopUpSchema,
+  adminVerifyTopUpSchema,
   adminSearchUsersQuerySchema,
   adminStatsQuerySchema,
   adminUpdateAdminSchema,
@@ -31,6 +32,8 @@ import {
   adminWalletAdjustSchema,
 } from './admin.schemas.js';
 import * as adminService from './admin.service.js';
+import { getTopUpReceipt } from '../topup/topup-receipt.service.js';
+import { topUpReviewBotApi } from '../telegram/topup-review-bot.js';
 import type {
   AdminCreateAdminInput,
   AdminCreateGameInput,
@@ -47,6 +50,7 @@ import type {
   AdminListTopUpsQuery,
   AdminRefundOrderInput,
   AdminRejectTopUpInput,
+  AdminVerifyTopUpInput,
   AdminSearchUsersQuery,
   AdminStatsQuery,
   AdminUpdateAdminInput,
@@ -156,6 +160,11 @@ export async function adminBusinessRoutes(app: FastifyInstance) {
 
   // --- Top-ups ------------------------------------------------------------------
 
+  app.get('/topups/review-bot', { preHandler: requireAdminRole(...TOPUP_REVIEW_ROLES) }, async () => {
+    const bot = await topUpReviewBotApi<{ username: string }>('getMe', {});
+    return { username: bot.username };
+  });
+
   app.get('/topups', { preHandler: validateQuery(adminListTopUpsQuerySchema) }, async (request) => {
     const query = request.query as AdminListTopUpsQuery;
     const topUps = await adminService.listTopUpsAdmin(ctx, query);
@@ -164,9 +173,9 @@ export async function adminBusinessRoutes(app: FastifyInstance) {
 
   app.post<{ Params: { id: string } }>(
     '/topups/:id/verify',
-    { preHandler: requireAdminRole(...TOPUP_REVIEW_ROLES) },
+    { preHandler: [requireAdminRole(...TOPUP_REVIEW_ROLES), validateBody(adminVerifyTopUpSchema)] },
     async (request) => {
-      return adminService.verifyTopUpAdmin(ctx, request.currentAdmin!.id, request.params.id);
+      return adminService.verifyTopUpAdmin(ctx, request.currentAdmin!.id, request.params.id, request.body as AdminVerifyTopUpInput);
     },
   );
 
@@ -180,6 +189,11 @@ export async function adminBusinessRoutes(app: FastifyInstance) {
   );
 
   // --- Receiving methods (UZDONATE card-transfer top-up config) -------------
+
+  app.get<{ Params: { id: string } }>('/topups/:id/receipt', { preHandler: requireAdminRole(...TOPUP_REVIEW_ROLES) }, async (request, reply) => {
+    const receipt = await getTopUpReceipt(ctx, request.params.id);
+    return reply.header('Cache-Control', 'private, no-store').type(receipt.mimeType).send(Buffer.from(receipt.imageData));
+  });
 
   app.get('/receiving-methods', async () => {
     const receivingMethods = await adminService.listReceivingMethodsAdmin(ctx);

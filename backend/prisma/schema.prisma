@@ -228,6 +228,7 @@ model AdminUser {
   refreshTokens      AdminRefreshToken[]
   auditLogs          AuditLog[]
   walletTransactions WalletTransaction[]
+
   reviewedTopUps     TopUpRequest[]
   createdPromoCodes  PromoCode[]
 
@@ -504,6 +505,7 @@ model Order {
   payments           Payment[]
   providerAttempts   ProviderAttempt[]
   walletTransactions WalletTransaction[]
+
 
   @@index([userId])
   @@index([status])
@@ -916,6 +918,8 @@ model TopUpRequest {
 
   walletTransactions WalletTransaction[]
 
+  receipt TopUpReceipt?
+
   @@index([userId])
   @@index([status])
   // Every incoming bank SMS (autoVerifyFromCardTransaction) and every new
@@ -926,6 +930,20 @@ model TopUpRequest {
   @@index([status, amountMinor])
   @@index([channel, status, amountMinor])
   @@map("top_up_requests")
+}
+
+model TopUpReceipt {
+  topUpRequestId String @id @map("top_up_request_id") @db.Uuid
+  topUpRequest TopUpRequest @relation(fields: [topUpRequestId], references: [id], onDelete: Cascade)
+  fileName String @map("file_name")
+  mimeType String @map("mime_type")
+  imageData Bytes @map("image_data")
+  deliveryStatus String @default("PENDING") @map("delivery_status")
+  telegramMessageId Int? @map("telegram_message_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  deliveredAt DateTime? @map("delivered_at")
+
+  @@map("top_up_receipts")
 }
 
 // ---------------------------------------------------------------------------

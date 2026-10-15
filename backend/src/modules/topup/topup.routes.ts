@@ -118,6 +118,11 @@ export async function topupRoutes(app: FastifyInstance) {
     },
   );
 
+  app.get<{ Params: { id: string } }>('/topups/:id/receipt', { preHandler: authenticate }, async (request, reply) => {
+    const receipt = await topupService.getTopUpReceipt(ctx, request.params.id, request.currentUser!.id);
+    return reply.header('Cache-Control', 'private, no-store').type(receipt.mimeType).send(Buffer.from(receipt.imageData));
+  });
+
   // Legacy mobile clients still call this after a card transfer. It records
   // the timestamp only; card verification remains fully automatic.
   app.post<{ Params: { id: string } }>(

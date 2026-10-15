@@ -158,6 +158,11 @@ export const adminRejectTopUpSchema = z.object({
   rejectionReason: z.string().trim().min(1).max(500),
 });
 
+export const adminVerifyTopUpSchema = z.object({
+  amountMinor: z.number().int().positive().max(2_000_000_000).optional(),
+  reviewNote: z.string().trim().min(1).max(500).optional(),
+}).default({});
+
 export const adminCreatePromoCodeSchema = z.object({
   code: z
     .string()
@@ -263,6 +268,7 @@ export type AdminListProductsQuery = z.infer<typeof adminListProductsQuerySchema
 export type AdminUpdateProductInput = z.infer<typeof adminUpdateProductSchema>;
 export type AdminListTopUpsQuery = z.infer<typeof adminListTopUpsQuerySchema>;
 export type AdminRejectTopUpInput = z.infer<typeof adminRejectTopUpSchema>;
+export type AdminVerifyTopUpInput = z.infer<typeof adminVerifyTopUpSchema>;
 export type AdminCreatePromoCodeInput = z.infer<typeof adminCreatePromoCodeSchema>;
 export type AdminUpdatePromoCodeInput = z.infer<typeof adminUpdatePromoCodeSchema>;
 export type AdminCreateReceivingMethodInput = z.infer<typeof adminCreateReceivingMethodSchema>;

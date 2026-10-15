@@ -88,6 +88,8 @@ const ru: Record<string, string> = {
   'Yuklangan chek': 'Загруженный чек', 'JPG, PNG yoki WEBP · 5 MB gacha': 'JPG, PNG или WEBP · до 5 МБ',
   'Chek adminga yuborildi. Tasdiqlangach balans yangilanadi.': 'Чек отправлен администратору. Баланс обновится после подтверждения.',
   'Chek adminga yuborildi.': 'Чек отправлен администратору.',
+  'Chek qabul qilindi.': 'Чек принят.',
+  'Chek adminga tekshirish uchun yuboriladi.': 'Чек отправляется администратору на проверку.',
   'Admin tasdiqlashi yoki rad etishi bilan balans holati yangilanadi.': 'Статус баланса обновится после подтверждения или отклонения администратором.',
   'Chek rad etildi': 'Чек отклонён',
   "To'lovni tekshirib, chekni qayta yuboring yoki yordamga murojaat qiling.": 'Проверьте платёж, отправьте чек повторно или обратитесь в поддержку.',

@@ -1,5 +1,5 @@
 import { Prisma, type PrismaClient, type WalletTransactionDirection, type WalletTransactionType } from '@prisma/client';
-import { AppError } from '../../lib/errors.js';
+import { AppError, ConflictError } from '../../lib/errors.js';
 
 interface WalletContext {
   prisma: PrismaClient;
@@ -141,6 +141,35 @@ export function debitWallet(
   input: Omit<LedgerEntryInput, 'direction'>,
 ) {
   return applyLedgerEntry(ctx, { ...input, direction: 'DEBIT' });
+}
+
+/** Uses the top-up review transaction so the amount, decision and credit commit together. */
+export async function creditTopUpWallet(tx: Prisma.TransactionClient, input: {
+  userId: string; topUpRequestId: string; amountMinor: number; requestedAmountMinor: number;
+  currency: string; adminId?: string; reviewNote?: string;
+}) {
+  if (!Number.isSafeInteger(input.amountMinor) || input.amountMinor <= 0 || input.amountMinor > 2_000_000_000) throw new Error('Invalid top-up amount');
+  const idempotencyKey = `topup:${input.topUpRequestId}`;
+  const existing = await tx.walletTransaction.findUnique({ where: { idempotencyKey } });
+  if (existing) {
+    if (existing.amountMinor !== input.amountMinor || existing.direction !== 'CREDIT') throw new ConflictError('This top-up was already credited with a different amount');
+    return existing;
+  }
+  await tx.wallet.upsert({ where: { userId: input.userId }, create: { userId: input.userId }, update: {} });
+  const rows = await tx.$queryRaw<{ id: string; balance_minor: number }[]>`
+    UPDATE wallets SET balance_minor = balance_minor + ${input.amountMinor}, updated_at = now()
+    WHERE user_id = ${input.userId}::uuid AND currency = ${input.currency}
+    RETURNING id, balance_minor
+  `;
+  const wallet = rows[0];
+  if (!wallet) throw new Error('Wallet currency does not match top-up');
+  return tx.walletTransaction.create({ data: {
+    walletId: wallet.id, type: 'TOPUP', direction: 'CREDIT', amountMinor: input.amountMinor,
+    currency: input.currency, balanceAfterMinor: wallet.balance_minor, idempotencyKey,
+    topUpRequestId: input.topUpRequestId, reference: `Top-up ${input.topUpRequestId}`,
+    createdByAdminId: input.adminId,
+    metadata: { requestedAmountMinor: input.requestedAmountMinor, confirmedAmountMinor: input.amountMinor, reviewNote: input.reviewNote ?? null },
+  } });
 }
 
 /** Shares the caller's transaction so order payment and wallet debit commit together. */

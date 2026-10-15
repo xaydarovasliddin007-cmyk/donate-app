@@ -50,6 +50,7 @@ interface RequestOptions {
   body?: unknown;
   query?: Record<string, string | number | undefined>;
   auth?: boolean;
+  responseType?: 'json' | 'blob';
 }
 
 function buildUrl(path: string, query?: Record<string, string | number | undefined>): string {
@@ -81,6 +82,7 @@ async function rawRequest<T>(path: string, options: RequestOptions): Promise<T> 
   if (response.status === 204) {
     return undefined as T;
   }
+  if (response.ok && options.responseType === 'blob') return await response.blob() as T;
 
   const json = (await response.json().catch(() => null)) as
     | T
@@ -120,6 +122,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 }
 
 export const api = {
+  blob: (path: string) => request<Blob>(path, { method: 'GET', responseType: 'blob' }),
   get: <T>(path: string, query?: Record<string, string | number | undefined>) =>
     request<T>(path, { method: 'GET', query }),
   post: <T>(path: string, body?: unknown) => request<T>(path, { method: 'POST', body }),

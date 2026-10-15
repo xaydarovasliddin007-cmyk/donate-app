@@ -872,15 +872,8 @@ export async function listTopUpsAdmin(
   return topupService.listTopUpRequestsAdmin(ctx, params);
 }
 
-export async function verifyTopUpAdmin(ctx: AdminContext, adminId: string, topUpRequestId: string) {
-  const result = await topupService.verifyTopUpRequest(ctx, adminId, topUpRequestId);
-  await writeAuditLog(ctx.prisma, {
-    actorId: adminId,
-    action: 'topup.verify',
-    entityType: 'TopUpRequest',
-    entityId: topUpRequestId,
-  });
-  return result;
+export async function verifyTopUpAdmin(ctx: AdminContext, adminId: string, topUpRequestId: string, review: { amountMinor?: number; reviewNote?: string } = {}) {
+  return topupService.verifyTopUpRequest(ctx, adminId, topUpRequestId, review);
 }
 
 export async function rejectTopUpAdmin(
@@ -889,15 +882,7 @@ export async function rejectTopUpAdmin(
   topUpRequestId: string,
   rejectionReason: string,
 ) {
-  const result = await topupService.rejectTopUpRequest(ctx, adminId, topUpRequestId, rejectionReason);
-  await writeAuditLog(ctx.prisma, {
-    actorId: adminId,
-    action: 'topup.reject',
-    entityType: 'TopUpRequest',
-    entityId: topUpRequestId,
-    metadata: { rejectionReason },
-  });
-  return result;
+  return topupService.rejectTopUpRequest(ctx, adminId, topUpRequestId, rejectionReason);
 }
 
 // --- Receiving methods (never a real hardcoded card — admin-configured) ---

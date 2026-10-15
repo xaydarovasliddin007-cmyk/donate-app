@@ -15,6 +15,14 @@ export function formatMinor(amountMinor: number, currency: string): string {
   return `${major.toLocaleString(NUMBER_LOCALE[activeLocale], { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
 }
 
+/** Parse decimal UZS without rounding a floating point amount. */
+export function parseTopUpAmount(value: string): number | null {
+  const parts = value.replace(/\s/g, '').match(/^(\d{1,8})(?:[.,](\d{1,2}))?$/);
+  if (!parts) return null;
+  const amount = Number(parts[1]) * 100 + Number((parts[2] || '').padEnd(2, '0'));
+  return Number.isSafeInteger(amount) && amount > 0 && amount <= 2_000_000_000 ? amount : null;
+}
+
 export function formatDate(iso: string): string {
   return new Date(iso).toLocaleString(DATE_LOCALE[activeLocale], {
     day: '2-digit',

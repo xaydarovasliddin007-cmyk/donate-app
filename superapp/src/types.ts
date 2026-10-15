@@ -35,6 +35,7 @@ export interface ReceivingMethod {
   qrPayload?: string | null; instructions?: string | null; qrImageUrl?: string | null;
 }
 export interface TopUp {
+  receipt?: { fileName: string; mimeType: string; deliveryStatus: string } | null;
   id: string; amountMinor: number; currency: string; status: string;
   type?: ReceivingMethod['type']; userReference?: string | null;
   channel?: 'HUMO' | 'UZCARD' | 'BANKOMAT' | null;

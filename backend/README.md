@@ -548,12 +548,26 @@ then call `https://api.telegram.org/bot<token>/getUpdates` to find the numeric c
 `TELEGRAM_BOT_TOKEN` and `TELEGRAM_ADMIN_CHAT_ID` in `backend/.env`.
 
 Bankomat receipt review uses the separate `TOPUP_REVIEW_BOT_TOKEN` and
-`TOPUP_REVIEW_CHAT_ID`. Send `/start` to that bot from the private admin chat. On
-server startup, the app registers its callback-only webhook using
+`TOPUP_REVIEW_CHAT_ID`. In the admin top-up page, `Chek boti` opens the configured
+bot. Send `/id` from the private human account that should review receipts, then
+set its returned Chat ID as `TOPUP_REVIEW_CHAT_ID` (a bot ID cannot receive photos).
+On server startup, the app registers its message/callback webhook using
 `TELEGRAM_WEBHOOK_SECRET` and `PUBLIC_APP_URL`. Receipt photos include
 `Tasdiqlash` and `Rad etish` buttons; only the configured private chat owner can
 use them. A successful review is recorded as a system audit event, and approval
 credits the wallet through the normal idempotent top-up ledger.
+
+Receipt images are stored privately in `top_up_receipts` before Telegram delivery.
+If Telegram delivery fails, the upload still succeeds and authorized administrators
+can open the image with `Chekni ko‘rish`; binary endpoints require authentication
+and disable caching. Supported images are JPEG, PNG and WebP up to 5 MB. User
+claims and uploaded receipts do not credit a wallet automatically.
+
+For Bankomat reviews, `Boshqa summa` accepts the actual received amount in UZS.
+Changing the requested amount requires a reason and an explicit confirmation.
+The original amount, credited amount and reason remain in the ledger and audit.
+Approval, rejection and ledger credit share a row lock and transaction so competing
+reviews cannot credit twice or leave a rejected request with a credited balance.
 
 ## A note on error-handler registration order
 

@@ -3,10 +3,12 @@ import { env } from '../../config/env.js';
 import { ConflictError, ForbiddenError, NotFoundError, TopUpAmountBusyError, ValidationError } from '../../lib/errors.js';
 import { formatMinorAmount } from '../../lib/money.js';
 import { logger } from '../../lib/logger.js';
-import { sendTopUpReceiptPhoto } from '../../lib/telegram.js';
+import { writeAuditLog } from '../../lib/audit.js';
+import { receiptSummarySelect } from './topup-receipt.service.js';
+export { submitTopUpReceipt, getTopUpReceipt } from './topup-receipt.service.js';
 import { createNotification } from '../notifications/notifications.service.js';
 import * as walletService from '../wallet/wallet.service.js';
-import type { CreateTopUpRequestInput, HumoTransactionInput, SubmitTopUpReceiptInput } from './topup.schemas.js';
+import type { CreateTopUpRequestInput, HumoTransactionInput } from './topup.schemas.js';
 
 interface TopUpContext {
   prisma: PrismaClient;
@@ -191,45 +193,46 @@ interface FinalizeVerificationOptions {
   adminId?: string;
   autoVerified: boolean;
   receivingMethodId?: string;
+  allowExpired?: boolean;
+  amountMinor?: number;
+  reviewNote?: string;
 }
 
 /**
- * The Telegram-bot auto-verify path only (see autoVerifyFromCardTransaction
- * below) — despite the name, this is NOT what the admin's manual
- * verifyTopUpRequest() calls; that one has its own copy further down,
- * deliberately looser (PENDING or EXPIRED — see its doc comment) since a
- * human reviewing a real bank statement should still be able to credit a
- * transfer that arrived a little late. Auto-verify staying PENDING-only is
- * intentional: an expired reservation's amount is free for reuse (see
- * reserveTopUpRequest), so a coincidental later SMS on that same amount
- * must never auto-credit the wrong request. Idempotency key is
- * deterministic on the request ID, so a retried call after a partial
- * failure is safe: applyLedgerEntry just returns the already-applied entry
- * instead of crediting twice.
+ * Commits the review decision, ledger credit and admin audit together under
+ * a request lock. Manual review also accepts EXPIRED reservations; automatic
+ * matching remains PENDING-only because an expired amount can be reused.
+ * A deterministic ledger key also protects requests credited by older code.
  */
 async function finalizeVerification(ctx: TopUpContext, requestId: string, options: FinalizeVerificationOptions) {
-  const request = await ctx.prisma.topUpRequest.findUnique({ where: { id: requestId } });
+  const updated = await ctx.prisma.$transaction(async (tx) => {
+  await tx.$queryRaw`SELECT id FROM top_up_requests WHERE id = ${requestId}::uuid FOR UPDATE`;
+  const request = await tx.topUpRequest.findUnique({ where: { id: requestId } });
   if (!request) {
     throw new NotFoundError('Top-up request not found');
   }
-  if (request.status !== 'PENDING') {
-    throw new ConflictError(`Only PENDING top-up requests can be verified (this one is ${request.status})`);
+  if (request.status !== 'PENDING' && !(options.allowExpired && request.status === 'EXPIRED')) {
+    throw new ConflictError(`Only ${options.allowExpired ? 'PENDING or EXPIRED' : 'PENDING'} top-up requests can be verified (this one is ${request.status})`);
   }
 
-  await walletService.creditWallet(ctx, {
+  const amountMinor = options.amountMinor ?? request.amountMinor;
+  if (!Number.isSafeInteger(amountMinor) || amountMinor <= 0 || amountMinor > 2_000_000_000) throw new ValidationError('Invalid confirmed amount');
+  if (amountMinor !== request.amountMinor) {
+    if (request.channel !== 'BANKOMAT' && request.type !== 'PAYNET_TERMINAL') throw new ValidationError('Only Bankomat amounts may be corrected during review');
+    if (!options.reviewNote?.trim()) throw new ValidationError('A reason is required when changing the amount');
+  }
+  await walletService.creditTopUpWallet(tx, {
     userId: request.userId,
-    type: 'TOPUP',
-    amountMinor: request.amountMinor,
-    idempotencyKey: `topup:${request.id}`,
-    reference: `Top-up ${request.id}`,
+    amountMinor, requestedAmountMinor: request.amountMinor, currency: request.currency,
     topUpRequestId: request.id,
-    createdByAdminId: options.adminId,
+    adminId: options.adminId, reviewNote: options.reviewNote?.trim(),
   });
 
-  const updated = await ctx.prisma.topUpRequest.update({
+  const reviewed = await tx.topUpRequest.update({
     where: { id: request.id },
     data: {
       status: 'VERIFIED',
+      amountMinor,
       reviewedByAdminId: options.adminId,
       reviewedAt: new Date(),
       autoVerified: options.autoVerified,
@@ -237,14 +240,17 @@ async function finalizeVerification(ctx: TopUpContext, requestId: string, option
     },
     include: { receivingMethod: true },
   });
+  if (options.adminId) await writeAuditLog(tx, { actorId: options.adminId, action: 'topup.verify', entityType: 'TopUpRequest', entityId: request.id, metadata: { requestedAmountMinor: request.amountMinor, confirmedAmountMinor: amountMinor, reviewNote: options.reviewNote?.trim() ?? null } });
+  return reviewed;
+  });
 
   await createNotification(ctx, {
-    userId: request.userId,
+    userId: updated.userId,
     type: 'TOPUP_SUCCESS',
     title: 'Top-up successful',
-    body: `${formatMinorAmount(request.amountMinor, request.currency)} was added to your UZDONATE wallet.`,
+    body: `${formatMinorAmount(updated.amountMinor, updated.currency)} was added to your UZDONATE wallet.`,
     deepLink: '/wallet',
-  });
+  }).catch(() => logger.warn({ topUpRequestId: requestId }, 'Top-up success notification could not be created'));
 
   return updated;
 }
@@ -321,7 +327,7 @@ export async function listMyTopUpRequests(ctx: TopUpContext, userId: string, lim
 }
 
 /**
- * Lets the caller attach a Paynet receipt screenshot to their own request.
+ * Lets the caller attach a payment reference to their own request.
  * Reservation expiry only releases the amount for reuse; it must not prevent
  * a customer from submitting proof after a late terminal payment.
  */
@@ -345,60 +351,6 @@ export async function submitTopUpReference(
   });
 
   return updated;
-}
-
-function decodeReceiptImage(input: SubmitTopUpReceiptInput) {
-  const image = Buffer.from(input.dataBase64, 'base64');
-  if (image.length === 0 || image.length > 5 * 1024 * 1024) {
-    throw new ValidationError('Receipt image must be 5 MB or smaller');
-  }
-  const valid = input.mimeType === 'image/jpeg'
-    ? image[0] === 0xff && image[1] === 0xd8 && image[2] === 0xff
-    : input.mimeType === 'image/png'
-      ? image.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))
-      : image.subarray(0, 4).toString('ascii') === 'RIFF' && image.subarray(8, 12).toString('ascii') === 'WEBP';
-  if (!valid) throw new ValidationError('Receipt file is not a valid image');
-  return image;
-}
-
-export async function submitTopUpReceipt(
-  ctx: TopUpContext,
-  userId: string,
-  topUpRequestId: string,
-  input: SubmitTopUpReceiptInput,
-) {
-  const request = await ctx.prisma.topUpRequest.findUnique({
-    where: { id: topUpRequestId },
-    include: { user: { select: { publicId: true, displayName: true } } },
-  });
-  if (!request) throw new NotFoundError('Top-up request not found');
-  if (request.userId !== userId) throw new ForbiddenError('This top-up request does not belong to you');
-  if (request.channel !== 'BANKOMAT' && request.type !== 'PAYNET_TERMINAL') {
-    throw new ValidationError('Receipt screenshots are accepted only for Bankomat payments');
-  }
-  if (request.status !== 'PENDING' && request.status !== 'EXPIRED') {
-    throw new ConflictError(`Only open Bankomat top-up requests can accept a receipt (this one is ${request.status})`);
-  }
-  if (request.userConfirmedPaidAt && request.userReference?.startsWith('Telegram chek #')) {
-    return ctx.prisma.topUpRequest.findUniqueOrThrow({
-      where: { id: request.id },
-      include: { receivingMethod: true },
-    });
-  }
-  const image = decodeReceiptImage(input);
-  const messageId = await sendTopUpReceiptPhoto({
-    image,
-    mimeType: input.mimeType,
-    fileName: input.fileName,
-    requestId: request.id,
-    userLabel: request.user.displayName || request.user.publicId,
-    amount: formatMinorAmount(request.amountMinor, request.currency),
-  });
-  return ctx.prisma.topUpRequest.update({
-    where: { id: request.id },
-    data: { userReference: `Telegram chek #${messageId}`, userConfirmedPaidAt: new Date() },
-    include: { receivingMethod: true },
-  });
 }
 
 /**
@@ -429,7 +381,7 @@ export async function confirmTopUpPaid(ctx: TopUpContext, userId: string, topUpR
 export async function getTopUpRequestForUser(ctx: TopUpContext, userId: string, topUpRequestId: string) {
   const request = await ctx.prisma.topUpRequest.findUnique({
     where: { id: topUpRequestId },
-    include: { receivingMethod: true },
+    include: { receivingMethod: true, receipt: { select: receiptSummarySelect } },
   });
   if (!request) throw new NotFoundError('Top-up request not found');
   if (request.userId !== userId) throw new ForbiddenError('This top-up request does not belong to you');
@@ -467,6 +419,7 @@ export async function listTopUpRequestsAdmin(
     include: {
       receivingMethod: true,
       user: { select: { id: true, publicId: true, email: true, phone: true, displayName: true } },
+      receipt: { select: receiptSummarySelect },
     },
   });
 }
@@ -486,42 +439,8 @@ export async function listTopUpRequestsAdmin(
  * must still be able to credit it manually instead of the money being
  * stuck with no way to apply it.
  */
-export async function verifyTopUpRequest(ctx: TopUpContext, adminId: string | null, topUpRequestId: string) {
-  const request = await ctx.prisma.topUpRequest.findUnique({ where: { id: topUpRequestId } });
-  if (!request) throw new NotFoundError('Top-up request not found');
-  if (request.status !== 'PENDING' && request.status !== 'EXPIRED') {
-    throw new ConflictError(`Only PENDING or EXPIRED top-up requests can be verified (this one is ${request.status})`);
-  }
-
-  // Idempotency key is deterministic on the request ID, so if the status
-  // update below ever fails after this succeeds, retrying verify is safe —
-  // applyLedgerEntry will just return the already-applied entry instead of
-  // crediting twice.
-  await walletService.creditWallet(ctx, {
-    userId: request.userId,
-    type: 'TOPUP',
-    amountMinor: request.amountMinor,
-    idempotencyKey: `topup:${request.id}`,
-    reference: `Top-up ${request.id}`,
-    topUpRequestId: request.id,
-    ...(adminId ? { createdByAdminId: adminId } : {}),
-  });
-
-  const updated = await ctx.prisma.topUpRequest.update({
-    where: { id: request.id },
-    data: { status: 'VERIFIED', reviewedByAdminId: adminId, reviewedAt: new Date() },
-    include: { receivingMethod: true },
-  });
-
-  await createNotification(ctx, {
-    userId: request.userId,
-    type: 'TOPUP_SUCCESS',
-    title: 'Top-up successful',
-    body: `${formatMinorAmount(request.amountMinor, request.currency)} was added to your UZDONATE wallet.`,
-    deepLink: '/wallet',
-  });
-
-  return updated;
+export async function verifyTopUpRequest(ctx: TopUpContext, adminId: string | null, topUpRequestId: string, review: { amountMinor?: number; reviewNote?: string } = {}) {
+  return finalizeVerification(ctx, topUpRequestId, { adminId: adminId ?? undefined, autoVerified: false, allowExpired: true, ...review });
 }
 
 export async function rejectTopUpRequest(
@@ -530,7 +449,9 @@ export async function rejectTopUpRequest(
   topUpRequestId: string,
   rejectionReason: string,
 ) {
-  const request = await ctx.prisma.topUpRequest.findUnique({ where: { id: topUpRequestId } });
+  return ctx.prisma.$transaction(async (tx) => {
+  await tx.$queryRaw`SELECT id FROM top_up_requests WHERE id = ${topUpRequestId}::uuid FOR UPDATE`;
+  const request = await tx.topUpRequest.findUnique({ where: { id: topUpRequestId } });
   if (!request) throw new NotFoundError('Top-up request not found');
   if (request.status !== 'PENDING' && request.status !== 'EXPIRED') {
     throw new ConflictError(`Only PENDING or EXPIRED top-up requests can be rejected (this one is ${request.status})`);
@@ -539,10 +460,13 @@ export async function rejectTopUpRequest(
     throw new ValidationError('rejectionReason is required');
   }
 
-  return ctx.prisma.topUpRequest.update({
+  const rejected = await tx.topUpRequest.update({
     where: { id: request.id },
     data: { status: 'REJECTED', reviewedByAdminId: adminId, reviewedAt: new Date(), rejectionReason },
     include: { receivingMethod: true },
+  });
+  if (adminId) await writeAuditLog(tx, { actorId: adminId, action: 'topup.reject', entityType: 'TopUpRequest', entityId: request.id, metadata: { rejectionReason } });
+  return rejected;
   });
 }
 

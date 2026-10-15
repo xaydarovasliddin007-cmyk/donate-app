@@ -44,7 +44,7 @@ export async function configureTopUpReviewWebhook() {
     await topUpReviewBotApi('setWebhook', {
       url: `${origin}/api/${env.API_VERSION}/telegram/topup-review-webhook`,
       secret_token: env.TELEGRAM_WEBHOOK_SECRET,
-      allowed_updates: ['callback_query'],
+      allowed_updates: ['callback_query', 'message'],
       drop_pending_updates: false,
     });
     logger.info('Top-up review Telegram webhook configured');
