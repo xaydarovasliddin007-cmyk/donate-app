@@ -41,7 +41,7 @@ test('Bankomat actual amount requires a reason and an explicit amount confirmati
   await expect(dialog).toContainText('foydalanuvchi balansiga');
   await expect(dialog).toContainText('UZS');
   expect(calls).toHaveLength(0);
-  await page.screenshot({ path: '../artifacts/payments/admin-bankomat-confirmation-preview.png' });
+  await page.screenshot({ path: '../artifacts/payments/admin-bankomat-confirmation-preview.png', animations: 'disabled' });
   await dialog.getByRole('button', { name: 'Tasdiqlash', exact: true }).click();
   await expect(page.getByText('Test Bankomat User', { exact: true })).toHaveCount(0);
   expect(calls).toEqual([{ body: { amountMinor: 4_800_050, reviewNote: 'Bank ko‘chirmasidagi haqiqiy summa' } }]);

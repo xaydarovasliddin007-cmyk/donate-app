@@ -1,4 +1,5 @@
 import { useLocale } from '../i18n/LocaleContext';
+import { createPortal } from 'react-dom';
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -25,7 +26,7 @@ export function ConfirmDialog({
   const { t } = useLocale();
   if (!open) return null;
 
-  return (
+  return createPortal(
     <div className="modal-backdrop" onClick={onCancel}>
       <div className="modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
         <h3>{title}</h3>
@@ -39,6 +40,6 @@ export function ConfirmDialog({
           </button>
         </div>
       </div>
-    </div>
+    </div>, document.body
   );
 }

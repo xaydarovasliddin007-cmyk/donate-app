@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { api, ApiError } from '../api/client';
 import type { TopUpRequestAdmin, TopUpRequestStatus } from '../api/types';
 import { useAsync } from '../lib/useAsync';
@@ -27,10 +28,10 @@ function ReceiptButton({ request }: { request: TopUpRequestAdmin }) {
   return <div>
     <button className="btn btn-secondary" disabled={busy} onClick={open}>{busy ? t('common.loading') : t('topups.viewReceipt')}</button>
     {error && <div className="form-error" role="alert">{error}</div>}
-    {url && <div className="modal-backdrop" onClick={() => setUrl('')}><div className="modal" role="dialog" aria-modal="true" aria-label={t('topups.viewReceipt')} onClick={event => event.stopPropagation()}>
+    {url && createPortal(<div className="modal-backdrop" onClick={() => setUrl('')}><div className="modal" role="dialog" aria-modal="true" aria-label={t('topups.viewReceipt')} onClick={event => event.stopPropagation()}>
       <h3>{t('topups.viewReceipt')}</h3><img src={url} alt={t('topups.receiptImage')} style={{ width: '100%', maxHeight: '65vh', objectFit: 'contain' }}/>
       <button className="btn btn-secondary" onClick={() => setUrl('')}>{t('topups.cancel')}</button>
-    </div></div>}
+    </div></div>, document.body)}
   </div>;
 }
 
