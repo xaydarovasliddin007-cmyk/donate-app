@@ -1,0 +1,2 @@
+# Server deployment files must retain Unix line endings on Windows checkouts.
+deploy/contabo/* text eol=lf

@@ -1,6 +1,6 @@
 # UZDONATE Contabo staging
 
-Status recorded on 14 October 2026. This is a private staging deployment. Domain setup, HTTPS, and production traffic cutover are pending; Render remains the live service.
+Status recorded on 15 October 2026. This application deployment is private read-only staging; Render remains the production application. The same VPS now serves the purchased `uzdonate.uz` domain through a separate nginx HTTPS edge with a valid certificate for the apex and www names. See [domain operations](domain-uzdonate.md) for the live public edge; it proxies Render without promoting this staging service.
 
 ## Prepared release
 
@@ -43,7 +43,7 @@ Preview addresses while the tunnel is running:
 - Liveness: `http://127.0.0.1:4100/health`
 - Database reachability: `http://127.0.0.1:4100/ready`
 
-These addresses are local previews. No public domain or HTTPS endpoint has been cut over.
+These addresses are local previews of the read-only staging application. The separate public domain edge proxies Render and does not send production requests to this staging listener.
 
 ## Deployment verification
 
@@ -60,7 +60,7 @@ Read-only staging can serve static pages and query the catalog. Guest authentica
 ## Remaining production work
 
 1. Keep the staged service healthy and use an isolated database for any tests that need writes.
-2. Select the domain, configure DNS and HTTPS reverse proxy, and keep the Node listener private. Set the final `PUBLIC_APP_URL` and allowed origins.
+2. If moving the production application from Render to this VPS later, change the domain edge upstream only after the remaining production environment and integration handover work is complete. Keep the Node listener private and configure the final `PUBLIC_APP_URL` and allowed origins.
 3. Verify Google web origins and Android signing configuration against the final URLs and release build.
 4. Before enabling writes, back up the database and review Prisma migration status. Use an isolated database for full staging tests while Render continues serving production.
 5. Configure the real provider, card-transfer listener, Telegram bots, and SMTP through the protected server environment. Check provider IP allowlists where required.

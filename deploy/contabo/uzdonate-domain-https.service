@@ -1,0 +1,18 @@
+[Unit]
+Description=Finish UZDONATE domain HTTPS after registry delegation
+After=network-online.target nginx.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /opt/uzdonate/domain-edge/complete-domain-https.py
+TimeoutStartSec=12min
+UMask=0077
+StateDirectory=uzdonate-domain
+StateDirectoryMode=0700
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectHome=yes
+ProtectSystem=strict
+ReadWritePaths=/etc/nginx /etc/letsencrypt /var/lib/letsencrypt /var/log/letsencrypt /var/www/letsencrypt /var/log/nginx /run/nginx.pid /run/lock
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6

@@ -1,0 +1,11 @@
+[Unit]
+Description=Bounded checks for UZDONATE domain HTTPS completion
+
+[Timer]
+OnActiveSec=15s
+OnUnitInactiveSec=5min
+AccuracySec=15s
+Unit=uzdonate-domain-https.service
+
+[Install]
+WantedBy=timers.target
