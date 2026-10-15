@@ -310,6 +310,8 @@ input[type='checkbox'] { accent-color: var(--accent); width: 15px; height: 15px;
 .google-sign-in.is-busy { pointer-events: none; opacity: .55; }
 .social-providers, .social-code-entry { display: grid; gap: 12px; }
 .social-provider { width: 100%; }
+.social-code-flow { display: grid; gap: 12px; }
+.social-code-feedback:focus { outline: 2px solid var(--border); outline-offset: 4px; border-radius: 8px; }
 .google-letter { font-size: 20px; font-weight: 800; color: #4285f4; }
 .social-code-entry { padding: 14px; border: 1px solid var(--border); border-radius: 16px; }
 .social-code-entry .notice { margin: 0; }

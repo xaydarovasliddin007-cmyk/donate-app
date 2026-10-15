@@ -13,6 +13,7 @@ export interface User {
   id: string; publicId: string; displayName: string | null;
   email: string | null; avatarUrl: string | null; isGuest: boolean;
   hasTelegramAccount: boolean;
+  hasGoogleAccount?: boolean;
 }
 export interface SavedGame {
   id: string; playerId: string; serverId: string | null; zoneId: string | null; updatedAt: string;

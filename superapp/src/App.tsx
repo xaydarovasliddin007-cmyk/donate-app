@@ -36,6 +36,7 @@ function StoreApp() {
   const [loading, setLoading] = useState(true);
   const [catalogError, setCatalogError] = useState('');
   const [accountError, setAccountError] = useState('');
+  const [authNotice, setAuthNotice] = useState('');
   const [user, setUser] = useState<User | null>(null);
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -125,15 +126,17 @@ function StoreApp() {
   useEffect(() => setAvatarFailed(false), [user?.avatarUrl]);
 
   function navigate(next: Tab) { setTab(next); haptic(); window.scrollTo({ top: 0, behavior: 'instant' }); }
-  function openAuth(mode: 'login' | 'register', link = false) { setAuthMode(mode); setAuthLinkOnly(link); setShowLogin(true); }
+  function openAuth(mode: 'login' | 'register', link = false) { setAuthNotice(''); setAuthMode(mode); setAuthLinkOnly(link); setShowLogin(true); }
   function clearAccount() {
     accountVersion.current += 1;
     setUser(null); setWallet(null); setOrders([]); setTopups([]); setSavedGames([]);
-    setNotifications([]); setUnreadNotifications(0); setAccountError('');
+    setNotifications([]); setUnreadNotifications(0); setAccountError(''); setAuthNotice('');
     setOrder(null); setGame(null); setQuickProfile(null); setShowWallet(false); setShowNotifications(false);
   }
   function acceptSession(session: Session) {
-    clearAccount(); setUser(session.user); setShowLogin(false); void refreshAccount();
+    clearAccount(); setUser(session.user); setShowLogin(false);
+    setAuthNotice(locale === 'ru' ? 'Аккаунт UZDONATE успешно подтверждён.' : 'UZDONATE hisobi muvaffaqiyatli tasdiqlandi.');
+    void refreshAccount();
   }
   async function signOut() {
     if (loggingOut) return;
@@ -180,6 +183,7 @@ function StoreApp() {
     </div></header>
 
     <main className="main-content">
+      {authNotice && <p className="notice" role="status">{authNotice}</p>}
       {config.testMode && <p className="eyebrow accent-text" role="status">{t('Sinov muhiti')}</p>}
       <div className="tab-view" key={tab}>
       {tab === 'shop' && <>
@@ -224,6 +228,7 @@ function StoreApp() {
 
       {tab === 'profile' && <>
         <div className="page-heading"><div><span className="eyebrow accent-text">{t('SHAXSIY KABINET')}</span><h1>{t('Mening profilim')}</h1></div></div>
+        {user && !user.isGuest && <p className="notice">Google: {locale === 'ru' ? user.hasGoogleAccount ? 'подключён' : 'не подключён' : user.hasGoogleAccount ? 'ulangan' : 'ulanmagan'} · Telegram: {locale === 'ru' ? user.hasTelegramAccount ? 'подключён' : 'не подключён' : user.hasTelegramAccount ? 'ulangan' : 'ulanmagan'}</p>}
         <section className="profile-identity"><div className="profile-avatar">{user?.avatarUrl && !avatarFailed ? <img src={user.avatarUrl} alt="" onError={() => setAvatarFailed(true)}/> : user?.displayName?.slice(0, 1).toUpperCase() || <UserRound size={35}/>}</div><div><h2>{user?.displayName || t('Mehmon')}</h2><span className="muted">{user?.publicId || t('Hisobga ulanmoqda...')}</span></div>{user && <button className="icon-button" title={t('ID nusxalash')} aria-label={t('ID nusxalash')} onClick={() => navigator.clipboard.writeText(user.publicId).catch(() => {})}><Copy size={18}/></button>}</section>
         {accountError && <ErrorBox message={accountError} retry={() => void authenticate()}/>}
         <section className="profile-wallet"><div><WalletIcon size={23}/><span>{t('Mening balansim')}</span></div><strong>{wallet ? money(wallet.balanceMinor, wallet.currency) : '...'}</strong><button className="button primary" disabled={!user} onClick={() => setShowWallet(true)}><Plus size={18}/>{t("Balansni to'ldirish")}</button></section>

@@ -464,10 +464,10 @@ export async function linkGoogleIdentity(ctx: AuthContext, userId: string, ident
   // guest with an internal placeholder email.
   const isGuestEmail = Boolean(user.email?.endsWith('@guest.uzdonate.uz'));
   if (user.email && !isGuestEmail && user.email !== identity.email) {
-    throw new ConflictError('Use a Google account with the same email as this account');
+    throw new ConflictError('Use a Google account with the same email as this account', { reason: 'GOOGLE_EMAIL_MISMATCH' });
   }
   if (user.googleId && user.googleId !== identity.googleId) {
-    throw new ConflictError('This account is already linked to a different Google account');
+    throw new ConflictError('This account is already linked to a different Google account', { reason: 'GOOGLE_ALREADY_LINKED' });
   }
 
   const [googleOwner, emailOwner] = await Promise.all([
@@ -475,10 +475,10 @@ export async function linkGoogleIdentity(ctx: AuthContext, userId: string, ident
     ctx.prisma.user.findUnique({ where: { email: identity.email } }),
   ]);
   if (googleOwner && googleOwner.id !== user.id) {
-    throw new ConflictError('This Google account is already linked to another account');
+    throw new ConflictError('This Google account is already linked to another account', { reason: 'GOOGLE_ACCOUNT_IN_USE', accountPublicId: googleOwner.publicId });
   }
   if (emailOwner && emailOwner.id !== user.id) {
-    throw new ConflictError('This Google email belongs to another account');
+    throw new ConflictError('This Google email belongs to another account', { reason: 'GOOGLE_EMAIL_IN_USE', accountPublicId: emailOwner.publicId });
   }
 
   let linkedUser = user;
@@ -519,7 +519,7 @@ export async function linkTelegramIdentity(ctx: AuthContext, userId: string, ide
   const telegramId = String(identity.id);
   if (user.telegramId && user.telegramId !== telegramId) throw new ConflictError('This account already has another Telegram identity');
   const owner = await ctx.prisma.user.findUnique({ where: { telegramId } });
-  if (owner && owner.id !== user.id) throw new ConflictError('This Telegram account belongs to another UZDONATE account');
+  if (owner && owner.id !== user.id) throw new ConflictError('This Telegram account belongs to another UZDONATE account', { reason: 'TELEGRAM_ACCOUNT_IN_USE', accountPublicId: owner.publicId });
   const isGuestEmail = Boolean(user.email?.endsWith('@guest.uzdonate.uz'));
   const name = [identity.first_name, identity.last_name].filter(Boolean).join(' ');
   try {

@@ -564,6 +564,15 @@ test('Google inside Telegram uses the external browser code flow', async ({ page
   await page.route('**/app/config', (route) => route.fulfill({ json: { googleClientId: 'test.apps.googleusercontent.com', telegramPaymentsEnabled: true } }));
   const request = { id: '108a6951-9e51-441d-9739-5e8c2a435d4a', provider: 'google', intent: 'link', requestSecret: 'isolated-google-request-secret-at-least-40-characters', authorizeUrl: 'https://uzdonate.uz/webapp/?auth_request=108a6951-9e51-441d-9739-5e8c2a435d4a', expiresAt: '2099-01-01T00:00:00Z' };
   await page.route('**/auth/requests/link', (route) => route.fulfill({ json: request }));
+  let exchangeCalls = 0;
+  let releaseExchange!: () => void;
+  const exchangeReady = new Promise<void>((resolve) => { releaseExchange = resolve; });
+  await page.route(`**/auth/requests/${request.id}/exchange`, async (route) => {
+    exchangeCalls++;
+    expect(route.request().postDataJSON()).toEqual({ requestSecret: request.requestSecret, code: '12345678' });
+    await exchangeReady;
+    return route.fulfill({ json: { accessToken: 'linked-token', refreshToken: 'linked-refresh', user: { id: 'user-1', publicId: 'UZD-TEST1234', displayName: 'Asliddin', email: 'player@example.com', isGuest: false, hasTelegramAccount: true, hasGoogleAccount: true } } });
+  });
   await page.goto('/');
   await page.getByRole('button', { name: 'Profil', exact: true }).filter({ visible: true }).last().click();
   await page.getByRole('button', { name: 'Hisobni saqlash', exact: true }).click();
@@ -571,6 +580,59 @@ test('Google inside Telegram uses the external browser code flow', async ({ page
   await expect(page.getByLabel('Google tasdiqlash kodi', { exact: true })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Googleni ochish', exact: true })).toHaveAttribute('href', request.authorizeUrl);
   await expect(page.locator('iframe[title="Sign in with Google Button"]')).toHaveCount(0);
+  await page.getByLabel('Google tasdiqlash kodi', { exact: true }).fill('12 34-56 78');
+  await expect(page.getByLabel('Google tasdiqlash kodi', { exact: true })).toHaveValue('12345678');
+  await page.getByLabel('Google tasdiqlash kodi', { exact: true }).press('Enter');
+  await expect(page.getByRole('status', { name: '' })).toContainText('Hisob tekshirilmoqda');
+  await expect(page.getByRole('button', { name: 'Kirishni tasdiqlash', exact: true })).toBeDisabled();
+  releaseExchange();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(page.getByRole('status')).toContainText('UZDONATE hisobi muvaffaqiyatli tasdiqlandi.');
+  await expect(page.getByText('Google: ulangan · Telegram: ulangan', { exact: true })).toBeVisible();
+  await expect(page.getByText('UZD-TEST1234', { exact: true })).toBeVisible();
+  expect(exchangeCalls).toBe(1);
+});
+
+for (const status of [401, 409]) test(`Telegram Google code shows visible ${status} feedback and offers the right retry`, async ({ page }, info) => {
+  await mockStore(page, true);
+  await page.route('**/app/config', (route) => route.fulfill({ json: { googleClientId: 'test.apps.googleusercontent.com' } }));
+  let starts = 0;
+  let exchanges = 0;
+  await page.route('**/auth/requests/link', (route) => {
+    starts++;
+    return route.fulfill({ json: { id: `108a6951-9e51-441d-9739-5e8c2a435d4${starts}`, provider: 'google', intent: 'link', requestSecret: 'isolated-google-request-secret-at-least-40-characters', authorizeUrl: 'https://uzdonate.uz/webapp/?auth_request=isolated', expiresAt: '2099-01-01T00:00:00Z' } });
+  });
+  await page.route('**/auth/requests/*/exchange', (route) => {
+    exchanges++;
+    return route.fulfill({ status, json: { error: { code: status === 409 ? 'CONFLICT' : 'UNAUTHORIZED', message: status === 409 ? 'Account belongs to another user' : 'Invalid sign-in code', details: status === 409 ? { reason: 'GOOGLE_ACCOUNT_IN_USE', accountPublicId: 'UZD-OTHER123' } : undefined } } });
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Profil', exact: true }).filter({ visible: true }).last().click();
+  await page.getByRole('button', { name: 'Hisobni saqlash', exact: true }).click();
+  await page.getByRole('button', { name: 'Google hisobini ulash', exact: true }).click();
+  const code = page.getByLabel('Google tasdiqlash kodi', { exact: true });
+  await code.fill('12345678');
+  await page.getByRole('button', { name: 'Kirishni tasdiqlash', exact: true }).click();
+  await expect(page.getByRole('alert')).toBeVisible();
+  await expect(page.locator('.social-code-feedback')).toBeFocused();
+  await expect(page.getByRole('status')).toHaveCount(0);
+  if (status === 409) {
+    await expect(page.getByRole('alert')).toContainText('UZD-OTHER123');
+    await expect(code).toBeDisabled();
+    await expect(page.getByRole('button', { name: 'Kirishni tasdiqlash', exact: true })).toBeDisabled();
+    await page.screenshot({ path: `../artifacts/auth/google-link-conflict-preview-${info.project.name}.png` });
+    await page.getByRole('button', { name: 'Yangidan boshlash', exact: true }).click();
+    await expect(code).toBeEnabled();
+    await expect(code).toHaveValue('');
+    expect(starts).toBe(2);
+  } else {
+    await expect(page.getByRole('alert')).toContainText('Kod noto‘g‘ri yoki eskirgan');
+    await expect(code).toBeEnabled();
+    await code.fill('87654321');
+    await expect(page.getByRole('alert')).toHaveCount(0);
+    expect(starts).toBe(1);
+  }
+  expect(exchanges).toBe(1);
 });
 
 test('the external Google page returns a one-time code without creating a guest account', async ({ page }) => {

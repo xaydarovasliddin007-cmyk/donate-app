@@ -123,8 +123,23 @@ describe('cross-platform UZDONATE identity', () => {
     await app.prisma.user.update({ where: { id: owner.user.id }, data: { telegramId: String(telegramId) } });
     const request = await start('telegram', target.user.id);
     const approved = await approveTelegramRequest(ctx, request.id, { id: telegramId, first_name: 'Owner' });
-    await expect(exchangeSocialRequest(ctx, request.id, request.requestSecret, approved.code, {})).rejects.toThrow('another UZDONATE account');
+    await expect(exchangeSocialRequest(ctx, request.id, request.requestSecret, approved.code, {})).rejects.toMatchObject({ statusCode: 409, details: { reason: 'TELEGRAM_ACCOUNT_IN_USE', accountPublicId: owner.user.publicId } });
     expect((await app.prisma.user.findUniqueOrThrow({ where: { id: target.user.id } })).telegramId).toBeNull();
     expect((await app.prisma.user.findUniqueOrThrow({ where: { id: owner.user.id } })).telegramId).toBe(String(telegramId));
+  });
+  it('identifies the existing Google account only after verified proof and keeps both wallets intact', async () => {
+    const owner = await guest(); const target = await guest();
+    const identity = { googleId: randomUUID(), email: `${randomUUID()}@uzdonate.dev`, emailVerified: true, name: 'Verified owner' };
+    await app.prisma.user.update({ where: { id: owner.user.id }, data: { googleId: identity.googleId, email: identity.email } });
+    await app.prisma.wallet.update({ where: { userId: owner.user.id }, data: { balanceMinor: 12345 } });
+    verifyGoogle.mockResolvedValue(identity);
+    const request = await start('google', target.user.id);
+    const approved = await approveGoogleRequest(ctx, request.id, 'isolated-proof');
+    const response = await app.inject({ method: 'POST', url: `/api/v1/auth/requests/${request.id}/exchange`, payload: { requestSecret: request.requestSecret, code: approved.code } });
+    expect(response.statusCode).toBe(409);
+    expect(response.json().error.details).toEqual({ reason: 'GOOGLE_ACCOUNT_IN_USE', accountPublicId: owner.user.publicId });
+    expect((await app.prisma.user.findUniqueOrThrow({ where: { id: target.user.id } })).googleId).toBeNull();
+    expect((await app.prisma.wallet.findUniqueOrThrow({ where: { userId: owner.user.id } })).balanceMinor).toBe(12345);
+    expect((await app.prisma.wallet.findUniqueOrThrow({ where: { userId: target.user.id } })).balanceMinor).toBe(0);
   });
 });
