@@ -25,7 +25,7 @@ Ushbu qo'llanma Google Cloud Console'da UZDONATE ilovasi uchun Google Sign-In (G
 
 [Google Cloud Credentials sahifasiga](https://console.cloud.google.com/apis/credentials) o'ting va quyidagi 2 ta Android OAuth mijozini qo'shing:
 
-**2026-10-15 tekshiruvi:** mavjud Android mijozining tafsilotlari va yangi mijoz sahifasi agentda ham, loyiha egasida ham `Failed to load` qaytardi. Reliz SHA-1 APK imzosidan tekshirildi, ammo Cloud'dagi package/SHA-1 mosligi hali tasdiqlanmagan. Mavjud mijozlarni o'chirmang. Quyidagi release mosligi mavjud bo'lsa takroriy mijoz yaratish kerak emas.
+**2026-10-15 natijasi:** dastlab mijoz sahifalari agentda ham, loyiha egasida ham `Failed to load` qaytardi. Keyin yaratish sahifasi tiklandi va `UZDONATE Android Release` mijozi quyidagi APK'dan tekshirilgan package/SHA-1 bilan yaratildi. Google Console `OAuth client created` deb tasdiqladi. Client ID: `223785346997-o6b0mjuidj10usqn2cq0i6vu4jsrpcn9.apps.googleusercontent.com`. Mavjud Android mijoz saqlandi. Yangi mijoz yaratishni qayta takrorlamang; Google tomonida sozlamalar tarqalishi vaqt olishi mumkin. Haqiqiy Android qurilmasidagi login hali tekshirilishi kerak.
 
 ### A. Production Android Client (Play Store & Reliz uchun):
 1. **Create Credentials** -> **OAuth Client ID** ni bosing.
@@ -86,6 +86,8 @@ Ushbu qo'llanma Google Cloud Console'da UZDONATE ilovasi uchun Google Sign-In (G
 ## 4. Tekshirish
 
 Backend ishga tushganda `POST /api/v1/auth/google` so'rovi Google ID tokenni Google'ning rasmiy ochiq kalitlari (JWKS) orqali tekshiradi va foydalanuvchini ro'yxatdan o'tkazadi yoki mavjud akkauntga ulaydi.
+
+2026-10-15 kuni `uzdonate.uz/webapp/` va Render manzilida Asliddin Google tugmasidan haqiqiy kirish bajarildi: ikkala sayt profili bir xil `UZD-8WSFBK56` ID ko'rsatdi. Android 0.2.2 (versionCode 2004) APK imzosi va APK/AAB yig'ilishi tekshirildi. Telefon va Telegram mini-ilovasidagi yakuniy sinovlar qolgan; Android `serverClientId` uchun yuqoridagi **web** client ID saqlanadi.
 
 ## 5. Yagona UZDONATE hisobi
 
