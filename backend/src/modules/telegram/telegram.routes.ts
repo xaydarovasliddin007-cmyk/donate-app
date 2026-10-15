@@ -3,9 +3,10 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { env } from '../../config/env.js';
 import { validateBody } from '../../lib/validate.js';
-import { ForbiddenError, ServiceUnavailableError, ValidationError } from '../../lib/errors.js';
+import { ForbiddenError, ServiceUnavailableError, UnauthorizedError, ValidationError } from '../../lib/errors.js';
 import { authenticate } from '../../middleware/authenticate.js';
 import { telegramAuth } from '../auth/auth.service.js';
+import { approveTelegramRequest } from '../auth/social-auth.service.js';
 import { createOrder } from '../orders/orders.service.js';
 import { createOrderSchema, type CreateOrderInput } from '../orders/orders.schemas.js';
 import { ConflictError, NotFoundError } from '../../lib/errors.js';
@@ -117,6 +118,22 @@ export async function telegramRoutes(app: FastifyInstance) {
     if (message?.successful_payment && message.from) {
       await settleStarsPayment(ctx, message.from.id, message.successful_payment);
     } else if (message?.text && message.chat.type === 'private') {
+      const authStart = message.text.match(/^\/start(?:@uzdonate1bot)?\s+auth_([0-9a-f-]{36})$/i);
+      if (authStart && message.from && message.from.id === message.chat.id && z.string().uuid().safeParse(authStart[1]).success) {
+        try {
+          const approved = await approveTelegramRequest({ ...ctx, signAccessToken: app.jwt.sign.bind(app.jwt) }, authStart[1]!, {
+            id: message.from.id, first_name: message.from.first_name || 'Telegram', language_code: message.from.language_code,
+          });
+          const ru = message.from.language_code === 'ru';
+          await telegramApi('sendMessage', { chat_id: message.chat.id, parse_mode: 'HTML', text: ru
+            ? `Код входа UZDONATE: <code>${approved.code}</code>\n\nВернитесь в приложение или на сайт, где вы начали вход, и введите код. Код действует 5 минут. Никому его не передавайте.`
+            : `UZDONATE kirish kodi: <code>${approved.code}</code>\n\nKirishni boshlagan ilova yoki saytga qaytib, kodni kiriting. Kod 5 daqiqa amal qiladi. Hech kimga bermang.` });
+        } catch (error) {
+          if (!(error instanceof ConflictError) && !(error instanceof NotFoundError) && !(error instanceof ServiceUnavailableError) && !(error instanceof ForbiddenError) && !(error instanceof UnauthorizedError)) throw error;
+          await telegramApi('sendMessage', { chat_id: message.chat.id, text: 'Kirish so‘rovi eskirgan yoki ishlatilgan. UZDONATE ilovasi yoki saytida yangi so‘rov boshlang.' });
+        }
+        return { ok: true };
+      }
       const command = message.text.split(/[ @]/)[0] ?? '';
       if (isStorefrontCommand(command)) {
         await sendStorefrontCommand(message.chat.id, command, message.from?.language_code, message.from?.first_name, {

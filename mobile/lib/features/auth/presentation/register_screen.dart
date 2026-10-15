@@ -10,6 +10,7 @@ import '../../../l10n/generated/app_localizations.dart';
 import '../application/auth_controller.dart';
 import 'widgets/auth_identifier_field.dart';
 import 'widgets/google_auth_button.dart';
+import 'widgets/telegram_auth_button.dart';
 
 /// Step 1 of registration: just email + optional display name. No password
 /// here — that's set on the next screen only after the emailed code is
@@ -142,6 +143,17 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 label: l10n.authSaveAccountWithGoogle,
                 loading: _googleSubmitting,
                 onPressed: _busy ? null : _submitGoogle,
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              GoogleBrowserAuthButton(
+                linkToCurrentAccount: true,
+                enabled: !_busy,
+                onSuccess: () => context.go('/home'),
+              ),
+              TelegramAuthButton(
+                linkToCurrentAccount: true,
+                enabled: !_busy,
+                onSuccess: () => context.go('/home'),
               ),
               const SizedBox(height: AppSpacing.sm),
               Text(

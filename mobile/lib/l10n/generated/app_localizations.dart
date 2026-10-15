@@ -1993,6 +1993,108 @@ abstract class AppLocalizations {
   /// In uz, this message translates to:
   /// **'Barchasini o\'qilgan deb belgilash'**
   String get notificationsMarkAllRead;
+
+  /// No description provided for @authContinueWithTelegram.
+  ///
+  /// In uz, this message translates to:
+  /// **'Telegram orqali kirish'**
+  String get authContinueWithTelegram;
+
+  /// No description provided for @authLinkTelegram.
+  ///
+  /// In uz, this message translates to:
+  /// **'Telegram hisobini ulash'**
+  String get authLinkTelegram;
+
+  /// No description provided for @authTelegramOpen.
+  ///
+  /// In uz, this message translates to:
+  /// **'Telegramni ochish'**
+  String get authTelegramOpen;
+
+  /// No description provided for @authTelegramCodeHint.
+  ///
+  /// In uz, this message translates to:
+  /// **'Telegram botimiz hisobingizni tasdiqlaydi. Ilovaga qaytib, bot yuborgan 8 xonali kodni kiriting. Kod 5 daqiqagacha amal qiladi.'**
+  String get authTelegramCodeHint;
+
+  /// No description provided for @authTelegramCodeLabel.
+  ///
+  /// In uz, this message translates to:
+  /// **'Telegram tasdiqlash kodi'**
+  String get authTelegramCodeLabel;
+
+  /// No description provided for @authTelegramConfirm.
+  ///
+  /// In uz, this message translates to:
+  /// **'Kirishni tasdiqlash'**
+  String get authTelegramConfirm;
+
+  /// No description provided for @authTelegramRestart.
+  ///
+  /// In uz, this message translates to:
+  /// **'Yangidan boshlash'**
+  String get authTelegramRestart;
+
+  /// No description provided for @authTelegramCodeInvalid.
+  ///
+  /// In uz, this message translates to:
+  /// **'Kod noto\'g\'ri yoki eskirgan. Kodni tekshiring yoki yangidan boshlang.'**
+  String get authTelegramCodeInvalid;
+
+  /// No description provided for @authTelegramAccountConflict.
+  ///
+  /// In uz, this message translates to:
+  /// **'Bu Telegram boshqa UZDONATE hisobiga ulangan. Mavjud hisobingizga kiring.'**
+  String get authTelegramAccountConflict;
+
+  /// No description provided for @authTelegramOpenFailed.
+  ///
+  /// In uz, this message translates to:
+  /// **'Telegram ochilmadi. Telegramni o\'rnatib, qayta urinib ko\'ring.'**
+  String get authTelegramOpenFailed;
+
+  /// No description provided for @securityTelegramLinked.
+  ///
+  /// In uz, this message translates to:
+  /// **'Telegram ulangan'**
+  String get securityTelegramLinked;
+
+  /// No description provided for @securityTelegramNotLinked.
+  ///
+  /// In uz, this message translates to:
+  /// **'Telegram ulanmagan'**
+  String get securityTelegramNotLinked;
+
+  /// No description provided for @securityLinkGoogle.
+  ///
+  /// In uz, this message translates to:
+  /// **'Google hisobini ulash'**
+  String get securityLinkGoogle;
+
+  /// No description provided for @authGoogleOpenBrowser.
+  ///
+  /// In uz, this message translates to:
+  /// **'Google\'ni brauzerda ochish'**
+  String get authGoogleOpenBrowser;
+
+  /// No description provided for @authGoogleBrowserCodeHint.
+  ///
+  /// In uz, this message translates to:
+  /// **'Google hisobingizni tashqi brauzerda tasdiqlang. Keyin UZDONATE ilovasiga qaytib, olingan 8 xonali kodni kiriting.'**
+  String get authGoogleBrowserCodeHint;
+
+  /// No description provided for @authGoogleBrowserCodeLabel.
+  ///
+  /// In uz, this message translates to:
+  /// **'Google tasdiqlash kodi'**
+  String get authGoogleBrowserCodeLabel;
+
+  /// No description provided for @authBrowserOpenFailed.
+  ///
+  /// In uz, this message translates to:
+  /// **'Brauzer ochilmadi. Qayta urinib ko\'ring.'**
+  String get authBrowserOpenFailed;
 }
 
 class _AppLocalizationsDelegate

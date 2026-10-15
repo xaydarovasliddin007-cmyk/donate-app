@@ -16,6 +16,7 @@ import { AppError } from './lib/errors.js';
 import { prismaPlugin } from './plugins/prisma.js';
 import { healthRoutes } from './modules/health/health.routes.js';
 import { authRoutes } from './modules/auth/auth.routes.js';
+import { socialAuthRoutes } from './modules/auth/social-auth.routes.js';
 import { gamesRoutes } from './modules/games/games.routes.js';
 import { promotionsRoutes } from './modules/promotions/promotions.routes.js';
 import { promoCodesRoutes } from './modules/promotions/promo-codes.routes.js';
@@ -159,6 +160,7 @@ export async function buildApp() {
   await app.register(
     async (api) => {
       await api.register(authRoutes);
+      await api.register(socialAuthRoutes);
       await api.register(gamesRoutes);
       await api.register(promotionsRoutes);
       await api.register(promoCodesRoutes);

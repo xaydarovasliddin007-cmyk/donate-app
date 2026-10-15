@@ -74,8 +74,31 @@ model User {
   emailVerificationTokens EmailVerificationToken[]
   passwordResetTokens     PasswordResetToken[]
   promoCodeRedemptions    PromoCodeRedemption[]
+  socialAuthRequests     SocialAuthRequest[]
 
   @@map("users")
+}
+
+// Cross-device sign-in uses a request secret plus a provider-delivered code.
+// Neither Google tokens nor plaintext request secrets/codes are persisted.
+model SocialAuthRequest {
+  id                String    @id @default(uuid()) @db.Uuid
+  provider          String
+  intent            String
+  locale            String    @default("uz")
+  requestSecretHash String    @map("request_secret_hash")
+  codeHash          String?   @map("code_hash")
+  identity          Json?
+  targetUserId      String?   @map("target_user_id") @db.Uuid
+  targetUser        User?     @relation(fields: [targetUserId], references: [id], onDelete: Cascade)
+  attempts          Int       @default(0)
+  expiresAt         DateTime  @map("expires_at")
+  usedAt            DateTime? @map("used_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
+
+  @@index([expiresAt])
+  @@index([targetUserId])
+  @@map("social_auth_requests")
 }
 
 // ---------------------------------------------------------------------------

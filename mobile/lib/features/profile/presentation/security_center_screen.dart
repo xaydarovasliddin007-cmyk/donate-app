@@ -13,6 +13,8 @@ import '../../../l10n/generated/app_localizations.dart';
 import '../../auth/application/auth_controller.dart';
 import '../../auth/application/sessions_provider.dart';
 import '../../auth/domain/session.dart';
+import '../../auth/presentation/widgets/telegram_auth_button.dart';
+import '../../auth/presentation/widgets/link_google_button.dart';
 
 class SecurityCenterScreen extends ConsumerWidget {
   const SecurityCenterScreen({super.key});
@@ -43,7 +45,9 @@ class SecurityCenterScreen extends ConsumerWidget {
       await ref.read(authApiProvider).logoutAllDevices();
       await ref.read(authControllerProvider.notifier).logout();
     } catch (error) {
-      messenger.showSnackBar(SnackBar(content: Text(Failure.from(error).message)));
+      messenger.showSnackBar(
+        SnackBar(content: Text(Failure.from(error).message)),
+      );
     }
   }
 
@@ -149,9 +153,30 @@ class SecurityCenterScreen extends ConsumerWidget {
                               color: theme.colorScheme.primary,
                               size: 20,
                             )
+                          : const LinkGoogleButton(),
+                      showDivider: false,
+                    ),
+                    _AccountInfoRow(
+                      icon: Icons.telegram,
+                      title: user?.hasTelegramAccount == true
+                          ? l10n.securityTelegramLinked
+                          : l10n.securityTelegramNotLinked,
+                      trailing: user?.hasTelegramAccount == true
+                          ? Icon(
+                              Icons.check_circle_rounded,
+                              color: theme.colorScheme.primary,
+                              size: 20,
+                            )
                           : null,
                       showDivider: false,
                     ),
+                    if (user?.hasGoogleAccount != true)
+                      const GoogleBrowserAuthButton(linkToCurrentAccount: true),
+                    if (user?.hasTelegramAccount != true)
+                      const Padding(
+                        padding: EdgeInsets.all(AppSpacing.sm),
+                        child: TelegramAuthButton(linkToCurrentAccount: true),
+                      ),
                   ],
                 ),
               ),

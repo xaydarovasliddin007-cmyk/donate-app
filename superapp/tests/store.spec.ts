@@ -51,6 +51,8 @@ async function mockStore(page: Page, tg = false, busyTopup = false, insufficient
           expand() {},
           setHeaderColor() {},
           setBackgroundColor() {},
+          openLink() {},
+          openTelegramLink() {},
           BackButton: { show() {}, hide() {}, onClick() {}, offClick() {} },
           openInvoice(_url: string, callback: (status: string) => void) {
             callback('paid');
@@ -535,6 +537,54 @@ function registeredSession() {
     email: 'player@example.com', isGuest: false, hasTelegramAccount: false,
   } };
 }
+
+test('Telegram links to the current website account using a request-bound code', async ({ page }) => {
+  await mockStore(page);
+  await page.addInitScript(() => { window.open = () => null; });
+  const request = { id: '81d07e85-2a55-4222-9c87-d8da851102db', provider: 'telegram', intent: 'link', requestSecret: 'isolated-request-secret-at-least-40-characters', authorizeUrl: 'https://t.me/uzdonate1bot?start=auth_test', expiresAt: '2099-01-01T00:00:00Z' };
+  let exchange: Record<string, unknown> | undefined;
+  await page.route('**/auth/requests/link', (route) => route.fulfill({ json: request }));
+  await page.route(`**/auth/requests/${request.id}/exchange`, (route) => {
+    exchange = route.request().postDataJSON();
+    const result = registeredSession(); result.user.id = 'user-1'; result.user.publicId = 'UZD-TEST1234'; result.user.hasTelegramAccount = true;
+    return route.fulfill({ json: result });
+  });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Hisobni saqlash', exact: true }).click();
+  await page.getByRole('button', { name: 'Telegram hisobini ulash', exact: true }).click();
+  await page.getByLabel('Telegram tasdiqlash kodi', { exact: true }).fill('12345678');
+  await page.getByRole('button', { name: 'Kirishni tasdiqlash', exact: true }).click();
+  await expect(page.locator('.sheet')).toHaveCount(0);
+  await expect(page.locator('.store-heading h1')).toHaveText('Website user');
+  expect(exchange).toEqual({ requestSecret: request.requestSecret, code: '12345678' });
+});
+
+test('Google inside Telegram uses the external browser code flow', async ({ page }) => {
+  await mockStore(page, true);
+  await page.route('**/app/config', (route) => route.fulfill({ json: { googleClientId: 'test.apps.googleusercontent.com', telegramPaymentsEnabled: true } }));
+  const request = { id: '108a6951-9e51-441d-9739-5e8c2a435d4a', provider: 'google', intent: 'link', requestSecret: 'isolated-google-request-secret-at-least-40-characters', authorizeUrl: 'https://uzdonate.uz/webapp/?auth_request=108a6951-9e51-441d-9739-5e8c2a435d4a', expiresAt: '2099-01-01T00:00:00Z' };
+  await page.route('**/auth/requests/link', (route) => route.fulfill({ json: request }));
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Profil', exact: true }).filter({ visible: true }).last().click();
+  await page.getByRole('button', { name: 'Hisobni saqlash', exact: true }).click();
+  await page.getByRole('button', { name: 'Google hisobini ulash', exact: true }).click();
+  await expect(page.getByLabel('Google tasdiqlash kodi', { exact: true })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Googleni ochish', exact: true })).toHaveAttribute('href', request.authorizeUrl);
+  await expect(page.locator('iframe[title="Sign in with Google Button"]')).toHaveCount(0);
+});
+
+test('the external Google page returns a one-time code without creating a guest account', async ({ page }) => {
+  const id = 'f3a0dfc8-d388-4ff0-9ea3-ed4095af68c8';
+  let guestCreated = false;
+  await page.route('**/auth/guest', (route) => { guestCreated = true; return route.fulfill({ status: 500 }); });
+  await page.route(`**/auth/requests/${id}`, (route) => route.fulfill({ json: { provider: 'google', intent: 'link', locale: 'uz', googleClientId: 'test.apps.googleusercontent.com' } }));
+  await page.route(`**/auth/requests/${id}/google`, (route) => route.fulfill({ json: { code: '12345678' } }));
+  await page.route('https://accounts.google.com/gsi/client', (route) => route.fulfill({ contentType: 'text/javascript', body: `let callback;window.google={accounts:{id:{initialize(options){callback=options.callback},renderButton(host){const b=document.createElement('button');b.textContent='Test Google confirmation';b.onclick=()=>callback({credential:'isolated-google-token'});host.append(b)}}}};` }));
+  await page.goto(`/?auth_request=${id}`);
+  await page.getByRole('button', { name: 'Test Google confirmation', exact: true }).click();
+  await expect(page.locator('.identity-code')).toHaveText('12345678');
+  expect(guestCreated).toBe(false);
+});
 
 async function openWebsiteLogin(page: Page) {
   if (await page.locator('.header-login').isVisible()) await page.locator('.header-login').click();

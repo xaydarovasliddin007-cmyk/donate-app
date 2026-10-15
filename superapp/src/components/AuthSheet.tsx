@@ -6,11 +6,13 @@ import { tr, type Locale } from '../i18n';
 import { Sheet } from './Sheet';
 import { ErrorBox } from './ui';
 import { GoogleSignInButton } from './GoogleSignInButton';
+import { SocialAuthCode } from './SocialAuthCode';
+import { inTelegram } from '../services/telegram';
 
 type Mode = 'login' | 'register' | 'reset';
-export function AuthSheet({ onClose, onLogin, locale, initialMode = 'login', allowRegister = true, linkOnly = false, googleClientId }: {
+export function AuthSheet({ onClose, onLogin, locale, initialMode = 'login', allowRegister = true, linkOnly = false, socialOnly = false, googleClientId }: {
   onClose: () => void; onLogin: (session: Session) => void; locale: Locale;
-  initialMode?: Mode; allowRegister?: boolean; linkOnly?: boolean; googleClientId?: string | null;
+  initialMode?: Mode; allowRegister?: boolean; linkOnly?: boolean; socialOnly?: boolean; googleClientId?: string | null;
 }) {
   const t = (text: string) => tr(locale, text);
   const [mode, setMode] = useState<Mode>(initialMode);
@@ -21,7 +23,7 @@ export function AuthSheet({ onClose, onLogin, locale, initialMode = 'login', all
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
-  const title = t(mode === 'login' ? 'Hisobga kirish' : mode === 'register' ? 'Ro‘yxatdan o‘tish' : 'Parolni tiklash');
+  const title = socialOnly ? locale === 'ru' ? 'Способы входа UZDONATE' : 'UZDONATE kirish usullari' : t(mode === 'login' ? 'Hisobga kirish' : mode === 'register' ? 'Ro‘yxatdan o‘tish' : 'Parolni tiklash');
   function changeMode(next: Mode) {
     setMode(next); setSent(false); setCode(''); setPassword(''); setError('');
   }
@@ -67,16 +69,20 @@ export function AuthSheet({ onClose, onLogin, locale, initialMode = 'login', all
   return <Sheet title={title} onClose={onClose} busy={busy} className="auth-sheet">
     <form className="checkout-form" onSubmit={submit}>
       {mode === 'register' && <p className="notice">{t('Google yoki email-parol orqali bu hisobga boshqa qurilmadan ham kirasiz. Balans va buyurtmalar saqlanadi.')}</p>}
-      {mode !== 'reset' && googleClientId && <>
-        <GoogleSignInButton clientId={googleClientId} locale={locale} onCredential={signInWithGoogle} busy={busy} onUnavailable={googleUnavailable}/>
-        <div className="auth-divider"><span>{t('Yoki email bilan')}</span></div>
-      </>}
+      {mode !== 'reset' && <div className="social-providers">
+        {googleClientId && (inTelegram()
+          ? <SocialAuthCode provider="google" locale={locale} link={linkOnly || mode === 'register'} disabled={busy} onBusyChange={setBusy} onLogin={onLogin}/>
+          : <GoogleSignInButton clientId={googleClientId} locale={locale} onCredential={signInWithGoogle} busy={busy} onUnavailable={googleUnavailable}/>)}
+        {!inTelegram() && <SocialAuthCode provider="telegram" locale={locale} link={linkOnly || mode === 'register'} disabled={busy} onBusyChange={setBusy} onLogin={onLogin}/>}
+      </div>}
+      {error && <ErrorBox message={error} locale={locale}/>}
+      {!socialOnly && <>
+      {mode !== 'reset' && <div className="auth-divider"><span>{t('Yoki email bilan')}</span></div>}
       {sent && <p className="notice" role="status">{t('Emailingizga yuborilgan 6 xonali kodni kiriting. Kod 15 daqiqa amal qiladi.')}</p>}
       {mode === 'register' && !sent && <label>{t('Ismingiz')}<input autoComplete="name" maxLength={80} value={displayName} onChange={(event) => setDisplayName(event.target.value)} disabled={busy}/></label>}
       <label>{t('Email')}<input type="email" autoComplete="email" autoFocus required readOnly={sent} disabled={busy} value={email} onChange={(event) => setEmail(event.target.value)}/></label>
       {sent && <label>{t('Tasdiqlash kodi')}<input inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" minLength={6} maxLength={6} required value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))} disabled={busy}/></label>}
       {(mode === 'login' || sent) && <label>{t(mode === 'login' ? 'Parol' : 'Yangi parol')}<input type="password" aria-label={t(mode === 'login' ? 'Parol' : 'Yangi parol')} aria-describedby={mode !== 'login' ? 'auth-password-hint' : undefined} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} minLength={mode === 'login' ? 1 : 8} maxLength={128} required value={password} onChange={(event) => setPassword(event.target.value)} disabled={busy}/>{mode !== 'login' && <small id="auth-password-hint" className="muted">{t('Kamida 8 ta belgi')}</small>}</label>}
-      {error && <ErrorBox message={error} locale={locale}/>}
       <button className="button primary" disabled={busy}>{busy ? <LoaderCircle size={18} className="spin"/> : <ArrowRight size={18}/>} {t(mode === 'login' ? 'Kirish' : !sent ? 'Kod yuborish' : mode === 'register' ? 'Hisobni saqlash' : 'Parolni yangilash')}</button>
       {sent && <button type="button" className="button secondary" disabled={busy} onClick={() => { setSent(false); setCode(''); setPassword(''); setError(''); }}><ArrowLeft size={17}/>{t('Emailni o‘zgartirish yoki kodni qayta yuborish')}</button>}
       <div className="auth-links">
@@ -84,6 +90,7 @@ export function AuthSheet({ onClose, onLogin, locale, initialMode = 'login', all
         {mode !== 'register' && allowRegister && <button type="button" disabled={busy} onClick={() => changeMode('register')}>{t('Ro‘yxatdan o‘tish')}</button>}
         {mode !== 'login' && !linkOnly && <button type="button" disabled={busy} onClick={() => changeMode('login')}>{t('Mavjud hisobga kirish')}</button>}
       </div>
+      </>}
     </form>
   </Sheet>;
 }

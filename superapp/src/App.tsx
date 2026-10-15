@@ -7,6 +7,7 @@ import { Checkout } from './components/Checkout';
 import { WalletSheet } from './components/WalletSheet';
 import { Sheet } from './components/Sheet';
 import { AuthSheet } from './components/AuthSheet';
+import { GoogleExternalAuthPage } from './components/GoogleExternalAuthPage';
 import { GameBanner } from './components/GameBanner';
 import { BrandMark } from './components/BrandMark';
 import { BrandLaunch, useBrandLaunch } from './components/BrandLaunch';
@@ -17,6 +18,11 @@ type Tab = 'shop' | 'games' | 'orders' | 'profile';
 const defaultConfig: AppConfig = { supportUrl: 'https://t.me/The_Anonimous_uzb', telegramBotUrl: 'https://t.me/uzdonate1bot', telegramPaymentsEnabled: false, googleClientId: null };
 
 export default function App() {
+  const requestId = new URLSearchParams(window.location.search).get('auth_request');
+  return requestId ? <GoogleExternalAuthPage requestId={requestId}/> : <StoreApp/>;
+}
+
+function StoreApp() {
   const [locale, setLocale] = useState<Locale>(() => {
     try {
       const saved = localStorage.getItem('uzdonate_locale');
@@ -50,6 +56,7 @@ export default function App() {
   const [showWallet, setShowWallet] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+  const [authLinkOnly, setAuthLinkOnly] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const { showIntro, revealing, appReady } = useBrandLaunch();
   const [avatarFailed, setAvatarFailed] = useState(false);
@@ -118,7 +125,7 @@ export default function App() {
   useEffect(() => setAvatarFailed(false), [user?.avatarUrl]);
 
   function navigate(next: Tab) { setTab(next); haptic(); window.scrollTo({ top: 0, behavior: 'instant' }); }
-  function openAuth(mode: 'login' | 'register') { setAuthMode(mode); setShowLogin(true); }
+  function openAuth(mode: 'login' | 'register', link = false) { setAuthMode(mode); setAuthLinkOnly(link); setShowLogin(true); }
   function clearAccount() {
     accountVersion.current += 1;
     setUser(null); setWallet(null); setOrders([]); setTopups([]); setSavedGames([]);
@@ -223,6 +230,7 @@ export default function App() {
         <div className="profile-links">
           <button onClick={() => navigate('orders')}><Package size={21}/><span>{t('Buyurtmalarim')}</span><span className="muted">{orders.length}</span><ChevronRight size={18}/></button>
           {user && (user.isGuest || !user.email) && <button onClick={() => openAuth('register')}><ShieldCheck size={21}/><span>{t('Hisobni saqlash')}</span><ChevronRight size={18}/></button>}
+          {user && !user.isGuest && <button onClick={() => openAuth('register', true)}><ShieldCheck size={21}/><span>{locale === 'ru' ? 'Google и Telegram • UZDONATE ID' : 'Google va Telegram • UZDONATE ID'}</span><ChevronRight size={18}/></button>}
           {!tg && <button onClick={() => openAuth('login')}><UserRound size={21}/><span>{t(user?.isGuest ? 'Mavjud hisobga kirish' : 'Boshqa hisobga kirish')}</span><ChevronRight size={18}/></button>}
           {!tg && user && !user.isGuest && <button disabled={loggingOut} onClick={signOut}><LogOut size={21}/><span>{t('Hisobdan chiqish')}</span>{loggingOut ? <LoaderCircle size={18} className="spin"/> : <ChevronRight size={18}/>}</button>}
           <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}><Moon size={21}/><span>{t("Tashqi ko'rinish")}</span><span className="muted">{t(theme === 'dark' ? "Qorong'i" : "Yorug'")}</span><ChevronRight size={18}/></button>
@@ -281,7 +289,8 @@ export default function App() {
         locale={locale}
         initialMode={authMode}
         allowRegister={Boolean(user && (user.isGuest || !user.email))}
-        linkOnly={tg}
+        linkOnly={tg || authLinkOnly}
+        socialOnly={authLinkOnly}
         googleClientId={config.googleClientId}
         onClose={() => setShowLogin(false)}
         onLogin={acceptSession}

@@ -11,6 +11,7 @@ import '../../../l10n/generated/app_localizations.dart';
 import '../application/auth_controller.dart';
 import 'widgets/auth_identifier_field.dart';
 import 'widgets/google_auth_button.dart';
+import 'widgets/telegram_auth_button.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -142,6 +143,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   label: l10n.authContinueWithGoogle,
                   loading: _googleSubmitting,
                   onPressed: _busy ? null : _submitGoogle,
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                GoogleBrowserAuthButton(
+                  enabled: !_busy,
+                  onSuccess: () => context.pop(),
+                ),
+                TelegramAuthButton(
+                  enabled: !_busy,
+                  onSuccess: () => context.pop(),
                 ),
                 if (_googleErrorMessage != null) ...[
                   const SizedBox(height: AppSpacing.sm),

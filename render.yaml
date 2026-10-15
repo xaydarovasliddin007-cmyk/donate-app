@@ -20,9 +20,11 @@ services:
       - key: ADMIN_JWT_ACCESS_SECRET
         generateValue: true
       - key: CORS_ORIGIN
-        value: https://donate-app-5vhs.onrender.com
+        value: https://donate-app-5vhs.onrender.com,https://uzdonate.uz
       - key: PUBLIC_APP_URL
-        value: https://donate-app-5vhs.onrender.com
+        value: https://uzdonate.uz
+      - key: GOOGLE_CLIENT_ID
+        value: 223785346997-vphv1k7i131r72orkhj05dnvvhocd9br.apps.googleusercontent.com
       - key: TELEGRAM_BOT_TOKEN
         sync: false
       - key: TELEGRAM_WEBHOOK_SECRET

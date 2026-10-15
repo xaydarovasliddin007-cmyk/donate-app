@@ -376,5 +376,22 @@
 
   "notificationsTitle": "Bildirishnomalar",
   "notificationsEmpty": "Hali bildirishnomalar yo'q",
-  "notificationsMarkAllRead": "Barchasini o'qilgan deb belgilash"
+  "notificationsMarkAllRead": "Barchasini o'qilgan deb belgilash",
+  "authContinueWithTelegram": "Telegram orqali kirish",
+  "authLinkTelegram": "Telegram hisobini ulash",
+  "authTelegramOpen": "Telegramni ochish",
+  "authTelegramCodeHint": "Telegram botimiz hisobingizni tasdiqlaydi. Ilovaga qaytib, bot yuborgan 8 xonali kodni kiriting. Kod 5 daqiqagacha amal qiladi.",
+  "authTelegramCodeLabel": "Telegram tasdiqlash kodi",
+  "authTelegramConfirm": "Kirishni tasdiqlash",
+  "authTelegramRestart": "Yangidan boshlash",
+  "authTelegramCodeInvalid": "Kod noto'g'ri yoki eskirgan. Kodni tekshiring yoki yangidan boshlang.",
+  "authTelegramAccountConflict": "Bu Telegram boshqa UZDONATE hisobiga ulangan. Mavjud hisobingizga kiring.",
+  "authTelegramOpenFailed": "Telegram ochilmadi. Telegramni o'rnatib, qayta urinib ko'ring.",
+  "securityTelegramLinked": "Telegram ulangan",
+  "securityTelegramNotLinked": "Telegram ulanmagan",
+  "securityLinkGoogle": "Google hisobini ulash",
+  "authGoogleOpenBrowser": "Google'ni brauzerda ochish",
+  "authGoogleBrowserCodeHint": "Google hisobingizni tashqi brauzerda tasdiqlang. Keyin UZDONATE ilovasiga qaytib, olingan 8 xonali kodni kiriting.",
+  "authGoogleBrowserCodeLabel": "Google tasdiqlash kodi",
+  "authBrowserOpenFailed": "Brauzer ochilmadi. Qayta urinib ko'ring."
 }

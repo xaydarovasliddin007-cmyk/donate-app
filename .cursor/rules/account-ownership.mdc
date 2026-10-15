@@ -1,0 +1,14 @@
+---
+description: UZDONATE account ownership and Google Cloud account allowlist
+alwaysApply: true
+---
+
+# UZDONATE account ownership
+
+- Use only `xaydarovasliddin007@gmail.com` for UZDONATE Google Cloud administration, registrations, and Google sign-in checks unless the human explicitly changes this instruction.
+- Verify the selected account before submitting account, project, consent, or client changes. For Cloud console links, select this account rather than trusting the default account index.
+- If another account is selected, switch to the allowed account without accepting terms or creating resources in the other account.
+- This restriction does not authorize deleting any Google account or changing its credentials.
+- Never print or persist service secrets, OAuth tokens, request secrets, or sign-in codes in logs, artifacts, or source control.
+- Preserve verified Google tokens, Telegram signatures/webhook checks, identity uniqueness, account balances, and session security.
+- Record observed authentication results in `artifacts/auth/google-signin-status.json`. Builds and automated tests do not prove successful sign-in on a real Android device.

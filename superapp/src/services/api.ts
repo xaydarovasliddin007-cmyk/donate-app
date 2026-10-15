@@ -67,6 +67,23 @@ export async function googleSignIn(idToken: string, locale: 'uz' | 'ru', linkToC
     : await raw<Session>(endpoint, { idToken, locale });
   return save(result);
 }
+export interface SocialAuthRequest {
+  id: string; provider: 'google' | 'telegram'; intent: 'login' | 'link';
+  requestSecret: string; authorizeUrl: string; expiresAt: string; accountId?: string;
+}
+export async function startSocialSignIn(provider: SocialAuthRequest['provider'], locale: 'uz' | 'ru', link: boolean): Promise<SocialAuthRequest> {
+  const accountId = link ? session?.user.id : undefined;
+  const result = link
+    ? await api<SocialAuthRequest>('/auth/requests/link', { provider, locale })
+    : await raw<SocialAuthRequest>('/auth/requests', { provider, locale });
+  return { ...result, accountId };
+}
+export async function completeSocialSignIn(request: SocialAuthRequest, code: string) {
+  if (request.accountId && session?.user.id !== request.accountId) throw new ApiError(409, 'ACCOUNT_CHANGED', 'Hisob o‘zgardi. Yangi kirish so‘rovi boshlang.');
+  const result = await raw<Session>(`/auth/requests/${request.id}/exchange`, { requestSecret: request.requestSecret, code });
+  if (request.accountId && (session?.user.id !== request.accountId || result.user.id !== request.accountId)) throw new ApiError(409, 'ACCOUNT_CHANGED', 'Hisob o‘zgardi. Yangi kirish so‘rovi boshlang.');
+  return save(result);
+}
 export async function completeAccount(email: string, code: string, password: string) {
   return save(await api<Session>('/auth/account/complete', { email, code, password }));
 }

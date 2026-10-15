@@ -1017,4 +1017,61 @@ class AppLocalizationsRu extends AppLocalizations {
 
   @override
   String get notificationsMarkAllRead => 'Отметить всё как прочитанное';
+
+  @override
+  String get authContinueWithTelegram => 'Войти через Telegram';
+
+  @override
+  String get authLinkTelegram => 'Подключить Telegram';
+
+  @override
+  String get authTelegramOpen => 'Открыть Telegram';
+
+  @override
+  String get authTelegramCodeHint =>
+      'Наш Telegram-бот подтвердит ваш аккаунт. Вернитесь в приложение и введите полученный 8-значный код. Код действует до 5 минут.';
+
+  @override
+  String get authTelegramCodeLabel => 'Код подтверждения Telegram';
+
+  @override
+  String get authTelegramConfirm => 'Подтвердить вход';
+
+  @override
+  String get authTelegramRestart => 'Начать заново';
+
+  @override
+  String get authTelegramCodeInvalid =>
+      'Код неверен или истёк. Проверьте код или начните заново.';
+
+  @override
+  String get authTelegramAccountConflict =>
+      'Этот Telegram связан с другим аккаунтом UZDONATE. Войдите в существующий аккаунт.';
+
+  @override
+  String get authTelegramOpenFailed =>
+      'Не удалось открыть Telegram. Установите Telegram и попробуйте снова.';
+
+  @override
+  String get securityTelegramLinked => 'Telegram подключён';
+
+  @override
+  String get securityTelegramNotLinked => 'Telegram не подключён';
+
+  @override
+  String get securityLinkGoogle => 'Подключить Google';
+
+  @override
+  String get authGoogleOpenBrowser => 'Открыть Google в браузере';
+
+  @override
+  String get authGoogleBrowserCodeHint =>
+      'Подтвердите Google во внешнем браузере. Затем вернитесь в UZDONATE и введите полученный 8-значный код.';
+
+  @override
+  String get authGoogleBrowserCodeLabel => 'Код подтверждения Google';
+
+  @override
+  String get authBrowserOpenFailed =>
+      'Не удалось открыть браузер. Попробуйте снова.';
 }

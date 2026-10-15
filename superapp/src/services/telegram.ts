@@ -4,6 +4,7 @@ interface TelegramWebApp {
   ready(): void; expand(): void;
   setHeaderColor(color: string): void; setBackgroundColor(color: string): void;
   openTelegramLink(url: string): void;
+  openLink(url: string): void;
   openInvoice(url: string, callback: (status: 'paid' | 'cancelled' | 'failed' | 'pending') => void): void;
   HapticFeedback?: { impactOccurred(style: 'light' | 'medium'): void; notificationOccurred(type: 'success' | 'error'): void };
   BackButton: { show(): void; hide(): void; onClick(fn: () => void): void; offClick(fn: () => void): void };

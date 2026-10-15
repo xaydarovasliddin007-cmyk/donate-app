@@ -363,5 +363,22 @@
 
   "notificationsTitle": "Уведомления",
   "notificationsEmpty": "Пока нет уведомлений",
-  "notificationsMarkAllRead": "Отметить всё как прочитанное"
+  "notificationsMarkAllRead": "Отметить всё как прочитанное",
+  "authContinueWithTelegram": "Войти через Telegram",
+  "authLinkTelegram": "Подключить Telegram",
+  "authTelegramOpen": "Открыть Telegram",
+  "authTelegramCodeHint": "Наш Telegram-бот подтвердит ваш аккаунт. Вернитесь в приложение и введите полученный 8-значный код. Код действует до 5 минут.",
+  "authTelegramCodeLabel": "Код подтверждения Telegram",
+  "authTelegramConfirm": "Подтвердить вход",
+  "authTelegramRestart": "Начать заново",
+  "authTelegramCodeInvalid": "Код неверен или истёк. Проверьте код или начните заново.",
+  "authTelegramAccountConflict": "Этот Telegram связан с другим аккаунтом UZDONATE. Войдите в существующий аккаунт.",
+  "authTelegramOpenFailed": "Не удалось открыть Telegram. Установите Telegram и попробуйте снова.",
+  "securityTelegramLinked": "Telegram подключён",
+  "securityTelegramNotLinked": "Telegram не подключён",
+  "securityLinkGoogle": "Подключить Google",
+  "authGoogleOpenBrowser": "Открыть Google в браузере",
+  "authGoogleBrowserCodeHint": "Подтвердите Google во внешнем браузере. Затем вернитесь в UZDONATE и введите полученный 8-значный код.",
+  "authGoogleBrowserCodeLabel": "Код подтверждения Google",
+  "authBrowserOpenFailed": "Не удалось открыть браузер. Попробуйте снова."
 }

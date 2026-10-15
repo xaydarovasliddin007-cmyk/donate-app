@@ -187,6 +187,54 @@ class AuthController extends AsyncNotifier<AuthState> {
     final guestState = await _initGuestSession();
     state = AsyncData(guestState);
   }
+
+  Future<SocialAuthRequest> startSocialSignIn({
+    required String provider,
+    bool linkToCurrentAccount = false,
+  }) async {
+    final accountId = linkToCurrentAccount ? state.value?.user?.id : null;
+    if (linkToCurrentAccount && accountId == null) {
+      throw const ApiException(
+        code: 'UNAUTHORIZED',
+        message: 'Sign in again',
+        statusCode: 401,
+      );
+    }
+    return ref
+        .read(authApiProvider)
+        .startSocialSignIn(
+          provider: provider,
+          locale: ref.read(localeControllerProvider).languageCode,
+          accountId: accountId,
+        );
+  }
+
+  Future<void> completeSocialSignIn(
+    SocialAuthRequest request,
+    String code,
+  ) async {
+    if (request.accountId != null &&
+        state.value?.user?.id != request.accountId) {
+      throw const ApiException(
+        code: 'ACCOUNT_CHANGED',
+        message: 'Start a new sign-in request',
+        statusCode: 409,
+      );
+    }
+    final result = await ref
+        .read(authApiProvider)
+        .exchangeSocialSignIn(request, code);
+    if (request.accountId != null &&
+        (state.value?.user?.id != request.accountId ||
+            result.user.id != request.accountId)) {
+      throw const ApiException(
+        code: 'ACCOUNT_CHANGED',
+        message: 'Start a new sign-in request',
+        statusCode: 409,
+      );
+    }
+    await _applyAuthResult(result);
+  }
 }
 
 final authControllerProvider = AsyncNotifierProvider<AuthController, AuthState>(

@@ -4,7 +4,7 @@ import { Prisma, type PrismaClient } from '@prisma/client';
 import { hashPassword, verifyPassword } from './password.js';
 import { generateRefreshToken, hashRefreshToken } from './refresh-token.js';
 import { generateVerificationCode, hashVerificationCode } from './email-verification.js';
-import { verifyGoogleIdToken } from './google-token.js';
+import { verifyGoogleIdToken, type GoogleIdentity } from './google-token.js';
 import { env } from '../../config/env.js';
 import { parseDurationMs } from '../../lib/duration.js';
 import { AppError, ConflictError, ForbiddenError, NotFoundError, UnauthorizedError } from '../../lib/errors.js';
@@ -48,7 +48,7 @@ export class WalletNotEmptyError extends AppError {
   }
 }
 
-interface AuthContext {
+export interface AuthContext {
   prisma: PrismaClient;
   signAccessToken: FastifyInstance['jwt']['sign'];
 }
@@ -127,6 +127,13 @@ async function issueTokenPair(
 export async function telegramAuth(ctx: AuthContext, initData: string, meta: { userAgent?: string; ipAddress?: string }) {
   if (!env.TELEGRAM_BOT_TOKEN) throw new ServiceUnavailableError('Telegram login is not configured');
   const identity = validateTelegramInitData(initData, env.TELEGRAM_BOT_TOKEN);
+  return telegramIdentityAuth(ctx, identity, meta);
+}
+
+export type TelegramIdentity = ReturnType<typeof validateTelegramInitData>;
+
+/** Internal entry point; the caller must verify Telegram's signed update first. */
+export async function telegramIdentityAuth(ctx: AuthContext, identity: TelegramIdentity, meta: { userAgent?: string; ipAddress?: string }) {
   const telegramId = String(identity.id);
   const publicId = await generateUniquePublicId(ctx.prisma);
   const profile = {
@@ -365,6 +372,11 @@ export async function googleAuth(
   meta: { userAgent?: string; ipAddress?: string },
 ) {
   const identity = await verifyGoogleIdToken(input.idToken);
+  return googleIdentityAuth(ctx, identity, input.locale, meta);
+}
+
+/** Internal entry point for a verified, single-use external-browser handoff. */
+export async function googleIdentityAuth(ctx: AuthContext, identity: GoogleIdentity, locale: string, meta: { userAgent?: string; ipAddress?: string }) {
   if (!identity.emailVerified) {
     throw new UnauthorizedError('Google must verify this email address');
   }
@@ -399,7 +411,7 @@ export async function googleAuth(
             googleId: identity.googleId,
             displayName: identity.name,
             avatarUrl: identity.avatarUrl,
-            locale: input.locale,
+            locale,
             wallet: { create: {} },
           },
         });
@@ -435,6 +447,11 @@ export async function linkGoogleAccount(
   meta: { userAgent?: string; ipAddress?: string },
 ) {
   const identity = await verifyGoogleIdToken(input.idToken);
+  return linkGoogleIdentity(ctx, userId, identity, meta);
+}
+
+/** Identity must come from Google verification or a verified handoff, never HTTP JSON. */
+export async function linkGoogleIdentity(ctx: AuthContext, userId: string, identity: GoogleIdentity, meta: { userAgent?: string; ipAddress?: string }) {
   if (!identity.emailVerified) {
     throw new UnauthorizedError('Google must verify this email address');
   }
@@ -473,7 +490,7 @@ export async function linkGoogleAccount(
           googleId: identity.googleId,
           email: isGuestEmail || !user.email ? identity.email : user.email,
           emailVerifiedAt: new Date(),
-          displayName: user.displayName ?? identity.name,
+          displayName: isGuestEmail && user.displayName === 'Mehmon' ? identity.name : user.displayName ?? identity.name,
           avatarUrl: user.avatarUrl ?? identity.avatarUrl,
         },
       });
@@ -494,6 +511,31 @@ export async function linkGoogleAccount(
 
   const tokens = await issueTokenPair(ctx, linkedUser, meta);
   return { user: toPublicUser(linkedUser), ...tokens };
+}
+
+export async function linkTelegramIdentity(ctx: AuthContext, userId: string, identity: TelegramIdentity, meta: { userAgent?: string; ipAddress?: string }) {
+  const user = await ctx.prisma.user.findUnique({ where: { id: userId } });
+  if (!user || user.status !== 'ACTIVE') throw new UnauthorizedError('This account is not active');
+  const telegramId = String(identity.id);
+  if (user.telegramId && user.telegramId !== telegramId) throw new ConflictError('This account already has another Telegram identity');
+  const owner = await ctx.prisma.user.findUnique({ where: { telegramId } });
+  if (owner && owner.id !== user.id) throw new ConflictError('This Telegram account belongs to another UZDONATE account');
+  const isGuestEmail = Boolean(user.email?.endsWith('@guest.uzdonate.uz'));
+  const name = [identity.first_name, identity.last_name].filter(Boolean).join(' ');
+  try {
+    const changed = await ctx.prisma.user.updateMany({
+      where: { id: user.id, status: 'ACTIVE', telegramId: user.telegramId, email: user.email },
+      data: { telegramId, email: isGuestEmail ? null : user.email,
+        displayName: isGuestEmail && user.displayName === 'Mehmon' ? name : user.displayName ?? name,
+        avatarUrl: user.avatarUrl ?? identity.photo_url },
+    });
+    if (changed.count !== 1) throw new ConflictError('Account changed. Please try again.');
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') throw new ConflictError('This Telegram account belongs to another UZDONATE account');
+    throw error;
+  }
+  const linked = await ctx.prisma.user.findUniqueOrThrow({ where: { id: user.id } });
+  return { user: toPublicUser(linked), ...await issueTokenPair(ctx, linked, meta) };
 }
 
 /**

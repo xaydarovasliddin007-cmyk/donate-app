@@ -20,10 +20,55 @@ class AuthResult {
   );
 }
 
+class SocialAuthRequest {
+  const SocialAuthRequest({
+    required this.id,
+    required this.requestSecret,
+    required this.authorizeUrl,
+    this.accountId,
+  });
+  final String id;
+  final String requestSecret;
+  final String authorizeUrl;
+  final String? accountId;
+  factory SocialAuthRequest.fromJson(
+    Map<String, dynamic> json, {
+    String? accountId,
+  }) => SocialAuthRequest(
+    id: json['id'] as String,
+    requestSecret: json['requestSecret'] as String,
+    authorizeUrl: json['authorizeUrl'] as String,
+    accountId: accountId,
+  );
+}
+
 class AuthApi {
   AuthApi(this._client);
 
   final ApiClient _client;
+
+  Future<SocialAuthRequest> startSocialSignIn({
+    required String provider,
+    required String locale,
+    String? accountId,
+  }) async {
+    final json = await _client.post(
+      accountId == null ? '/auth/requests' : '/auth/requests/link',
+      body: {'provider': provider, 'locale': locale},
+    );
+    return SocialAuthRequest.fromJson(json, accountId: accountId);
+  }
+
+  Future<AuthResult> exchangeSocialSignIn(
+    SocialAuthRequest request,
+    String code,
+  ) async {
+    final json = await _client.post(
+      '/auth/requests/${request.id}/exchange',
+      body: {'requestSecret': request.requestSecret, 'code': code},
+    );
+    return AuthResult.fromJson(json);
+  }
 
   /// Step 1 of registration: sends a 6-digit code to [email]. No account
   /// exists yet — [registerComplete] creates it once the code (and a

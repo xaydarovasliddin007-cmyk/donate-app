@@ -9,6 +9,7 @@ class AppUser {
     required this.locale,
     required this.role,
     required this.hasGoogleAccount,
+    this.hasTelegramAccount = false,
     required this.isEmailVerified,
     this.isGuest = false,
   });
@@ -24,6 +25,7 @@ class AppUser {
   final String locale;
   final String role;
   final bool hasGoogleAccount;
+  final bool hasTelegramAccount;
   final bool isEmailVerified;
   final bool isGuest;
 
@@ -37,6 +39,7 @@ class AppUser {
     locale: json['locale'] as String,
     role: json['role'] as String,
     hasGoogleAccount: json['hasGoogleAccount'] as bool? ?? false,
+    hasTelegramAccount: json['hasTelegramAccount'] as bool? ?? false,
     isEmailVerified: json['isEmailVerified'] as bool? ?? false,
     isGuest:
         json['isGuest'] as bool? ??

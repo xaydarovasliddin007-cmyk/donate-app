@@ -6,18 +6,26 @@ Ushbu qo'llanma Google Cloud Console'da UZDONATE ilovasi uchun Google Sign-In (G
 
 ## 1. Joriy Konfiguratsiya
 
+- **Administrator hisobi:** faqat `xaydarovasliddin007@gmail.com`.
 - **Loyiha nomi:** `uzdonate` (Google Cloud Platform)
 - **Web Client ID (Backend tekshiruvi va Server Client ID uchun):**
   ```text
   223785346997-vphv1k7i131r72orkhj05dnvvhocd9br.apps.googleusercontent.com
   ```
-  *(Bu ID `backend/.env` da `GOOGLE_CLIENT_ID` va `mobile/lib/core/config/app_config.dart` da kiritilgan)*
+  *(Render `GOOGLE_CLIENT_ID` va Android `googleServerClientId` shu web mijozdan foydalanadi.)*
+- **Authorized JavaScript origins:** `https://uzdonate.uz`, `https://donate-app-5vhs.onrender.com`.
+- **Publishing status:** 2026-10-15 kuni **In production** holati Google Cloud Audience sahifasida tasdiqlandi.
+- **Scope'lar:** `openid`, `userinfo.email`, `userinfo.profile`; sensitive yoki restricted scope qo'shilmagan.
+- **Branding:** UZDONATE; bosh sahifa `https://uzdonate.uz/`, maxfiylik `https://uzdonate.uz/privacy.html`, shartlar `https://uzdonate.uz/terms.html`.
+- `/webapp/` javobida Google oynasi uchun `Cross-Origin-Opener-Policy: same-origin-allow-popups` va `Referrer-Policy: strict-origin-when-cross-origin` qo'yilgan. API/admin alohida xavfsizlik sozlamalarini saqlaydi.
 
 ---
 
 ## 2. Google Cloud Console'da Android Client ID larni Sozlash
 
 [Google Cloud Credentials sahifasiga](https://console.cloud.google.com/apis/credentials) o'ting va quyidagi 2 ta Android OAuth mijozini qo'shing:
+
+**2026-10-15 tekshiruvi:** mavjud Android mijozining tafsilotlari va yangi mijoz sahifasi agentda ham, loyiha egasida ham `Failed to load` qaytardi. Reliz SHA-1 APK imzosidan tekshirildi, ammo Cloud'dagi package/SHA-1 mosligi hali tasdiqlanmagan. Mavjud mijozlarni o'chirmang. Quyidagi release mosligi mavjud bo'lsa takroriy mijoz yaratish kerak emas.
 
 ### A. Production Android Client (Play Store & Reliz uchun):
 1. **Create Credentials** -> **OAuth Client ID** ni bosing.
@@ -55,26 +63,39 @@ Ushbu qo'llanma Google Cloud Console'da UZDONATE ilovasi uchun Google Sign-In (G
 
 ## 3. OAuth Consent Screen (Rozilik oynasi) ni Production ga O'tkazish
 
-Hozirgi holatda tizim faqat "Test users" ro'yxatidagi foydalanuvchilar kirishiga ruxsat beradi. Barcha foydalanuvchilar kira olishi uchun:
+**Bajarildi:** Audience sahifasi **In production** ko'rsatmoqda; test foydalanuvchilar ro'yxati bilan cheklash olib tashlandi. Kelajakdagi qayta sozlash uchun:
 
 1. [OAuth consent screen sahifasiga](https://console.cloud.google.com/apis/credentials/consent) o'ting.
 2. **Publishing status:** "Testing" dan **"Publish App"** (Production) tugmasini bosing.
 3. Kerakli maydonlarni to'ldiring:
    - **App name:** `UZDONATE`
-   - **User support email:** O'zingizning emailingiz
+   - **User support email:** `xaydarovasliddin007@gmail.com`
    - **App domain:**
-     - Application home page: `https://uzdonate.uz` (yoki veb sahifangiz)
-     - Application privacy policy link: `https://uzdonate.uz/privacy`
-     - Application terms of service link: `https://uzdonate.uz/terms`
+     - Application home page: `https://uzdonate.uz/`
+     - Application privacy policy link: `https://uzdonate.uz/privacy.html`
+     - Application terms of service link: `https://uzdonate.uz/terms.html`
    - **Developer contact information:** Emailingiz
 4. **Scopes:** Faqat standart ochiq scope'lar talab etiladi:
    - `.../auth/userinfo.email`
    - `.../auth/userinfo.profile`
    - `openid`
-   *(Ushbu scope'lar nozik/sensitiv bo'lmagani uchun Google tomonidan uzoq davom etuvchi rasmiy verifikatsiyani talab qilmaydi — darhol ishga tushadi).*
+   *(Bu oddiy identifikatsiya scope'lari. Production holati haqiqiy qurilmada login tekshiruvi o'rnini bosmaydi.)*
 
 ---
 
 ## 4. Tekshirish
 
 Backend ishga tushganda `POST /api/v1/auth/google` so'rovi Google ID tokenni Google'ning rasmiy ochiq kalitlari (JWKS) orqali tekshiradi va foydalanuvchini ro'yxatdan o'tkazadi yoki mavjud akkauntga ulaydi.
+
+## 5. Yagona UZDONATE hisobi
+
+Sayt, Telegram mini-ilovasi va Android bir xil backend foydalanuvchi ID, hamyon va buyurtmalaridan foydalanadi. Profil/xavfsizlik bo'limidan Google yoki Telegramni joriy hisobga ulang. Boshqa UZDONATE hisobiga bog'langan identifikator avtomatik birlashtirilmaydi: server `409` qaytaradi va balanslarni saqlaydi.
+
+- Oddiy brauzer: Google tugmasi; Telegram uchun bot orqali 8 xonali tasdiqlash kodi.
+- Telegram mini-ilovasi: Telegram imzolagan `initData`; Google tashqi brauzerda tasdiqlanadi, kod mini-ilovaga kiritiladi.
+- Android: mahalliy Google SDK; qo'shimcha Google brauzer yo'li va Telegram bot kodi. Android SDK konfiguratsiyasi uchun yuqoridagi package/SHA-1 mosligi talab qilinadi.
+- `POST /api/v1/auth/requests` kirish so'rovini yaratadi. `POST /api/v1/auth/requests/link` autentifikatsiyadan o'tgan hisobga bog'laydi. Google dalili `/auth/requests/:id/google`, tasdiqlangan Telegram dalili faqat maxfiy webhook orqali qabul qilinadi. Kod `/auth/requests/:id/exchange` orqali almashtiriladi.
+- So'rov maxfiy qismi 256 bit, URLga qo'shilmaydi; DBda faqat xeshi saqlanadi. Kod 8 raqam, 5 daqiqagacha, bir martalik; 5 noto'g'ri urinishdan so'ng bekor bo'ladi. Endpointlarda tezlik chegarasi va `Cache-Control: no-store` bor.
+- Browser Google sahifasi hech qachon o'zidan mehmon hisobi yaratmaydi. Google tokenlari DBga saqlanmaydi.
+
+Yakuniy tekshiruvda sayt/mini-ilova/Androidda Google va Telegram bilan kirib, profilning bir xil UZDONATE ID ko'rsatishini tasdiqlang. Foydalanuvchi roziligi oynasi va haqiqiy Android qurilmasi sinovi bajarilmaguncha natijani to'liq ishlayapti deb belgilamang. Joriy dalillar: `artifacts/auth/google-signin-status.json`.

@@ -308,6 +308,21 @@ input[type='checkbox'] { accent-color: var(--accent); width: 15px; height: 15px;
 .google-sign-in { display: flex; justify-content: center; min-height: 44px; transition: opacity .2s ease; }
 .google-sign-in > div { width: 100%; display: flex; justify-content: center; }
 .google-sign-in.is-busy { pointer-events: none; opacity: .55; }
+.social-providers, .social-code-entry { display: grid; gap: 12px; }
+.social-provider { width: 100%; }
+.google-letter { font-size: 20px; font-weight: 800; color: #4285f4; }
+.social-code-entry { padding: 14px; border: 1px solid var(--border); border-radius: 16px; }
+.social-code-entry .notice { margin: 0; }
+.social-code-entry .text-button { color: var(--muted); padding: 8px; }
+.identity-page { min-height: 100dvh; display: grid; place-items: center; padding: 24px; background: var(--bg); }
+.identity-card { display: grid; justify-items: center; gap: 18px; width: min(100%, 460px); padding: 32px 24px; border: 1px solid var(--border); border-radius: 24px; background: var(--surface); text-align: center; }
+.identity-card h1 { font-size: 25px; margin: 0; }
+.identity-card p { color: var(--muted); line-height: 1.65; margin: 0; }
+.identity-card .button { width: 100%; }
+.identity-eyebrow { color: var(--accent-2); font-size: 12px; font-weight: 800; letter-spacing: .15em; }
+.identity-code { font-size: 34px; letter-spacing: .12em; font-variant-numeric: tabular-nums; }
+.identity-brand { width: 62px; height: 62px; }
+.identity-card small { color: var(--muted); line-height: 1.5; }
 .auth-divider { display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: 11px; }
 .auth-divider::before,.auth-divider::after { content: ''; height: 1px; flex: 1; background: var(--border); }
 .auth-links { display: grid; justify-items: center; gap: 12px; }

@@ -1025,4 +1025,61 @@ class AppLocalizationsUz extends AppLocalizations {
 
   @override
   String get notificationsMarkAllRead => 'Barchasini o\'qilgan deb belgilash';
+
+  @override
+  String get authContinueWithTelegram => 'Telegram orqali kirish';
+
+  @override
+  String get authLinkTelegram => 'Telegram hisobini ulash';
+
+  @override
+  String get authTelegramOpen => 'Telegramni ochish';
+
+  @override
+  String get authTelegramCodeHint =>
+      'Telegram botimiz hisobingizni tasdiqlaydi. Ilovaga qaytib, bot yuborgan 8 xonali kodni kiriting. Kod 5 daqiqagacha amal qiladi.';
+
+  @override
+  String get authTelegramCodeLabel => 'Telegram tasdiqlash kodi';
+
+  @override
+  String get authTelegramConfirm => 'Kirishni tasdiqlash';
+
+  @override
+  String get authTelegramRestart => 'Yangidan boshlash';
+
+  @override
+  String get authTelegramCodeInvalid =>
+      'Kod noto\'g\'ri yoki eskirgan. Kodni tekshiring yoki yangidan boshlang.';
+
+  @override
+  String get authTelegramAccountConflict =>
+      'Bu Telegram boshqa UZDONATE hisobiga ulangan. Mavjud hisobingizga kiring.';
+
+  @override
+  String get authTelegramOpenFailed =>
+      'Telegram ochilmadi. Telegramni o\'rnatib, qayta urinib ko\'ring.';
+
+  @override
+  String get securityTelegramLinked => 'Telegram ulangan';
+
+  @override
+  String get securityTelegramNotLinked => 'Telegram ulanmagan';
+
+  @override
+  String get securityLinkGoogle => 'Google hisobini ulash';
+
+  @override
+  String get authGoogleOpenBrowser => 'Google\'ni brauzerda ochish';
+
+  @override
+  String get authGoogleBrowserCodeHint =>
+      'Google hisobingizni tashqi brauzerda tasdiqlang. Keyin UZDONATE ilovasiga qaytib, olingan 8 xonali kodni kiriting.';
+
+  @override
+  String get authGoogleBrowserCodeLabel => 'Google tasdiqlash kodi';
+
+  @override
+  String get authBrowserOpenFailed =>
+      'Brauzer ochilmadi. Qayta urinib ko\'ring.';
 }
