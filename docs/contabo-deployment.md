@@ -7,9 +7,9 @@ Render or run the same Telegram user session on two hosts.
 
 ## Runtime
 
-- Production release: `/opt/uzdonate/releases/20261016-bc55a0c`.
+- Production release: `/opt/uzdonate/releases/20261016-d897c70`.
 - Production symlink: `/opt/uzdonate/production`.
-- Application code: commit `bc55a0c`; frontend bundle hashes are unchanged.
+- Application code: commit `d897c70`; admin bundle `index-COH6YFC9.js`.
 - Service: `uzdonate-production.service`, enabled across reboots.
 - Listener: `127.0.0.1:4003`; the Node port is not public.
 - Runtime: `/opt/uzdonate/node/bin/node`, Node.js 24.
@@ -79,7 +79,16 @@ minutes and commit with the ledger and audit. 274 isolated backend tests passed,
 including duplicate, concurrent, cancelled, expired and audit-rollback cases. The
 deployed code, draft table and webhook were checked with zero pending updates.
 The owner's example receipt is already REJECTED and was not changed or credited.
-The full corrected-amount flow still needs a human check on a new open receipt.
+The owner subsequently confirmed the receipt bot and admin panel worked.
+
+The admin panel now also offers `Boshqa summa` for card transfers, including
+HUMO and UZCARD. Finance administrators can enter the actual received amount and
+a reason before the final credit confirmation. The original amount and reason
+remain in the audit and ledger. Automatic matching still uses the reserved
+amount; changing an amount requires an authorized payment review. 276 isolated
+backend tests and all five admin browser cases passed. Production readiness,
+encrypted backup and the live card-row button/inputs were verified after release.
+No production request was approved, rejected or credited during these checks.
 
 Admin login was verified in the live browser after the owner supplied the correct
 existing credential. The account remained active and its password was not reset.
