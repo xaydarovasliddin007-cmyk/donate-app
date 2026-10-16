@@ -569,6 +569,15 @@ The original amount, credited amount and reason remain in the ledger and audit.
 Approval, rejection and ledger credit share a row lock and transaction so competing
 reviews cannot credit twice or leave a rejected request with a credited balance.
 
+Telegram receipt messages also offer `Boshqa summa`. The configured private
+reviewer replies to the bot's amount prompt, enters a reason, and confirms the
+exact credited amount in a separate message. A review is bound to that private
+chat and confirmation message, expires after 15 minutes, and survives a restart.
+The final decision, draft consumption, credit and system audit commit together.
+Invalid amounts, stale prompts, cancelled reviews and duplicate confirmations
+cannot credit a wallet. Existing receipt messages can have their keyboard updated
+without changing their review decision.
+
 ## A note on error-handler registration order
 
 `app.setErrorHandler`/`app.setNotFoundHandler` are registered **before** any routes/plugins

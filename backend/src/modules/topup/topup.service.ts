@@ -196,6 +196,7 @@ interface FinalizeVerificationOptions {
   allowExpired?: boolean;
   amountMinor?: number;
   reviewNote?: string;
+  telegramReview?: { id: string; chatId: string; confirmationMessageId: number };
 }
 
 /**
@@ -215,17 +216,28 @@ async function finalizeVerification(ctx: TopUpContext, requestId: string, option
     throw new ConflictError(`Only ${options.allowExpired ? 'PENDING or EXPIRED' : 'PENDING'} top-up requests can be verified (this one is ${request.status})`);
   }
 
-  const amountMinor = options.amountMinor ?? request.amountMinor;
+  let amountMinor = options.amountMinor ?? request.amountMinor;
+  let reviewNote = options.reviewNote?.trim();
+  if (options.telegramReview) {
+    const review = options.telegramReview;
+    await tx.$queryRaw`SELECT id FROM telegram_top_up_reviews WHERE id = ${review.id}::uuid FOR UPDATE`;
+    const draft = await tx.telegramTopUpReview.findUnique({ where: { id: review.id } });
+    if (!draft || draft.topUpRequestId !== request.id || draft.chatId !== review.chatId || draft.confirmationMessageId !== review.confirmationMessageId || draft.state !== 'READY' || draft.expiresAt <= new Date() || draft.amountMinor === null || !draft.reviewNote) throw new ConflictError('Telegram review expired or already used');
+    if (request.channel !== 'BANKOMAT' && request.type !== 'PAYNET_TERMINAL') throw new ValidationError('Only Bankomat amounts may be corrected during review');
+    amountMinor = draft.amountMinor;
+    reviewNote = draft.reviewNote;
+    await tx.telegramTopUpReview.update({ where: { id: draft.id }, data: { state: 'APPLIED' } });
+  }
   if (!Number.isSafeInteger(amountMinor) || amountMinor <= 0 || amountMinor > 2_000_000_000) throw new ValidationError('Invalid confirmed amount');
   if (amountMinor !== request.amountMinor) {
     if (request.channel !== 'BANKOMAT' && request.type !== 'PAYNET_TERMINAL') throw new ValidationError('Only Bankomat amounts may be corrected during review');
-    if (!options.reviewNote?.trim()) throw new ValidationError('A reason is required when changing the amount');
+    if (!reviewNote) throw new ValidationError('A reason is required when changing the amount');
   }
   await walletService.creditTopUpWallet(tx, {
     userId: request.userId,
     amountMinor, requestedAmountMinor: request.amountMinor, currency: request.currency,
     topUpRequestId: request.id,
-    adminId: options.adminId, reviewNote: options.reviewNote?.trim(),
+    adminId: options.adminId, reviewNote,
   });
 
   const reviewed = await tx.topUpRequest.update({
@@ -240,7 +252,8 @@ async function finalizeVerification(ctx: TopUpContext, requestId: string, option
     },
     include: { receivingMethod: true },
   });
-  if (options.adminId) await writeAuditLog(tx, { actorId: options.adminId, action: 'topup.verify', entityType: 'TopUpRequest', entityId: request.id, metadata: { requestedAmountMinor: request.amountMinor, confirmedAmountMinor: amountMinor, reviewNote: options.reviewNote?.trim() ?? null } });
+  if (options.adminId) await writeAuditLog(tx, { actorId: options.adminId, action: 'topup.verify', entityType: 'TopUpRequest', entityId: request.id, metadata: { requestedAmountMinor: request.amountMinor, confirmedAmountMinor: amountMinor, reviewNote: reviewNote ?? null } });
+  if (options.telegramReview) await tx.auditLog.create({ data: { actorType: 'SYSTEM', action: 'telegram.topup.verify', entityType: 'TopUpRequest', entityId: request.id, metadata: { source: 'telegram_review_bot', chatId: options.telegramReview.chatId, reviewId: options.telegramReview.id, requestedAmountMinor: request.amountMinor, confirmedAmountMinor: amountMinor, reviewNote: reviewNote ?? null } } });
   return reviewed;
   });
 
@@ -441,6 +454,10 @@ export async function listTopUpRequestsAdmin(
  */
 export async function verifyTopUpRequest(ctx: TopUpContext, adminId: string | null, topUpRequestId: string, review: { amountMinor?: number; reviewNote?: string } = {}) {
   return finalizeVerification(ctx, topUpRequestId, { adminId: adminId ?? undefined, autoVerified: false, allowExpired: true, ...review });
+}
+
+export async function verifyTelegramTopUpReview(ctx: TopUpContext, topUpRequestId: string, review: { id: string; chatId: string; confirmationMessageId: number }) {
+  return finalizeVerification(ctx, topUpRequestId, { autoVerified: false, allowExpired: true, telegramReview: review });
 }
 
 export async function rejectTopUpRequest(

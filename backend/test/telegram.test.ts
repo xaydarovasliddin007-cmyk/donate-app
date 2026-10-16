@@ -44,6 +44,7 @@ describe('notifyAdmins', () => {
       inline_keyboard: { text: string; callback_data: string }[][];
     };
     expect(keyboard.inline_keyboard[0]?.map((button) => button.text)).toEqual(['✅ Tasdiqlash', '❌ Rad etish']);
+    expect(keyboard.inline_keyboard[1]).toEqual([{ text: '✏️ Boshqa summa', callback_data: `topup:amount:${requestId}` }]);
     expect(keyboard.inline_keyboard[0]?.map((button) => button.callback_data)).toEqual([
       `topup:approve:${requestId}`,
       `topup:reject:${requestId}`,

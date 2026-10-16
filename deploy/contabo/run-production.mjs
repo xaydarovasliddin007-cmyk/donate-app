@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { createRequire } from 'node:module';
+import { spawn } from 'node:child_process';
 
 // systemd decrypts this credential into the service's private memory filesystem.
 // The persistent credential and release archives never contain plaintext keys.
@@ -16,7 +17,14 @@ Object.assign(process.env, {
 });
 delete process.env.RENDER;
 
-if (process.argv.includes('--check')) {
+if (process.argv.includes('--migrate')) {
+  // Contabo is the sole migration owner; use the same pooled-Neon behavior
+  // as the previous production Docker startup. Operators serialize deployments.
+  const child = spawn(process.execPath, [require.resolve('prisma/build/index.js'), 'migrate', 'deploy'], {
+    env: { ...process.env, PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK: '1' }, stdio: 'inherit',
+  });
+  process.exitCode = await new Promise((resolve, reject) => { child.on('error', reject); child.on('close', code => resolve(code ?? 1)); });
+} else if (process.argv.includes('--check')) {
   const { PrismaClient } = require('@prisma/client');
   const prisma = new PrismaClient();
   try {

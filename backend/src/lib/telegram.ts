@@ -1,6 +1,7 @@
 import { env } from '../config/env.js';
 import { ServiceUnavailableError } from './errors.js';
 import { logger } from './logger.js';
+import { topUpReviewKeyboard } from './topup-review-keyboard.js';
 
 const TELEGRAM_API_BASE = 'https://api.telegram.org';
 
@@ -74,12 +75,7 @@ export async function sendTopUpReceiptPhoto(input: {
     `So'rov: <code>${escapeHtml(input.requestId)}</code>\n` +
     `To'lovni tekshirib, quyidan qaror qiling.`,
   );
-  form.append('reply_markup', JSON.stringify({
-    inline_keyboard: [[
-      { text: '✅ Tasdiqlash', callback_data: `topup:approve:${input.requestId}` },
-      { text: '❌ Rad etish', callback_data: `topup:reject:${input.requestId}` },
-    ]],
-  }));
+  form.append('reply_markup', JSON.stringify(topUpReviewKeyboard(input.requestId)));
   const response = await fetch(`${TELEGRAM_API_BASE}/bot${env.TOPUP_REVIEW_BOT_TOKEN}/sendPhoto`, {
     method: 'POST', body: form, signal: AbortSignal.timeout(15_000),
   });

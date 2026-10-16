@@ -15,6 +15,7 @@ import * as topupService from '../topup/topup.service.js';
 import { telegramApi } from './telegram-api.js';
 import { isStorefrontCommand, sendStorefrontCommand } from './telegram-storefront.js';
 import { topUpReviewBotApi } from './topup-review-bot.js';
+import { handleTopUpReviewCallback, handleTopUpReviewReply } from './topup-review-flow.js';
 import { checkStarsCheckout, createStarsInvoice, settleStarsPayment } from './telegram-payments.js';
 
 const authSchema = z.object({ initData: z.string().min(1).max(16384) });
@@ -38,7 +39,7 @@ const updateSchema = z.object({
 });
 const topUpReviewUpdateSchema = z.object({
   update_id: z.number().int(),
-  message: z.object({ from: telegramUser.optional(), chat: z.object({ id: z.number().int(), type: z.string() }), text: z.string().optional() }).optional(),
+  message: z.object({ message_id: z.number().int().optional(), from: telegramUser.optional(), chat: z.object({ id: z.number().int(), type: z.string() }), text: z.string().optional(), reply_to_message: z.object({ message_id: z.number().int() }).optional() }).optional(),
   callback_query: z.object({
     id: z.string().min(1),
     from: telegramUser,
@@ -163,8 +164,10 @@ export async function telegramRoutes(app: FastifyInstance) {
       await topUpReviewBotApi('sendMessage', { chat_id: setupMessage.chat.id, parse_mode: 'HTML', text: `UZDONATE cheklarni tekshirish boti.\n\nSizning Chat ID: <code>${setupMessage.chat.id}</code>\n\nCheklarni shu hisobga olish uchun ushbu IDni UZDONATE administratoriga bering. Bu xabar sizga to‘lovlarni tasdiqlash huquqini bermaydi.` });
       return { ok: true };
     }
+    if (setupMessage && await handleTopUpReviewReply(ctx, setupMessage)) return { ok: true };
     const callback = parsed.data.callback_query;
     if (!callback) return { ok: true };
+    if (await handleTopUpReviewCallback(ctx, callback)) return { ok: true };
 
     const configuredChatId = env.TOPUP_REVIEW_CHAT_ID;
     const message = callback.message;

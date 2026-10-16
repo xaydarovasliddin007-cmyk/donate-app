@@ -919,6 +919,7 @@ model TopUpRequest {
   walletTransactions WalletTransaction[]
 
   receipt TopUpReceipt?
+  telegramReviews TelegramTopUpReview[]
 
   @@index([userId])
   @@index([status])
@@ -930,6 +931,26 @@ model TopUpRequest {
   @@index([status, amountMinor])
   @@index([channel, status, amountMinor])
   @@map("top_up_requests")
+}
+
+model TelegramTopUpReview {
+  id String @id @default(uuid()) @db.Uuid
+  topUpRequestId String @map("top_up_request_id") @db.Uuid
+  topUpRequest TopUpRequest @relation(fields: [topUpRequestId], references: [id], onDelete: Cascade)
+  chatId String @map("chat_id")
+  receiptMessageId Int @map("receipt_message_id")
+  triggerCallbackId String @unique @map("trigger_callback_id")
+  promptMessageId Int? @map("prompt_message_id")
+  confirmationMessageId Int? @map("confirmation_message_id")
+  amountMinor Int? @map("amount_minor")
+  reviewNote String? @map("review_note")
+  state String @default("AMOUNT")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([chatId, promptMessageId])
+  @@index([expiresAt])
+  @@map("telegram_top_up_reviews")
 }
 
 model TopUpReceipt {
