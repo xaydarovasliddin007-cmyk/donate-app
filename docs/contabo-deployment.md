@@ -7,9 +7,9 @@ Render or run the same Telegram user session on two hosts.
 
 ## Runtime
 
-- Production release: `/opt/uzdonate/releases/20261016-contabo-c39f036`.
+- Production release: `/opt/uzdonate/releases/20261016-bc55a0c`.
 - Production symlink: `/opt/uzdonate/production`.
-- Code and both built frontends: commit `c39f036e5cf5956f8f1bc172c1a336a3c33f3897`.
+- Application code: commit `bc55a0c`; frontend bundle hashes are unchanged.
 - Service: `uzdonate-production.service`, enabled across reboots.
 - Listener: `127.0.0.1:4003`; the Node port is not public.
 - Runtime: `/opt/uzdonate/node/bin/node`, Node.js 24.
@@ -34,7 +34,7 @@ private credential directory; never print or copy the decrypted content.
 
 The customer/admin signing secrets and the existing Neon PostgreSQL connection
 were preserved. Neon is an independent database service; the application no
-longer needs Render. The preflight confirmed 33 applied migrations, normal write
+longer needs Render. The migration preflight confirmed 33 applied migrations, normal write
 permissions, 58 existing accounts and one existing order before browser checks.
 No database seed, balance credit, purchase or rejection was performed.
 
@@ -62,7 +62,7 @@ The main bot `@uzdonate1bot` and receipt bot `@uzdonateadminbot` both have HTTPS
 webhooks at the domain, zero pending updates and no last webhook error. The
 Contabo journal confirms the card transaction listener connected and both
 webhooks were configured. The Google web client and popup/referrer headers are
-unchanged.
+unchanged. The Telegram amount-review update has now applied migration 34.
 
 On 16 October 2026, the receipt recipient was corrected to the private Chat ID
 provided by the owner after sending `/id` to `@uzdonateadminbot`. Telegram
@@ -70,8 +70,20 @@ provided by the owner after sending `/id` to `@uzdonateadminbot`. Telegram
 Only `TOPUP_REVIEW_CHAT_ID` changed inside the encrypted credential; every other
 setting was preserved. After restarting production, the saved recipient matched,
 the webhook had zero pending updates, and both webhooks and the card listener
-started successfully. A real mini-app receipt upload still needs user confirmation.
-Durable admin receipt storage remains available independently of Telegram.
+started successfully. The owner's screenshot confirms a real receipt reached the
+bot. Durable admin receipt storage remains available independently of Telegram.
+
+Receipt messages now offer `Boshqa summa`: enter the amount, give a reason, then
+confirm the exact credit. Drafts are private-chat/message bound, expire after 15
+minutes and commit with the ledger and audit. 274 isolated backend tests passed,
+including duplicate, concurrent, cancelled, expired and audit-rollback cases. The
+deployed code, draft table and webhook were checked with zero pending updates.
+The owner's example receipt is already REJECTED and was not changed or credited.
+The full corrected-amount flow still needs a human check on a new open receipt.
+
+Admin login was verified in the live browser after the owner supplied the correct
+existing credential. The account remained active and its password was not reset.
+The unused local recovery form was stopped and its temporary server helper removed.
 
 The following pre-existing provider issue remains separate from hosting:
 
@@ -101,3 +113,9 @@ Check migration status and take a verified encrypted backup before any schema
 change. Preserve the encrypted credential, active mode override and nginx site.
 Restart only `uzdonate-production`; never bring Render back during a normal
 release. Keep previous releases for recovery and do not modify the UzPost apps.
+
+`deploy/contabo/promote-release.sh <release-directory-name>` serializes a prepared
+release, runs a verified encrypted backup, applies migrations, checks the candidate,
+switches the symlink and restarts the one production service. If readiness fails,
+it restores the prior release. The backup process completion race found during
+this release was fixed and two consecutive backup/decryption checks succeeded.
