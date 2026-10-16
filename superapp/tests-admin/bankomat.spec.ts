@@ -28,8 +28,9 @@ async function mockPanel(page: Page, manual = true) {
   return { calls, imageAuth: () => imageAuth };
 }
 
-test('Bankomat actual amount requires a reason and an explicit amount confirmation', async ({ page }) => {
-  const { calls } = await mockPanel(page);
+for (const manual of [true, false]) {
+test(`${manual ? 'Bankomat' : 'Card transfer'} actual amount requires a reason and an explicit amount confirmation`, async ({ page }) => {
+  const { calls } = await mockPanel(page, manual);
   await page.getByRole('button', { name: 'Boshqa summa', exact: true }).click();
   await page.getByLabel('Haqiqiy tushgan summa, so‘m').fill('48 000,50');
   await page.getByRole('button', { name: 'Tasdiqlash', exact: true }).click();
@@ -41,11 +42,12 @@ test('Bankomat actual amount requires a reason and an explicit amount confirmati
   await expect(dialog).toContainText('foydalanuvchi balansiga');
   await expect(dialog).toContainText('UZS');
   expect(calls).toHaveLength(0);
-  await page.screenshot({ path: '../artifacts/payments/admin-bankomat-confirmation-preview.png', animations: 'disabled' });
+  await page.screenshot({ path: `../artifacts/payments/admin-${manual ? 'bankomat' : 'card'}-confirmation-preview.png`, animations: 'disabled' });
   await dialog.getByRole('button', { name: 'Tasdiqlash', exact: true }).click();
   await expect(page.getByText('Test Bankomat User', { exact: true })).toHaveCount(0);
   expect(calls).toEqual([{ body: { amountMinor: 4_800_050, reviewNote: 'Bank ko‘chirmasidagi haqiqiy summa' } }]);
 });
+}
 
 test('cancelling a top-up confirmation never credits a payment', async ({ page }) => {
   const { calls } = await mockPanel(page);
@@ -66,7 +68,16 @@ test('receipt preview authenticates its image request and uses a local blob URL'
   await expect(dialog).toHaveCount(0);
 });
 
-test('automatic card payments do not expose a manual amount override', async ({ page }) => {
-  await mockPanel(page, false);
-  await expect(page.getByRole('button', { name: 'Boshqa summa', exact: true })).toHaveCount(0);
+test('cancelling a card amount edit restores the requested amount without submitting a payment', async ({ page }) => {
+  const { calls } = await mockPanel(page, false);
+  await page.screenshot({ path: '../artifacts/payments/admin-card-other-amount-preview.png', animations: 'disabled' });
+  await page.getByRole('button', { name: 'Boshqa summa', exact: true }).click();
+  await page.getByLabel('Haqiqiy tushgan summa, so‘m').fill('48 000');
+  await page.getByLabel('Summa o‘zgarishi sababi').fill('Bank ko‘chirmasidagi haqiqiy summa');
+  await page.getByRole('button', { name: 'So‘ralgan summani qoldirish', exact: true }).click();
+  await expect(page.getByLabel('Haqiqiy tushgan summa, so‘m')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Boshqa summa', exact: true }).click();
+  await expect(page.getByLabel('Haqiqiy tushgan summa, so‘m')).toHaveValue('50000');
+  await expect(page.getByLabel('Summa o‘zgarishi sababi')).toHaveValue('');
+  expect(calls).toHaveLength(0);
 });

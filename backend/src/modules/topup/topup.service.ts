@@ -230,7 +230,7 @@ async function finalizeVerification(ctx: TopUpContext, requestId: string, option
   }
   if (!Number.isSafeInteger(amountMinor) || amountMinor <= 0 || amountMinor > 2_000_000_000) throw new ValidationError('Invalid confirmed amount');
   if (amountMinor !== request.amountMinor) {
-    if (request.channel !== 'BANKOMAT' && request.type !== 'PAYNET_TERMINAL') throw new ValidationError('Only Bankomat amounts may be corrected during review');
+    if (!options.adminId && !options.telegramReview) throw new ValidationError('Amount changes require an authorized payment review');
     if (!reviewNote) throw new ValidationError('A reason is required when changing the amount');
   }
   await walletService.creditTopUpWallet(tx, {

@@ -59,7 +59,6 @@ function TopUpRow({ request, onChanged }: { request: TopUpRequestAdmin; onChange
   const [reviewNote, setReviewNote] = useState('');
   const [confirmation, setConfirmation] = useState<number | null>(null);
   const mutation = useRef(false);
-  const manual = request.channel === 'BANKOMAT' || request.type === 'PAYNET_TERMINAL';
 
   function prepareVerify() {
     const confirmed = editingAmount ? parseTopUpAmount(amount) : request.amountMinor;
@@ -154,7 +153,7 @@ function TopUpRow({ request, onChanged }: { request: TopUpRequestAdmin; onChange
                 <button className="btn btn-primary" disabled={busy} onClick={prepareVerify}>
                   {t('topups.verify')}
                 </button>
-                {manual && <button className="btn btn-secondary" disabled={busy} onClick={() => { setEditingAmount(value => !value); setAmount(String(request.amountMinor / 100)); setReviewNote(''); setRowError(null); }}>{editingAmount ? t('topups.cancelAmount') : t('topups.otherAmount')}</button>}
+                <button className="btn btn-secondary" disabled={busy} onClick={() => { setEditingAmount(value => !value); setAmount(String(request.amountMinor / 100)); setReviewNote(''); setRowError(null); }}>{editingAmount ? t('topups.cancelAmount') : t('topups.otherAmount')}</button>
                 {(request.status === 'PENDING' || request.status === 'EXPIRED') && (
                   <button className="btn btn-danger" disabled={busy} onClick={() => setRejecting(true)}>
                     {t('topups.reject')}

@@ -128,7 +128,22 @@ describe('Bankomat receipts and confirmed payment amounts', () => {
     await assertUncredited(user.id, request.id);
   });
 
-  it('rejects invalid amounts, missing change reasons and changes to automatic card amounts', async () => {
+  it.each(['HUMO', 'UZCARD'] as const)('lets finance review a %s card transfer with its actual amount and audit reason', async (channel) => {
+    const { user, request } = await fixture(false);
+    await app.prisma.topUpRequest.update({ where: { id: request.id }, data: { channel } });
+    const review = { amountMinor: 4_800_050, reviewNote: 'Actual card transfer checked against the bank statement' };
+    const response = await app.inject({ method: 'POST', url: `/api/v1/admin/topups/${request.id}/verify`, headers: adminHeaders(), payload: review });
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({ status: 'VERIFIED', amountMinor: review.amountMinor, autoVerified: false });
+    expect((await app.prisma.wallet.findUniqueOrThrow({ where: { userId: user.id } })).balanceMinor).toBe(review.amountMinor);
+    const metadata = { requestedAmountMinor: 5_000_000, confirmedAmountMinor: review.amountMinor, reviewNote: review.reviewNote };
+    expect((await app.prisma.walletTransaction.findUniqueOrThrow({ where: { idempotencyKey: `topup:${request.id}` } })).metadata).toMatchObject(metadata);
+    expect((await app.prisma.auditLog.findFirstOrThrow({ where: { entityId: request.id, action: 'topup.verify' } })).metadata).toMatchObject(metadata);
+    expect((await app.inject({ method: 'POST', url: `/api/v1/admin/topups/${request.id}/verify`, headers: adminHeaders(), payload: review })).statusCode).toBe(409);
+    expect(await app.prisma.walletTransaction.count({ where: { topUpRequestId: request.id } })).toBe(1);
+  });
+
+  it('rejects invalid amounts, missing change reasons and unauthorized amount changes', async () => {
     const { user, request } = await fixture();
     for (const amountMinor of [-1, 0, 1.5, 2_000_000_001]) {
       expect((await app.inject({ method: 'POST', url: `/api/v1/admin/topups/${request.id}/verify`, headers: adminHeaders(), payload: { amountMinor, reviewNote: 'Checked' } })).statusCode).toBe(400);
@@ -136,7 +151,11 @@ describe('Bankomat receipts and confirmed payment amounts', () => {
     expect((await app.inject({ method: 'POST', url: `/api/v1/admin/topups/${request.id}/verify`, headers: adminHeaders(), payload: { amountMinor: 4_800_000 } })).statusCode).toBe(400);
     await assertUncredited(user.id, request.id);
     const card = await fixture(false);
-    await expect(verifyTopUpRequest({ prisma: app.prisma }, adminId, card.request.id, { amountMinor: 4_800_000, reviewNote: 'Checked' })).rejects.toThrow('Only Bankomat');
+    const review = { amountMinor: 4_800_000, reviewNote: 'Checked' };
+    expect((await app.inject({ method: 'POST', url: `/api/v1/admin/topups/${card.request.id}/verify`, payload: review })).statusCode).toBe(401);
+    expect((await app.inject({ method: 'POST', url: `/api/v1/admin/topups/${card.request.id}/verify`, headers: adminHeaders('CONTENT_MANAGER'), payload: review })).statusCode).toBe(403);
+    expect((await app.inject({ method: 'POST', url: `/api/v1/admin/topups/${card.request.id}/verify`, headers: adminHeaders(), payload: { amountMinor: review.amountMinor } })).statusCode).toBe(400);
+    await expect(verifyTopUpRequest({ prisma: app.prisma }, null, card.request.id, review)).rejects.toThrow('authorized payment review');
     await assertUncredited(card.user.id, card.request.id);
   });
 
