@@ -1,0 +1,29 @@
+[Unit]
+Description=UZDONATE production API, website and Telegram integrations
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=uzdonate
+Group=uzdonate
+WorkingDirectory=/opt/uzdonate/production/backend
+LoadCredentialEncrypted=environment:/etc/credstore.encrypted/uzdonate-production
+Environment=PATH=/opt/uzdonate/node/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+Environment=UZDONATE_RUNTIME_MODE=standby
+ExecStart=/opt/uzdonate/node/bin/node /opt/uzdonate/production/deploy/contabo/run-production.mjs
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=45
+KillSignal=SIGTERM
+UMask=0077
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectHome=yes
+ProtectSystem=strict
+StateDirectory=uzdonate-production
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+MemoryMax=1536M
+
+[Install]
+WantedBy=multi-user.target

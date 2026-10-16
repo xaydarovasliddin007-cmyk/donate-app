@@ -1,0 +1,17 @@
+[Unit]
+Description=Encrypted UZDONATE database backup
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/uzdonate/production/backend
+LoadCredentialEncrypted=environment:/etc/credstore.encrypted/uzdonate-production
+ExecStart=/opt/uzdonate/node/bin/node /opt/uzdonate/production/deploy/contabo/backup-production.mjs
+UMask=0077
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectHome=yes
+ProtectSystem=strict
+ReadWritePaths=/var/backups/uzdonate
+TimeoutStartSec=15min
