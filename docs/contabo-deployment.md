@@ -64,11 +64,17 @@ Contabo journal confirms the card transaction listener connected and both
 webhooks were configured. The Google web client and popup/referrer headers are
 unchanged.
 
-Two pre-existing application issues remain separate from hosting:
+On 16 October 2026, the receipt recipient was corrected to the private Chat ID
+provided by the owner after sending `/id` to `@uzdonateadminbot`. Telegram
+`getChat` confirmed the private chat is accessible and is not the receipt bot.
+Only `TOPUP_REVIEW_CHAT_ID` changed inside the encrypted credential; every other
+setting was preserved. After restarting production, the saved recipient matched,
+the webhook had zero pending updates, and both webhooks and the card listener
+started successfully. A real mini-app receipt upload still needs user confirmation.
+Durable admin receipt storage remains available independently of Telegram.
 
-- The receipt recipient is the receipt bot's own ID. A human owner must send
-  `/id` to `@uzdonateadminbot` and provide the returned private Chat ID before
-  Telegram receipt delivery can work. Durable admin receipt storage still works.
+The following pre-existing provider issue remains separate from hosting:
+
 - The configured ReSellCodes key returns HTTP 401 in a read-only catalog check;
   its currency conversion rate is also absent. A valid provider setup is needed
   before claiming real game fulfillment works. No real purchase was tested.
